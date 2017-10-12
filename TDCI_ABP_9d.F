@@ -33,7 +33,7 @@ C*******************************************************************************
       CHARACTER*80 PATH,FILENAME,EFile,TDCIdata
       CHARACTER*160 FULLNAME
       INTEGER::NStates,MaxStep,Ncyc,Ecnt,N,ct,envelope,IOut,iwrite,
-     $ NStUse,outstep,Lscratch,Lscratch1,NEmax,Ndir,INFO,I,J,IJ
+     $ NStUse,outstep,Lscratch,Lscratch1,NEmax,Ndir,DirForm,INFO,I,J,IJ
       INTEGER::NBasis,NRorb,NOA,NVA,NOB,NVB,NOANVA,NOBNVB,NTT,len,Ndata
       COMPLEX*16,ALLOCATABLE,DIMENSION(:)::Psi,Psi1,Psi2,CIdata
       REAL*8,ALLOCATABLE,DIMENSION(:)::OrbEn,CMOA,CMOB,
@@ -78,6 +78,11 @@ C*******************************************************************************
  1240 Format(" NStates = ",I8," NStUse = ",I8," Max(CISeig) = ",F10.4)
  1241 Format(" Heuristic lifetime = ",F8.4," Sqrt(CISeig-Ionization)")
  2345 FORMAT(2X,A21,I7)
+ 
+      NAMELIST /Field/ omega, ncyc, envelope, phase, NEmax, NDir,
+     $ DirForm
+      NAMELISt /System/ EigMax, Ionization, maxstep, delta, outstep,
+     $ iwrite, dipx, dipy, dipz, Heuristic
 C
 C     !==========================================================!
 C     ! Creating log file and debug directory                    !
@@ -104,28 +109,9 @@ C     Check to see if 'input' is present
 C
 C     Open and read 'input'      
       OPEN(10,FILE='input')
-      DO ct=1, 16
-         READ(10,*)EVec(ct)
-      END DO
-C
-C     Assign info from 'input' to variables      
-C
-      EigMax =      Evec(1)
-      Ionization =  EVec(2)
-      maxstep = Int(EVec(3))
-      delta   =     EVec(4)
-      omega   =     EVec(5)
-      ncyc    = Int(EVec(6))
-      envelope= Int(EVec(7))
-      phase   =     EVec(8)
-      outstep = Int(EVec(9))
-      iwrite  = Int(EVec(10))
-      dipx    =     EVec(11)
-      dipy    =     EVec(12)
-      dipz    =     EVec(13)
-      Heuristic =   EVec(14)
-      NEmax   = Int(EVec(15))
-      Ndir    = IAbs(Int(EVec(16)))
+      READ(10,NML=Field)
+      READ(10,NML=System)
+      
       Ndata = NEmax*Ndir
       If(EigMax.eq.Zero) EigMax = 1.D40
       If(envelope.gt.6) Linear=.False.
@@ -143,7 +129,7 @@ C     if NDir > 0, read (x,y,z) vector and normalize
 C     if NDir < 0, read polar angles theta and phi
 C
       Fac = Pi/180.D0
-      If(EVec(16).gt.Zero) then
+      If(DirForm.gt.Zero) then
         Do I = 1,NDir
           Read(10,*) DirxVec(I),DiryVec(I),DirzVec(I)
           NormD = Sqrt(DirxVec(I)**2+DiryVec(I)**2+DirzVec(I)**2)
