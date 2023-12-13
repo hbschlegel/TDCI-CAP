@@ -65,16 +65,18 @@ contains
     end select
     
     !: system size info   
-    write(iout,"(5x,'nbasis  = ',i0)") nbasis
-    write(iout,"(5x,'noa     = ',i0)") noa
-    write(iout,"(5x,'nva     = ',i0)") nva
-    write(iout,"(5x,'nob     = ',i0)") nob
-    write(iout,"(5x,'nvb     = ',i0)") nvb
-    write(iout,"(5x,'norb    = ',i0)") norb
-    write(iout,"(5x,'nrorb   = ',i0)") nrorb
-    write(iout,"(5x,'noanva  = ',i0)") noanva
-    write(iout,"(5x,'nobnvb  = ',i0)") nobnvb
-    write(iout,"(5x,'nstates = ',i0)") nstates
+    write(iout,"(5x,'nbasis   = ',i0)") nbasis
+    write(iout,"(5x,'noa      = ',i0)") noa
+    write(iout,"(5x,'nva      = ',i0)") nva
+    write(iout,"(5x,'nob      = ',i0)") nob
+    write(iout,"(5x,'nvb      = ',i0)") nvb
+    write(iout,"(5x,'nactive  = ',i0)") nactive
+    write(iout,"(5x,'nvirtual = ',i0)") nvirtual
+    write(iout,"(5x,'norb     = ',i0)") norb
+    write(iout,"(5x,'nrorb    = ',i0)") nrorb
+    write(iout,"(5x,'noanva   = ',i0)") noanva
+    write(iout,"(5x,'nobnvb   = ',i0)") nobnvb
+    write(iout,"(5x,'nstates  = ',i0)") nstates
     
     !: field info
     write( iout, '(A)' )  ' FIELD VARIABLES'

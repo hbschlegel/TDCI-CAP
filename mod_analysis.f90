@@ -1059,6 +1059,7 @@ contains
          if(tmprate(aa).lt.0.99d0) nva99 = aa
        end do
        write(iout,8889) rate,nva,nva95,nva99
+       tmprate = 0.D0
        tmprate(1) = abs(density(1)*vabs_a(1,1))
        do i = 2,noa+nva
          tmprate(i) = tmprate(i-1) + abs(density(i+(i-1)*ndim)*vabs_a(i,i))
@@ -1366,10 +1367,14 @@ contains
             if( jj.gt.0 .and. yy.gt.0 ) rate_bb( jj, yy) = rate_bb( jj, yy) + psi2 * rdum
           end if
           if( ii.eq.0 .and. jj.eq.0 ) then 
-            if( xx.lt.0 .and. yy.lt.0 ) rate_aa(-xx,-yy) = rate_aa(-xx,-yy) + psi2 * rdum
-            if( xx.lt.0 .and. yy.gt.0 ) rate_ab(-xx, yy) = rate_ab(-xx, yy) + psi2 * rdum
-            if( xx.gt.0 .and. yy.lt.0 ) rate_ba( xx,-yy) = rate_ba( xx,-yy) + psi2 * rdum
-            if( xx.gt.0 .and. yy.gt.0 ) rate_bb( xx, yy) = rate_bb( xx, yy) + psi2 * rdum
+            if( xx.lt.0 .and. yy.lt.0 .and. -xx.ge.-yy) rate_aa(-xx,-yy) = rate_aa(-xx,-yy) + psi2 * rdum
+            if( xx.lt.0 .and. yy.lt.0 .and. -xx.lt.-yy) rate_aa(-yy,-xx) = rate_aa(-yy,-xx) + psi2 * rdum
+            if( xx.lt.0 .and. yy.gt.0 .and. -xx.ge. yy) rate_ab(-xx, yy) = rate_ab(-xx, yy) + psi2 * rdum
+            if( xx.lt.0 .and. yy.gt.0 .and. -xx.lt. yy) rate_ab( yy,-xx) = rate_ab( yy,-xx) + psi2 * rdum
+            if( xx.gt.0 .and. yy.lt.0 .and.  xx.ge.-yy) rate_ba( xx,-yy) = rate_ba( xx,-yy) + psi2 * rdum
+            if( xx.gt.0 .and. yy.lt.0 .and.  xx.lt.-yy) rate_ba(-yy, xx) = rate_ba(-yy, xx) + psi2 * rdum
+            if( xx.gt.0 .and. yy.gt.0 .and.  xx.ge. yy) rate_bb( xx, yy) = rate_bb( xx, yy) + psi2 * rdum
+            if( xx.gt.0 .and. yy.gt.0 .and.  xx.lt. yy) rate_bb( yy, xx) = rate_bb( yy, xx) + psi2 * rdum
           end if
           end do
  
@@ -1413,6 +1418,7 @@ contains
        end do
 !:       write(iout,8888) (tmprate(aa)/tmpsum,aa=1,nva)
 !:       flush(iout)
+       tmprate = 0.D0
        tmprate(1) = tmprate(1)/tmpsum
        do aa = 2,nva
          tmprate(aa) = tmprate(aa-1)+tmprate(aa)/tmpsum
