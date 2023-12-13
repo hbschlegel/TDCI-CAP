@@ -80,6 +80,9 @@
       NROrb = NBsUse - NFC - NFV
       NVA = NRORB - NOA
       NVB = NRORB - NOB
+ 
+      If(nactive.gt.NOA) nactive = NOA
+      If(nvirtual.gt.NVA) nvirtual = NVA
 
     !: allocate coordinate arrays
     allocate( xcoord(natoms), ycoord(natoms), zcoord(natoms), myatom(natoms) )    

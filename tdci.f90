@@ -74,13 +74,12 @@ program main
   if ( Qget_ham0 ) then
      select case ( trim(jobtype) ) 
      case( flag_cis ) 
-        call get_cis
+        call get_cisN
         cis_vec(1)=-500.d0
         call diagonalize
         cis_eig(1)=0.d0     
         call get_sip_cis
      case( flag_soc ) 
-!:        call get_soc_cis
         call get_soc_cisN
         call Zdiagonalize
         call get_sip_soc

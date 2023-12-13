@@ -45,8 +45,8 @@ contains
                                 read_shift, ion_sample_start, ion_sample_width, ion_sample_state
     namelist /FIELD_directions/ ndir, read_theta, read_phi, read_x, read_y, read_z 
     namelist /SYSTEM/           dt, eigmax, heuristic, ionization, jobtype, nstep, outstep, &
-                                nactive, IP_alpha_beta, socfac, socfacz, ffieldx, ffieldy, ffieldz, &
-                                QsocA2B, QeigenDC, Qserial
+                                nactive, nvirtual, IP_alpha_beta, socfac, socfacz, ffieldx, &
+                                ffieldy, ffieldz, QsocA2B, QeigenDC, Qserial
     namelist /SYSTEM_units/     dt_units, eigmax_units
     namelist /InOutFILES/       tdcidatfile, outputfile, restartbinfile, &
                                 Qread_TDCIdata, Qwrite_ion_coeff, Qread_ion_coeff, Qmo_dens, Qci_save
@@ -186,6 +186,7 @@ contains
     nstep      = 16000
     outstep    = 50
     nactive    = -1
+    nvirtual   = -1
     socfac     = 1.D0
     socfacz    = 1.D0
     ffieldx    = 0.d0
@@ -228,7 +229,10 @@ contains
     read(10,*)     nbasis, nrorb, noa, nva, nob, nvb, unrstedflag, vabsflag
     read(10,'(A)') job_title
     read(10,*)     Icharg, Multip, natoms    
-    
+   
+    if(nactive.gt.noa) nactive = noa
+    if(nvirtual.gt.nva) nvirtual = nva 
+
     !: allocate coordinate arrays
     allocate( xcoord(natoms), &
          ycoord(natoms), &
@@ -262,7 +266,7 @@ contains
     !: set global variables.  convert units to atomic units
     implicit none
     
-    integer(8) :: itheta, iphi, idir, nphi, ntheta, natrim, nbtrim
+    integer(8) :: itheta, iphi, idir, nphi, ntheta, natrim, nbtrim, nva1, nvb1
     real(8) :: norm, dumtheta, dumphi, dtheta, dphi
     logical :: iamhere, gen_direction
     
@@ -450,6 +454,10 @@ contains
 
     
     !: parameters for unrestricted or restricted
+    nva1 = nva
+    if(nvirtual.gt.0) nva1 = nvirtual
+    nvb1 = nvb
+    if(nvirtual.gt.0) nvb1 = nvirtual + noa - nob
     select case( trim(jobtype) ) 
     case( flag_cis )
        noanva = noa*nva
@@ -457,12 +465,12 @@ contains
        if(unrstedflag.ne.0) then
           unrestricted  = .True.
           norb          = noa + nva + nob + nvb
-          nstates       = noanva + nobnvb + 1
+          nstates       = noa*nva1 + nob*nvb1 + 1
           ip_states = noa + nob
        else
           unrestricted = .False.
           norb         = nrorb
-          nstates      = noanva + 1
+          nstates      = noa*nva1 + 1
           ip_states = noa
        end if
     case( flag_soc )
@@ -471,8 +479,8 @@ contains
        nobnvb = nob*nvb
        noanvb = noa*nvb
        nobnva = nob*nva
-       nstates = noanva + nobnvb + noanvb + nobnva + 1 
-       If(.not.QsocA2B) nstates = nstates - noanvb -nobnva
+       nstates = noa*nva1 + nob*nvb1 + noa*nvb1 + nob*nva1 + 1 
+       If(.not.QsocA2B) nstates = nstates - noa*nvb1 -nob*nva1
        norb = noa + nva + nob + nvb
        ip_states = noa + nob
     case( flag_tda )
@@ -481,11 +489,11 @@ contains
        if(unrstedflag.ne.0) then
           unrestricted  = .True.
           norb          = noa + nva + nob + nvb
-          nstates       = noanva + nobnvb + 1
+          nstates       = noa*nva1 + nob*nvb1 + 1
           ip_states = noa + nob
        else
           unrestricted = .False.
-          nstates      = noanva + 1
+          nstates      = noa*nva1 + 1
           norb         = nrorb
           ip_states = noa
        end if
@@ -495,25 +503,25 @@ contains
           noanva       = noa*nva
           nobnvb       = nob*nvb
           norb         = noa + nva + nob + nvb
-          nstates      = nob*(nob-1)/2*nvb + nob*noanva + nob
+          nstates      = nob*(nob-1)/2*nvb1 + nob*noa*nva1 + nob
           ip_states    = nob*(nob-1)/2 + nob*noa
           read_states  = nob
           if(nactive.gt.0) then 
-             nstates=nactive*(noanva+nobnvb)+nactive- &
-                     ((nactive+1)*nactive/2)*nvb
+             nstates=nactive*(noa*nva1+nob*nvb1)+nactive- &
+                     ((nactive+1)*nactive/2)*nvb1
              read_states = nactive
           end If
        else
           noanva       = noa*nva
           nobnvb       = nob*nvb
           norb         = noa + nva + nob + nvb
-          nstates      = nob*(nob-1)/2*nvb + nob*noanva + nob +  &
-                         noa*(noa-1)/2*nva + noa*nobnvb + noa           
+          nstates      = nob*(nob-1)/2*nvb1 + nob*noa*nva1 + nob +  &
+                         noa*(noa-1)/2*nva1 + noa*nob*nvb1 + noa           
           ip_states    = noa*(noa-1)/2 + nob*(nob-1)/2 + noa*nob           
           read_states  = noa + nob
           if(nactive.gt.0) then
-             nstates=2*nactive*(noanva+nobnvb)+2*nactive- &
-                     ((nactive+1)*nactive/2)*(nva+nvb)
+             nstates=2*nactive*(noa*nva1+nob*nvb1)+2*nactive- &
+                     ((nactive+1)*nactive/2)*(nva1+nvb1)
              read_states = 2*nactive
           end If
        end if
@@ -523,15 +531,15 @@ contains
           noanva       = noa*nva
           nobnvb       = nob*nvb
           norb         = noa + nva + nob + nvb
-          nstates      = (nob*(nob-1)/2)*(nva+nvb) + nob*noanva + nob
-          if(.not.QsocA2B) nstates = nstates - (nob*(nob-1)/2)*nva
+          nstates      = (nob*(nob-1)/2)*(nva1+nvb1) + nob*noa*nva1 + nob
+          if(.not.QsocA2B) nstates = nstates - (nob*(nob-1)/2)*nva1
           ip_states    = noa*(noa-1)/2 + noa*nob           
           read_states  = nob
           if(nactive.gt.0) then
              nbtrim = nob - nactive
-             nstates=nstates-nbtrim-(nbtrim*(nbtrim-1)/2)*(nva+nvb)-natrim*nbtrim*(nva+nvb)
-!:             nstates=nstates-nbtrim-(nbtrim*(nbtrim-1)/2)*(nva+nvb)-nbtrim*noanva
-             if(.not.QsocA2B) nstates = nstates + (nbtrim*(nbtrim-1)/2)*nva
+             nstates=nstates-nbtrim-(nbtrim*(nbtrim-1)/2)*(nva1+nvb1)-natrim*nbtrim*(nva1+nvb1)
+!:             nstates=nstates-nbtrim-(nbtrim*(nbtrim-1)/2)*(nva1+nvb1)-nbtrim*noa*nva1
+             if(.not.QsocA2B) nstates = nstates + (nbtrim*(nbtrim-1)/2)*nva1
              ip_states=ip_states-nbtrim*(nbtrim-1)/2-nbtrim*noa
              read_states = nactive
           end if  
@@ -539,18 +547,18 @@ contains
           noanva       = noa*nva
           nobnvb       = nob*nvb
           norb         = noa + nva + nob + nvb
-          nstates      = noa*(noa-1)/2*(nva+nvb) + noa + nob +  &
-                         nob*(nob-1)/2*(nva+nvb) + noa*nob*(nva+nvb)           
-          if(.not.QsocA2B) nstates = nstates - (noa*(noa-1)/2)*nvb - (nob*(nob-1)/2)*nva
+          nstates      = noa*(noa-1)/2*(nva1+nvb1) + noa + nob +  &
+                         nob*(nob-1)/2*(nva1+nvb1) + noa*nob*(nva1+nvb1)           
+          if(.not.QsocA2B) nstates = nstates - (noa*(noa-1)/2)*nvb1 - (nob*(nob-1)/2)*nva1
           ip_states    = noa*(noa-1)/2 + nob*(nob-1)/2 + noa*nob           
           read_states  = noa + nob
           if(nactive.gt.0) then
              natrim = noa - nactive
              nbtrim = nob - nactive
-             nstates=nstates-natrim*(natrim-1)/2*(nva+nvb)-natrim-nbtrim- &
-               nbtrim*(nbtrim-1)/2*(nva+nvb)-natrim*nbtrim*(nva+nvb)
-             if(.not.QsocA2B) nstates = nstates + (natrim*(natrim-1)/2)*nvb &
-                                                + (nbtrim*(nbtrim-1)/2)*nva
+             nstates=nstates-natrim*(natrim-1)/2*(nva1+nvb1)-natrim-nbtrim- &
+               nbtrim*(nbtrim-1)/2*(nva1+nvb1)-natrim*nbtrim*(nva1+nvb1)
+             if(.not.QsocA2B) nstates = nstates + (natrim*(natrim-1)/2)*nvb1 &
+                                                + (nbtrim*(nbtrim-1)/2)*nva1
              ip_states=ip_states-natrim*(natrim-1)/2+nbtrim*(nbtrim-1)/2-natrim*nbtrim
              read_states = 2*nactive
           end if
@@ -590,6 +598,7 @@ contains
   ! SUBROUTINE ALLOCATE_MAIN
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   subroutine allocate_main( option )
+
 
     
     !: allocate main arrays
@@ -1142,7 +1151,7 @@ contains
     write(myoption,'(A)') " dt_units     = 'au' "
     write(myoption,'(A)') " eigmax_units = 'au' "
     write(myoption,'(A)') ' /'
-
+    
     write(myoption,'(A)') ' &SYSTEM'
     write(myoption,"(' dt          =', f7.3)") dt
     write(myoption,"(' eigmax      =', f7.3)") eigmax
@@ -1151,6 +1160,7 @@ contains
     write(myoption,"(' nstep       =', i7  )") nstep
     write(myoption,"(' outstep     =', i7  )") outstep
     write(myoption,"(' nactive     =', i7  )") nactive
+    write(myoption,"(' nvirtual    =', i7  )") nvirtual
     write(myoption,"(' socfac      =', f12.8)") socfac
     write(myoption,"(' socfacz     =', f12.8)") socfacZ
     write(myoption,"(' ffieldx     =', f9.5)") ffieldx

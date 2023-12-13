@@ -81,7 +81,8 @@ module global_variables
   integer(8) ::    &
        nstep  ,    & !: total number of timesteps 
        outstep,    & !: write to outfiles every outstep
-       nactive       !: number of actiive orbital in cisd-ip calculations
+       nactive,    & !: number of actiive orbitals in cisd-ip calculations
+       nvirtual      !: number of virtual orbitals in calculations if less thaan nva
   real(8)    ::    &
        omega ,     & !: field-frequency in au units
        phase         !: phase of the field in radians
