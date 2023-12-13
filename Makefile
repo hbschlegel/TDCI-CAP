@@ -8,7 +8,7 @@ FFLAGS = -tp x64 -O3
 LIBDIR = /wsu/el7/pgi/2018-187/linux86-64/18.7/lib/
 LAPACK_LIBS = -L${LIBDIR} -llapack -lblas
 OPT_FLAGS = -Minfo -Mneginfo -time -fast -Mconcur=allcores -mp=allcores -Munroll -Mvect
-ALL_OBJECTS = tdci.o units.o setup_variables.o control_variables.o variables_global.o write_info.o read_integrals.o initialize.o getfield.o util.o getham0_cisd.o getham0.o getham.o propagate.o Zpropagate.o analysis.o davidson_ip.o qcmatrixio.o
+ALL_OBJECTS = tdci.o units.o setup_variables.o control_variables.o variables_global.o write_info.o read_integrals.o initialize.o getfield.o util.o sort.o io_binary.o getham0_cisd.o getham0.o getham.o propagate.o Zpropagate.o analysis.o davidson_ip.o qcmatrixio.o
 
 
 all : update tdci 
@@ -28,13 +28,13 @@ davidson_ip.o : mod_davidson_ip.f90 variables_global.o util.o
 Zpropagate.o : mod_Zpropagate.f90 analysis.o util.o variables_global.o
 	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_Zpropagate.f90 -o Zpropagate.o
 
-propagate.o : mod_propagate.f90 analysis.o util.o variables_global.o
+propagate.o : mod_propagate.f90 analysis.o util.o variables_global.o sort.o io_binary.o
 	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_propagate.f90 -o propagate.o
 
 analysis.o : mod_analysis.f90 util.o
 	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_analysis.f90 -o analysis.o
 
-getham.o : mod_getham.f90 getham0.o getham0_cisd.o variables_global.o util.o
+getham.o : mod_getham.f90 getham0.o getham0_cisd.o variables_global.o util.o sort.o
 	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_getham.f90 -o getham.o 
 
 getham0.o : mod_getham0.f90 variables_global.o read_integrals.o util.o
@@ -69,6 +69,12 @@ setup_variables.o : mod_variables_setup.f90
 
 units.o : mod_variables_units.f90
 	$(FC) -c mod_variables_units.f90 -o units.o
+
+sort.o : mod_sort.f90
+	$(FC) -c mod_sort.f90 -o sort.o
+
+io_binary.o : mod_io_binary.f90
+	$(FC) -c mod_io_binary.f90 -o io_binary.o
 
 update : 
 	./CHANGE_DATE

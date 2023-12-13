@@ -12,6 +12,7 @@ module route_control
   character(10) :: jobtype       !: 'cis', 'read', 'tda', 'ip'
   logical       :: unrestricted  !: restricted or unrestricted flag 
   logical       :: flag_davidson !: turn davidson on
+  logical       :: flag_ReadU_NO      !: Read in test orbitals before propagation
   
   
   !: if envelope > 6 then circular pulse

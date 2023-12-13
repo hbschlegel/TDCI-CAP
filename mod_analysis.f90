@@ -840,9 +840,9 @@ contains
     logical, intent(in)       :: unrestricted
     integer(8),intent(inout):: nva95, nva99
 
-    integer(8) :: i, i1, j, j1, a, a1, b, b1, ia, jb, ii, jj, aa, bb, istate, ndim
+    integer(8) :: i, i1, j, j1, a, a1, b, b1, ia, jb, ii, jj, aa, bb, istate, ndim, k
     real(8)    :: const, const2, psi2, vabs00, rdum, rate
-    real(8)    :: tmprate(1000), tmpsum
+    real(8)    :: tmprate(80000), tmpsum, tmp2
     complex(8) :: psi0, psi_ia
     logical    :: total_dens
     
@@ -1021,12 +1021,12 @@ contains
 998    format(6I4/4F20.15/4F20.15)
        end do
      end do
-      write(iout,*) " rate0 = ", rate
+      !write(iout,*) " rate0 = ", rate
       rate = 0.d0
       do ia = 1,nstates
         rate = rate + dconjg(psi_det(ia))*psiV(ia)
       end do
-      write(iout,*) " rate1 = ", rate
+      !write(iout,*) " rate1 = ", rate
 
        rate = 0.d0
        do i = 1,ndim
@@ -1034,7 +1034,7 @@ contains
            rate = rate + density(i+(j-1)*ndim) * vabs_a(i,j)
          end do
        end do
-      write(iout,*) " rate2 = ", rate
+      !write(iout,*) " rate2 = ", rate
      
 !:     Population of absorbed wavefunction
  
@@ -1058,7 +1058,9 @@ contains
          if(tmprate(aa).lt.0.95d0) nva95 = aa
          if(tmprate(aa).lt.0.99d0) nva99 = aa
        end do
-       write(iout,8889) rate,nva,nva95,nva99
+       !write(iout,8889) rate,nva,nva95,nva99
+       nva95 = 0
+       nva99 = 0
        tmprate(1) = abs(density(1)*vabs_a(1,1))
        do i = 2,noa+nva
          tmprate(i) = tmprate(i-1) + abs(density(i+(i-1)*ndim)*vabs_a(i,i))
@@ -1072,10 +1074,33 @@ contains
          if(tmprate(aa).lt.0.95d0*tmprate(noa+nva)) nva95 = aa
          if(tmprate(aa).lt.0.99d0*tmprate(noa+nva)) nva99 = aa
        end do
-       write(iout,8889) tmprate(noa+nva),nva,nva95,nva99
+       !write(iout,8889) tmprate(noa+nva),nva,nva95,nva99
  8888  format(10F10.7)
- 8889  format(" rate= ",F10.7,"  nva= ",I5,"  nva95= ",I5,"  nva99= ",I5)
+ 8889  format(" (1077) rate= ",F10.7,"  nva= ",I5,"  nva95= ",I5,"  nva99= ",I5)
+       flush(iout)
 !: ********** HBS
+!: ********** ASD
+!       tmpsum=0.d0
+!       tmp2 = tmprate(noa+nva)
+!       tmprate=0.d0
+!       do i = 1,noa+nva
+!         do j = 1,noa+nva
+!           do k = 1,noa+nva
+!             tmprate( (i-1)*(noa+nva)+j ) = tmprate( (i-1)*(noa+nva)+j ) &
+!               + (density( (i-1)*(noa+nva)+k ) * vabs_a(k,j))
+!           end do
+!         end do
+!       end do
+!
+!       do i = 1,noa+nva
+!         tmpsum=tmpsum + tmprate( (i-1)*(noa+nva)+i )
+!         if (tmpsum/tmp2 .lt. 0.95d0) nva95 = i
+!         if (tmpsum/tmp2 .lt. 0.99d0) nva99 = i 
+!       end do
+!       write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " (mm poprate) rate= ",tmp2,", nva=",nva, &
+!          ", nva95_2= ",nva95,", nva99_2= ",nva99
+!
+!: ********** ASD
        call get_norm(normV,nstates,psiV)
        psiV = psiV/normV
 !:      write(iout,*) " normV = ", normV
@@ -1423,7 +1448,7 @@ contains
 !:       flush(iout)
  8887  format(2I5,F10.7)
  8888  format(10F10.7)
- 8889  format(" rate= ",F10.7,"  nva= ",I5,"  nva95= ",I5,"  nva99= ",I5)
+ 8889  format(" (1426) rate= ",F10.7,"  nva= ",I5,"  nva95= ",I5,"  nva99= ",I5)
 !: ********** HBS
  
        call get_norm(normV,nstates,psiV)

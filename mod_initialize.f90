@@ -51,6 +51,7 @@ contains
     namelist /InOutFILES/       tdcidatfile, outputfile, restartbinfile, &
                                 Qread_TDCIdata, Qwrite_ion_coeff, Qread_ion_coeff, Qmo_dens, Qci_save
     namelist /DAVIDSON/         flag_davidson
+    namelist /ReadU_NO/         flag_ReadU_NO
     
 
     !: set default optional parameters
@@ -94,6 +95,10 @@ contains
     
     read( 10, nml=InOutFILES, iostat=mystat, err=45 )
 45  if( mystat.ne.0 ) write(100,"(' WARNING WARNING WARNING WARNING reading nml=InOutFILES, iostat= ',i0)") mystat
+    rewind(10)
+
+    read( 10, nml=ReadU_NO, iostat=mystat, err=49 )
+49  if( mystat.ne.0 ) write(100,"(' WARNING WARNING WARNING WARNING reading nml=ReadU_NO, iostat= ',i0)") mystat
     rewind(10)
 
     read( 10, nml=DAVIDSON, iostat=mystat, err=46 )
@@ -193,6 +198,8 @@ contains
     
     !: default for davidson diagonalization
     flag_davidson = .False.
+
+    flag_ReadU_NO = .False.
 
     
   end subroutine set_default
@@ -1174,6 +1181,11 @@ contains
     if ( .not. flag_davidson ) write(myoption,'(A)') " flag_davidson = .False. "    
     write(myoption,'(A)') ' /'
 
+    write(myoption,'(A)') ' &ReadU_NO'
+    if( flag_ReadU_NO )      write(myoption,'(A)') " flag_ReadU_NO = .True. "
+    if( .not.flag_ReadU_NO ) write(myoption,'(A)') " flag_ReadU_NO = .False. "
+    write(myoption,'(A)') ' /'
+
     if( myoption.ne.iout ) close(myoption)
     
     
@@ -1197,7 +1209,7 @@ contains
           write(iout,'(A)') ' - Maya Angelous'
           write(iout,'(A)') divide
        case( 'date' )          
-          write(iout,'(A)') ' I WAS COMPILED ON Tue Sep 26 20:48:57 EDT 2023 '
+          write(iout,'(A)') ' I WAS COMPILED ON Mon Dec 11 15:43:30 EST 2023 '
           write(iout,'(A)') ' I AM A REVISED CODE FOR CW PULSE GENERATION '
           write(iout,'(A)') ' RAMPING PARAMETER SET TO RAMP_STEP=16000, NOT NSTEP'
           call dnt(iout)          

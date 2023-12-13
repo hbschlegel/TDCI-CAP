@@ -3,6 +3,7 @@ module get_ham
   use global_variables
   use get_ham0
   use get_ham0_cisd
+  use sorting_module
   
   implicit none
 
@@ -175,13 +176,311 @@ contains
     !$OMP END SECTIONS
     !$OMP END PARALLEL
    
+    !: AD
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa )
+    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben )
+
     call write_header( 'get_1eham','get_ham','leave' )
     call cpu_time(finish1)
-    write(iout,"(' One electorn itegral transformation time:',f12.4,' seconds')") finish1-start1 
+    write(iout,"(' One electorn integral transformation time:',f12.4,' seconds')") finish1-start1 
 
     
     
   end subroutine get_1eham
+
+  subroutine generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabs_a )
+
+    implicit none
+
+    !: dummy variables
+    integer(8),        intent(in) :: norb, noa, nva
+    real(8),              intent(in) :: orben(norb)
+    real(8),              intent(in) :: dipxmoa(noa+nva, noa+nva)
+    real(8),              intent(in) :: dipymoa(noa+nva, noa+nva)
+    real(8),              intent(in) :: dipzmoa(noa+nva, noa+nva)
+    real(8),              intent(in) :: vabs_a(noa+nva, noa+nva)
+    !: Should I be multiplying C_out with cmo_a ? 
+    !real,              intent(in) :: cmo_a(nbasis, noa+nva) !: AO -> MO 
+
+    !: function result
+    !: local variables
+    integer(8) :: i,a,p, nva95, nva99
+    real(8)    :: Emax = 0.05d0 !: 0.005339 = ~1E+16 W/m^2
+    real(8)    :: tmpval = 0.d0
+    real(8)    :: tmpsum = 0.d0
+    real(8)    :: dipole_norm = 0.d0
+    real(8)    :: C_out(noa+nva, noa+nva)
+    real(8)    :: mo_rate(noa+nva)
+    real(8)    :: mo_rate_sorted(noa+nva)
+
+    !: Make sure array is zero'd
+    C_out = 0.d0
+
+    do i=1,(noa+nva) !: c_ij = delta_ij, c_ab = delta_ab. 
+      C_out(i,i) = 1.d0
+    end do
+
+    !: off-diagonals
+    do i=1,noa
+      do a=noa+1,noa+nva
+        dipole_norm = sqrt( dipxmoa(a,i)**2 + dipymoa(a,i)**2 + dipzmoa(a,i)**2  )
+        tmpval = Emax*dipole_norm/( orben(a)-orben(i) )
+        C_out(a,i) = tmpval
+        C_out(i,a) = tmpval
+      end do
+    end do
+
+    do a=1,nva
+      !: Calculate ionization rate for orbital a
+      mo_rate(a) = 0.d0
+      do i=1,noa
+        do p=1,noa+nva
+          !: debug prints
+          !write(iout, '(A, I4, A, I4, A, I4,)') '(a,i,p) = ', a, ", ", i, ", ", p
+          !write(iout, '(F10.7, A, F10.7, A, F10.7, A, F10.7)') mo_rate(a), ", ", C_out(p,i), &
+          !  ", ",C_out(a,i), ", ",vabs_a(p,a)
+          mo_rate(a) = mo_rate(a) + abs(C_out(p,i)*C_out(a,i)*vabs_a(p,a))
+        end do
+      end do
+    end do
+
+    write(iout, '(A)') 'Test: ' // NEW_LINE('A')
+    write(iout,'(F10.7)') C_out(1,1)
+    
+
+    write(iout, '(A)') NEW_LINE('A')
+    write(iout, '(A)') 'Perurbative Rate Analysis:'
+    write(iout, '(A)') 'Orb#   Rate   <i|Vabs|i>'
+    write(iout, '(A)') '========================'
+    do i = 1,nva
+      write(iout,'(I5, A, F10.7, A, F10.7)') i, ",  ", mo_rate(i), ",  ", vabs_a(i,i)
+    end do
+
+
+    tmpval = 0.d0
+    tmpsum = 0.d0
+    !: Sum rate for percent denominator
+    do i = 1,noa+nva
+      tmpsum = tmpsum + mo_rate(i)
+    end do
+    !: Calculate cumulative rate by unsorted MOs
+    do i = 1,noa+nva
+      tmpval = tmpval + mo_rate(i)/tmpsum
+      if(tmpval.lt.0.95d0) nva95 = i
+      if(tmpval.lt.0.99d0) nva99 = i
+    end do
+    write(iout, '(A)') 'Perurbative Rate Summary:'
+    write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmpsum,", nva=",nva, &
+      ", (UNSORTED) nva95= ",nva95,", nva99= ",nva99
+
+    call quicksort_descending(mo_rate, mo_rate_sorted)
+
+    !: Calculate cumulative rate by sorted MOs
+    tmpval = 0.d0
+    do i = 1,noa+nva
+      tmpval = tmpval + mo_rate_sorted(i)/tmpsum
+      if(tmpval.lt.0.95d0) nva95 = i
+      if(tmpval.lt.0.99d0) nva99 = i
+    end do
+    write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmpsum,", nva=",nva, &
+      ",   (SORTED) nva95= ",nva95,", nva99= ",nva99
+
+
+  end subroutine generate_field_perturbed_orbitals
+
+  !: Fock is diagonal in HF MO basis, so just use orbital energies.
+  subroutine diag_EFock( dipxmoa, dipymoa, dipzmoa,  Vabs, orb_eng )
+    implicit none
+
+    real(8), intent(in) :: dipxmoa(noa+nva, noa+nva)
+    real(8), intent(in) :: dipymoa(noa+nva, noa+nva)
+    real(8), intent(in) :: dipzmoa(noa+nva, noa+nva)
+    real(8), intent(in) :: Vabs((noa+nva),(noa+nva))
+    real(8), intent(in) :: orb_eng(ndim)
+
+    integer :: ndim, i,j,k,a,p, nva95, nva99
+    logical :: Vabs_isSymmetric
+    real(8) :: Emax = 0.05d0 !: 0.005339 = ~1E+16 W/m^2
+
+    real(8) :: FieldFock((noa+nva)*(noa+nva))
+    real(8) :: evals((noa+nva))
+    real(8)    :: tmpval = 0.d0
+    real(8)    :: tmpsum = 0.d0
+    real(8)    :: dipole_norm = 0.d0
+    real(8)    :: mo_rate(noa+nva)
+    real(8)    :: mo_rate_sorted(noa+nva)
+
+    !: dsyevd stuff
+    integer :: info_, lwork, liwork
+    integer, allocatable :: iwork(:)
+    real(8), allocatable ::  work(:)
+
+    ndim = noa+nva
+
+    !: Sanity checks
+    call isSymmetric( Vabs, ndim, Vabs_isSymmetric )
+    if (Vabs_isSymmetric) then
+      write(iout, '(A)') 'Vabs_moa is symmetric'
+    else
+      write(iout, '(A)') 'Vabs_moa is NOT symmetric'
+    end if
+    call matrixIndexSanity( Vabs, Vabs, ndim )
+
+    !: Construct FieldFock to be diagonalized
+    FieldFock = 0.d0
+    evals = 0.d0
+    !:  Copy orb energies
+    do i=1,ndim
+      FieldFock( (i-1)*ndim+i ) = orb_eng(i)
+    end do
+    !: Add field
+    do i=1,ndim
+      do j=1,ndim
+        tmpval = Emax*sqrt( dipxmoa(j,i)**2 + dipymoa(j,i)**2 + dipzmoa(j,i)**2 )
+        FieldFock( (i-1)*ndim+j ) = FieldFock( (i-1)*ndim+j ) - tmpval
+      end do
+    end do
+
+    call isSymmetric( FieldFock, ndim, Vabs_isSymmetric )
+    if (Vabs_isSymmetric) then
+      write(iout, '(A)') 'FieldFock is symmetric'
+    else
+      write(iout, '(A)') 'FieldFock is NOT symmetric'
+    end if
+
+    !: Diagonalize
+    !: workspace query to determine size for work arrays
+    lwork = -1
+    liwork = -1
+    allocate(work(1))
+    allocate(iwork(1))
+    call dsyevd('v','u', ndim, FieldFock, ndim, evals, work, lwork, iwork, liwork, info_)
+    lwork = nint(work(1))
+    liwork = iwork(1)
+    deallocate(work, iwork)
+
+    allocate(work(lwork))
+    allocate(iwork(liwork))
+    call dsyevd('v','u', ndim, FieldFock, ndim, evals, work, lwork, iwork, liwork, info_)
+
+    write(iout,'(A)') 'After diagonalzie FieldFock'
+    if (info_) then
+      write(iout, *) 'dsyevd error!!: ', info_
+    end if
+    deallocate(work, iwork)
+
+    !: Calculate rate
+    do a=1,noa+nva
+      mo_rate(a) = 0.d0
+      do i=1,noa
+        do p=1,noa+nva
+          !mo_rate(a) = mo_rate(a) + abs( FieldFock  (p,i)*FieldFock(a,i) * Vabs(p,a) )
+          mo_rate(a) = mo_rate(a) + abs( FieldFock( (i-1)*ndim+p )*FieldFock( (i-1)*ndim+a ) * Vabs(p,a) )
+        end do
+      end do
+    end do
+
+    write(iout, '(A)') NEW_LINE('A')
+    write(iout, '(A)') 'diag(FieldFock) Rate Analysis:'
+    write(iout, '(A)') 'Orb#   Rate   <i|Vabs|i>'
+    write(iout, '(A)') '========================'
+    do i = 1,noa+nva
+      write(iout,'(I5, A, F10.7, A, F10.7)') i, ",  ", mo_rate(i), ",  ", Vabs(i,i)
+    end do
+
+    tmpval = 0.d0
+    tmpsum = 0.d0
+    !: Sum rate for percent denominator
+    do i = 1,noa+nva
+      tmpsum = tmpsum + mo_rate(i)
+    end do
+    !: Calculate cumulative rate by unsorted MOs
+    do i = 1,noa+nva
+      tmpval = tmpval + mo_rate(i)/tmpsum
+      if(tmpval.lt.0.95d0) nva95 = i
+      if(tmpval.lt.0.99d0) nva99 = i
+    end do
+    write(iout, '(A)') 'diag(FieldFock) Rate Summary:'
+    write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmpsum,", nva=",nva, &
+      ", (UNSORTED) nva95= ",nva95,", nva99= ",nva99
+
+    call quicksort_descending(mo_rate, mo_rate_sorted)
+
+    !: Calculate cumulative rate by sorted MOs
+    tmpval = 0.d0
+    do i = 1,noa+nva
+      tmpval = tmpval + mo_rate_sorted(i)/tmpsum
+      if(tmpval.lt.0.95d0) nva95 = i
+      if(tmpval.lt.0.99d0) nva99 = i
+    end do
+    write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmpsum,", nva=",nva, &
+      ",   (SORTED) nva95= ",nva95,", nva99= ",nva99
+    
+    
+        
+    
+  end subroutine
+
+  subroutine isSymmetric( A, n, output )
+    implicit none
+    integer, intent(in) :: n
+    real(8), intent(in) :: A(n,n)
+    logical, intent(out) :: output
+
+    integer :: i,j
+
+    output = .true.
+    do i=1,n
+      do j=1,i-1
+        if ( abs(A(i,j)-A(j,i)) .gt. 0.0001 ) then
+          output = .false.
+        end if
+      end do
+    end do
+
+  end subroutine isSymmetric
+
+  !: Feed a 2d matrix into both A_1D and A_2D
+  subroutine matrixIndexSanity( A_1D, A_2D, n )
+    implicit none
+
+    integer, intent(in) :: n
+    real(8), intent(in) :: A_1D(n*n), A_2D(n,n)
+
+    integer :: i,j
+    logical :: insane
+    insane = .false.
+    do i=1,n
+      do j=1,n
+        if ( abs( A_2D(i,j)-A_1D((i-1)*n+j) ) .gt. 0.0001 ) then
+          insane = .true.
+        end if
+      end do
+    end do
+
+  if (insane) then
+    write(iout, '(A)') 'MATRIX INDEX USAGE NOT SANE!!'
+    write(iout, '(A)') 'A_1D:'
+    do i = 1, n
+      do j = 1, n
+        write(iout, *, advance='no') A_1D((i-1)*n+j)
+      end do
+      write(iout, *) ! New line after each row
+    end do
+    write(iout, '(A)') 'A_2D:'
+    do i = 1, n
+      do j = 1, n
+        write(iout, *, advance='no') A_2D(i,j)
+      end do
+      write(iout, *) ! New line after each row
+    end do
+  else
+    write(iout, '(A)') 'MATRIX INDEX USAGE SANITY CHECKED.'
+  end if
+
+  end subroutine matrixIndexSanity
+
+
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! SUBROUTINE GET_AO2MO
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
