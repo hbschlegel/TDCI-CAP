@@ -177,8 +177,55 @@ contains
     !$OMP END PARALLEL
    
     !: AD
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa )
-    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben )
+    write(iout, *) "Eq 18 (Field Perturbed Orbitals) OmniDirectional:"
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.030d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.035d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.040d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.045d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.050d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.055d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.060d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.065d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.070d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.075d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.080d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.090d0, 1.d0, 1.d0, 1.d0)
+    write(iout, *) "Eq 18 (Field Perturbed Orbitals) Directional:"
+    write(iout, *) "Emax = 0.050 au"
+    write(iout, *) "Theta=0"
+    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.050d0, 1.d0, 0.d0, 0.d0)
+    write(iout, *) "Theta=45"
+    call generate_field_perturbed_orbitals( &
+      norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
+      0.050d0, 1.d0/sqrt(2.d0), 1.d0/sqrt(2.d0), 0.d0)
+    write(iout, *) "Theta=90"
+    call generate_field_perturbed_orbitals( &
+      norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
+      0.050d0, 0.d0, 1.d0, 0.d0)
+    write(iout, *) "Theta=135"
+    call generate_field_perturbed_orbitals( &
+      norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
+      0.050d0, -1.d0/sqrt(2.d0), 1.d0/sqrt(2.d0), 0.d0)
+    write(iout, *) "Theta=180"
+    call generate_field_perturbed_orbitals( &
+      norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
+      0.050d0, -1.d0, 1.d0/sqrt(2.d0), 0.d0)
+
+    write(iout, *) "Emax = 0.035"
+    write(iout, *) "Field directon (0, 1/sqrt(2), 1/sqrt(2))"
+    call generate_field_perturbed_orbitals( &
+      norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
+      0.0350d0, 0.d0, 1.d0/sqrt(2.d0), 1.d0/sqrt(2.d0))
+    write(iout, *) "Diagonalize EFock::"
+    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.002d0 )
+    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.005d0 )
+    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.010d0 )
+    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.030d0 )
+    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.035d0 )
+    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.040d0 )
+    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.070d0 )
+    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.080d0 )
+    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.090d0 )
 
     call write_header( 'get_1eham','get_ham','leave' )
     call cpu_time(finish1)
@@ -188,7 +235,7 @@ contains
     
   end subroutine get_1eham
 
-  subroutine generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabs_a )
+  subroutine generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabs_a, Emax, xscale, yscale, zscale)
 
     implicit none
 
@@ -199,22 +246,31 @@ contains
     real(8),              intent(in) :: dipymoa(noa+nva, noa+nva)
     real(8),              intent(in) :: dipzmoa(noa+nva, noa+nva)
     real(8),              intent(in) :: vabs_a(noa+nva, noa+nva)
+    real(8),              intent(in) :: Emax
+    real(8),              intent(in) :: xscale, yscale, zscale
     !: Should I be multiplying C_out with cmo_a ? 
     !real,              intent(in) :: cmo_a(nbasis, noa+nva) !: AO -> MO 
 
     !: function result
     !: local variables
     integer(8) :: i,a,p, nva95, nva99
-    real(8)    :: Emax = 0.05d0 !: 0.005339 = ~1E+16 W/m^2
+    !real(8)    :: Emax = 0.05d0 !: 0.005339 = ~1E+16 W/m^2
     real(8)    :: tmpval = 0.d0
     real(8)    :: tmpsum = 0.d0
     real(8)    :: dipole_norm = 0.d0
     real(8)    :: C_out(noa+nva, noa+nva)
     real(8)    :: mo_rate(noa+nva)
     real(8)    :: mo_rate_sorted(noa+nva)
+    integer(8) :: sort_key(noa+nva)
 
     !: Make sure array is zero'd
     C_out = 0.d0
+    mo_rate = 0.d0
+    mo_rate_sorted = 0.d0
+    nva95 = 0
+    nva99 = 0
+
+    write(iout, *) "(noa, nva): ", noa, nva
 
     do i=1,(noa+nva) !: c_ij = delta_ij, c_ab = delta_ab. 
       C_out(i,i) = 1.d0
@@ -223,7 +279,8 @@ contains
     !: off-diagonals
     do i=1,noa
       do a=noa+1,noa+nva
-        dipole_norm = sqrt( dipxmoa(a,i)**2 + dipymoa(a,i)**2 + dipzmoa(a,i)**2  )
+        dipole_norm = sqrt( (xscale*dipxmoa(a,i))**2 &
+                          + (yscale*dipymoa(a,i))**2 + (zscale*dipzmoa(a,i))**2  )
         tmpval = Emax*dipole_norm/( orben(a)-orben(i) )
         C_out(a,i) = tmpval
         C_out(i,a) = tmpval
@@ -244,36 +301,37 @@ contains
       end do
     end do
 
-    write(iout, '(A)') 'Test: ' // NEW_LINE('A')
-    write(iout,'(F10.7)') C_out(1,1)
-    
-
-    write(iout, '(A)') NEW_LINE('A')
-    write(iout, '(A)') 'Perurbative Rate Analysis:'
-    write(iout, '(A)') 'Orb#   Rate   <i|Vabs|i>'
-    write(iout, '(A)') '========================'
-    do i = 1,nva
-      write(iout,'(I5, A, F10.7, A, F10.7)') i, ",  ", mo_rate(i), ",  ", vabs_a(i,i)
-    end do
-
+    !write(iout, '(A)') NEW_LINE('A')
+    !write(iout, '(A)') 'Perturbative Rate Analysis:'
+    !write(iout, '(A)') 'Orb#   Rate   <i|Vabs|i>'
+    !write(iout, '(A)') '========================'
+    !do i = 1,nva
+    !  write(iout,'(I5, A, F10.7, A, F10.7)') i, ",  ", mo_rate(i), ",  ", vabs_a(noa+i,noa+i)
+    !end do
 
     tmpval = 0.d0
     tmpsum = 0.d0
     !: Sum rate for percent denominator
-    do i = 1,noa+nva
+    !do i = 1,noa+nva
+    write(iout, '(A)') 'Perturbative Rate Analysis:'
+    write(iout, '(A)') 'i   tmpsum'
+    write(iout, '(A)') '=========='
+    do i = 1,nva
       tmpsum = tmpsum + mo_rate(i)
+      write(iout, '(I5, A, F15.10)') i, ", ", tmpsum
     end do
     !: Calculate cumulative rate by unsorted MOs
-    do i = 1,noa+nva
+    !do i = 1,noa+nva
+    do i = 1,nva
       tmpval = tmpval + mo_rate(i)/tmpsum
       if(tmpval.lt.0.95d0) nva95 = i
       if(tmpval.lt.0.99d0) nva99 = i
     end do
-    write(iout, '(A)') 'Perurbative Rate Summary:'
+    write(iout, '(A, F10.7)') 'Perturbative Rate Summary:  Emax = ', Emax
     write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmpsum,", nva=",nva, &
       ", (UNSORTED) nva95= ",nva95,", nva99= ",nva99
 
-    call quicksort_descending(mo_rate, mo_rate_sorted)
+    call quicksort_descending(mo_rate, mo_rate_sorted, sort_key)
 
     !: Calculate cumulative rate by sorted MOs
     tmpval = 0.d0
@@ -289,7 +347,7 @@ contains
   end subroutine generate_field_perturbed_orbitals
 
   !: Fock is diagonal in HF MO basis, so just use orbital energies.
-  subroutine diag_EFock( dipxmoa, dipymoa, dipzmoa,  Vabs, orb_eng )
+  subroutine diag_EFock( dipxmoa, dipymoa, dipzmoa,  Vabs, orb_eng, Emax )
     implicit none
 
     real(8), intent(in) :: dipxmoa(noa+nva, noa+nva)
@@ -297,10 +355,11 @@ contains
     real(8), intent(in) :: dipzmoa(noa+nva, noa+nva)
     real(8), intent(in) :: Vabs((noa+nva),(noa+nva))
     real(8), intent(in) :: orb_eng(ndim)
+    real(8), intent(in) :: Emax
 
     integer :: ndim, i,j,k,a,p, nva95, nva99
     logical :: Vabs_isSymmetric
-    real(8) :: Emax = 0.05d0 !: 0.005339 = ~1E+16 W/m^2
+    !real(8) :: Emax = 0.001d0 !: 0.005339 = ~1E+16 W/m^2
 
     real(8) :: FieldFock((noa+nva)*(noa+nva))
     real(8) :: evals((noa+nva))
@@ -314,17 +373,18 @@ contains
     integer :: info_, lwork, liwork
     integer, allocatable :: iwork(:)
     real(8), allocatable ::  work(:)
+    integer(8) :: sort_key((noa+nva))
 
     ndim = noa+nva
 
     !: Sanity checks
-    call isSymmetric( Vabs, ndim, Vabs_isSymmetric )
-    if (Vabs_isSymmetric) then
-      write(iout, '(A)') 'Vabs_moa is symmetric'
-    else
-      write(iout, '(A)') 'Vabs_moa is NOT symmetric'
-    end if
-    call matrixIndexSanity( Vabs, Vabs, ndim )
+    !call isSymmetric( Vabs, ndim, Vabs_isSymmetric )
+    !if (Vabs_isSymmetric) then
+    !  write(iout, '(A)') 'Vabs_moa is symmetric'
+    !else
+    !  write(iout, '(A)') 'Vabs_moa is NOT symmetric'
+    !end if
+    !call matrixIndexSanity( Vabs, Vabs, ndim )
 
     !: Construct FieldFock to be diagonalized
     FieldFock = 0.d0
@@ -341,12 +401,12 @@ contains
       end do
     end do
 
-    call isSymmetric( FieldFock, ndim, Vabs_isSymmetric )
-    if (Vabs_isSymmetric) then
-      write(iout, '(A)') 'FieldFock is symmetric'
-    else
-      write(iout, '(A)') 'FieldFock is NOT symmetric'
-    end if
+    !call isSymmetric( FieldFock, ndim, Vabs_isSymmetric )
+    !if (Vabs_isSymmetric) then
+    !  write(iout, '(A)') 'FieldFock is symmetric'
+    !else
+    !  write(iout, '(A)') 'FieldFock is NOT symmetric'
+    !end if
 
     !: Diagonalize
     !: workspace query to determine size for work arrays
@@ -380,13 +440,13 @@ contains
       end do
     end do
 
-    write(iout, '(A)') NEW_LINE('A')
-    write(iout, '(A)') 'diag(FieldFock) Rate Analysis:'
-    write(iout, '(A)') 'Orb#   Rate   <i|Vabs|i>'
-    write(iout, '(A)') '========================'
-    do i = 1,noa+nva
-      write(iout,'(I5, A, F10.7, A, F10.7)') i, ",  ", mo_rate(i), ",  ", Vabs(i,i)
-    end do
+    !write(iout, '(A)') NEW_LINE('A')
+    !write(iout, '(A)') 'diag(FieldFock) Rate Analysis:'
+    !write(iout, '(A)') 'Orb#   Rate   <i|Vabs|i>'
+    !write(iout, '(A)') '========================'
+    !do i = 1,noa+nva
+    !  write(iout,'(I5, A, F10.7, A, F10.7)') i, ",  ", mo_rate(i), ",  ", Vabs(i,i)
+    !end do
 
     tmpval = 0.d0
     tmpsum = 0.d0
@@ -400,11 +460,11 @@ contains
       if(tmpval.lt.0.95d0) nva95 = i
       if(tmpval.lt.0.99d0) nva99 = i
     end do
-    write(iout, '(A)') 'diag(FieldFock) Rate Summary:'
+    write(iout, '(A, F10.7)') 'diag(FieldFock) Rate Summary:  Emax = ', Emax
     write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmpsum,", nva=",nva, &
       ", (UNSORTED) nva95= ",nva95,", nva99= ",nva99
 
-    call quicksort_descending(mo_rate, mo_rate_sorted)
+    call quicksort_descending(mo_rate, mo_rate_sorted, sort_key)
 
     !: Calculate cumulative rate by sorted MOs
     tmpval = 0.d0
@@ -415,9 +475,6 @@ contains
     end do
     write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmpsum,", nva=",nva, &
       ",   (SORTED) nva95= ",nva95,", nva99= ",nva99
-    
-    
-        
     
   end subroutine
 

@@ -110,7 +110,8 @@ contains
     integer(8) :: opdm_avg_N, ndim
     real(8), allocatable :: U_NO_input(:) !: U_NO read from file
     integer(8) :: nva95max, nva99max, nva95maxmax, nva99maxmax
-
+    integer(8) :: nva95maxMO, nva99maxMO, nva95maxmaxMO, nva99maxmaxMO
+    integer(8) :: nva95max_debug, nva99max_debug
 
 
     call write_header( 'trotter_linear','propagate','enter' )    
@@ -155,6 +156,13 @@ contains
     nva99max = 0
     nva95maxmax = 0
     nva99maxmax = 0
+    nva95maxMO = 0
+    nva99maxMO = 0
+    nva95maxmaxMO = 0
+    nva99maxmaxMO = 0
+    nva95max_debug = 0
+    nva99max_debug = 0
+
     !if ( .true. ) then
     if ( flag_ReadU_NO ) then
       call read_dbin( U_NO_input, (ndim*ndim), "U_NO_input.bin", info3)
@@ -221,7 +229,7 @@ contains
     !$OMP norm, norm0, normV, mux, muy, muz, rate, efieldx, efieldy, efieldz, &
     !$OMP pop1, ion, ion_coeff, rate_a, rate_b, rate_aa, rate_ab, rate_ba, rate_bb, psi_det0,  &
     !$OMP hp1, hp2, psi, psi1, scratch, iwork, tdvals1, tdvals2, Zion_coeff, &
-    !$OMP nva95max, nva99max ),  &
+    !$OMP nva95max, nva99max, nva95maxMO, nva99maxMO, nva95max_debug, nva99max_debug ),  &
     !$OMP SHARED( jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
     !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
     !$OMP abp, cis_vec, exp_abp, exphel, fvect1, fvect2, psi0, tdciresults, tdx, tdy, tdz, &
@@ -230,7 +238,7 @@ contains
     !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
     !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save, &
     !$OMP opdm_avg, opdm_avg_abs, opdm_avg_N, U_NO, U_NO_abs, natorb_occ, natorb_occ_abs, cmo_a, &
-    !$OMP U_NO_input, flag_ReadU_NO, nva95maxmax, nva99maxmax )
+    !$OMP U_NO_input, flag_ReadU_NO, nva95maxmax, nva99maxmax, nva95maxmaxMO, nva99maxmaxMO )
     
     !$OMP DO  
 
@@ -242,6 +250,10 @@ contains
        !: reset nva max
        nva95max = 0
        nva99max = 0
+       nva95maxMO = 0
+       nva99maxMO = 0
+       nva95max_debug = 0
+       nva99max_debug = 0
 
        !: get directions stored in TDCItdciresults
        dirx1 = tdciresults(idir)%x0  
@@ -493,7 +505,8 @@ contains
 
                 !: Check max nva for input NOs at this step.
                 if (flag_ReadU_NO) then
-                  call update_maxnva( nva95max, nva99max, scratch, U_NO_input, vabsmoa )
+                  call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, nva95max_debug, & 
+                                      nva99max_debug, scratch, U_NO_input, vabsmoa )
                 end if
 
                 !$OMP CRITICAL
@@ -693,7 +706,14 @@ contains
           write(iout,"(12x,'propagation time:',f12.4,' s')") finish2 - start2  
           write(iout,"(12x,'final norm = ',f10.5)")          norm**2
 
+
           if (flag_ReadU_NO) then
+            write(iout,"(12x,'For MOs, nva95max=',i5,', nva99max=',i5)") nva95maxMO, nva99maxMO
+            write(iout,"(12x,'DEBUG:   nva95max=',i5,', nva99max=',i5)") nva95max_debug, nva99max_debug
+            !: Put current nva maxs into overall nva max
+            if (nva95maxmaxMO .lt. nva95maxMO) nva95maxmaxMO = nva95maxMO
+            if (nva99maxmaxMO .lt. nva99maxMO) nva99maxmaxMO = nva99maxMO
+
             write(iout,"(12x,'For input NOs, nva95max=',i5,', nva99max=',i5)") nva95max, nva99max
             !: Put current nva maxs into overall nva max
             if (nva95maxmax .lt. nva95max) nva95maxmax = nva95max
@@ -711,7 +731,19 @@ contains
     !$OMP END PARALLEL
 
     write(iout,*) "AVERAGED NATURAL ORBITALS START"
-    write(iout,"('For input NOs, all directions: nva95maxmax=',i5,', nva99maxmax=',i5)") nva95maxmax, nva99maxmax
+    
+    if (flag_ReadU_NO) then
+      write(iout,"('For input NOs, all directions: nva95maxmax=',i5,', nva99maxmax=',i5)") nva95maxmax, nva99maxmax
+      write(iout,"('For       MOs, all directions: nva95maxmax=',i5,', nva99maxmax=',i5)") nva95maxmaxMO, nva99maxmaxMO
+      nva95max = 0
+      nva99max = 0
+      nva95maxMO = 0
+      nva99maxMO = 0
+      nva95max_debug = 0
+      nva99max_debug = 0
+      call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, nva95max_debug, nva99max_debug, &
+                          opdm_avg, U_NO_input, vabsmoa, .True. )
+    end if
 
     call generate_natural_orbitals( opdm_avg, U_NO, natorb_occ, .false. )
     call generate_natural_orbitals( opdm_avg_abs, U_NO_abs, natorb_occ_abs, .false. )
@@ -1524,7 +1556,7 @@ contains
     integer, allocatable :: iwork(:)
     real(8), allocatable ::  work(:)
 
-    integer :: ndim, i, j, idx1, idx2
+    integer(8) :: ndim, i, j, idx1, idx2
     real(8) :: temp
 
     logical :: verbose
@@ -2093,14 +2125,14 @@ contains
     write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmprate_absNO(ndim),", nva=",nva, &
       ", nva95_absNO= ",nva95_absNO,", nva99_absNO= ",nva99_absNO
 
-    write(iout, '(A)') 'Natural Orbital Rate Analysis (Component-wise):'
-    write(iout, '(A)') '  Orb#  Occ          Vabs_NO(i,i)   Cumulative Rate'
-    write(iout, '(A)') '====================================================='
-    !do i = ndim,1, -1
-    do i = 1,ndim
-      write(iout,'(I5, A, F12.10, A, F12.10, A, F12.10)') i, ",  ", NO_occ(i), &
-       ",  ", Vabs_NO((i-1)*ndim+i), ",  ", tmprate_NO(i)
-    end do
+    !write(iout, '(A)') 'Natural Orbital Rate Analysis (Component-wise):'
+    !write(iout, '(A)') '  Orb#  Occ          Vabs_NO(i,i)   Cumulative Rate'
+    !write(iout, '(A)') '====================================================='
+    !!do i = ndim,1, -1
+    !do i = 1,ndim
+    !  write(iout,'(I5, A, F12.10, A, F12.10, A, F12.10)') i, ",  ", NO_occ(i), &
+    !   ",  ", Vabs_NO((i-1)*ndim+i), ",  ", tmprate_NO(i)
+    !end do
 
     !write(iout, '(A)') 'Molecular Orbital Rate Analysis (Component-wise):'
     !write(iout, '(A)') '  Orb#            Vabs_MO(i,i)   Cumulative Rate'
@@ -2125,31 +2157,50 @@ contains
 
   end subroutine NO_rate_sanity2
 
-  subroutine update_maxnva( nva95max, nva99max, opdm, U_NO, Vabs)
+  subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, &
+                            nva95max_debug, nva99max_debug, opdm, U_NO, Vabs, verbosity)
     implicit none
+    integer(8), intent(inout) :: nva95maxMO, nva99maxMO
     integer(8), intent(inout) :: nva95max, nva99max
+    integer(8), intent(inout) :: nva95max_debug, nva99max_debug 
     real(8), intent(in) :: opdm(:) !: One-particle density matrix in MO basis
     real(8), intent(in) :: U_NO(:) !: Transformation matrix from MO -> NO.
     !: Interesting, vabsmo is a 2D array (:,:), so I can't do Vabs(:) here.
     !:  but I can do Vabs(norb*norb)...
     real(8), intent(in) :: Vabs(norb*norb) !: <n|Vabs|m> in MO basis
+    logical, intent(in), optional :: verbosity
 
-    integer(8) :: i, j, k, ndim
+    logical :: verbose
+    integer(8) :: i, j, k, ndim, idx
     integer(8) :: nva95_NO, nva99_NO, nva95_MO, nva99_MO
-    real(8) :: rate_NO, rate_MO
-    real(8) :: tmp_NO, tmp_MO
+    integer(8) :: nva95_NO_sort, nva99_NO_sort, nva95_MO_sort, nva99_MO_sort
+    integer(8) :: nva95, nva99
+    real(8) :: rate, tmp
+    real(8) :: tmprate(norb*norb) !: way too big but doesnt matter
     real(8), allocatable :: opdm_NO(:), Vabs_NO(:)
     real(8), allocatable :: temp(:), temp2(:)
+    real(8), allocatable :: sort_vals(:), vals_sorted(:)
+    integer(8), allocatable :: sort_key(:)
+
+
+    !: default to nonverbose unless optional argument is true
+    verbose = .false.
+    if (present(verbosity)) verbose = verbosity
 
     ndim = noa + nva
     allocate( temp(ndim*ndim) )
     allocate( temp2(ndim*ndim) )
     allocate( opdm_NO(ndim*ndim) )
     allocate( Vabs_NO(ndim*ndim) )
+    allocate( sort_vals(ndim) )
+    allocate( vals_sorted(ndim) )
+    allocate( sort_key(ndim) )
     temp = 0.d0
     temp2 = 0.d0
     opdm_NO = 0.d0
     Vabs_NO = 0.d0
+    sort_vals = 0.d0
+    sort_key = 0
     
     !: Transform Vabs to NO basis
     !: U_NO^T * Vabs * U_NO = Vabs_NO
@@ -2162,33 +2213,224 @@ contains
     call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_NO, ndim, opdm, ndim, 0.d0, temp, ndim)
     call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_NO, ndim, 0.d0, opdm_NO, ndim)
 
+    !write(iout, "(A)"), "Ensuring matrices are symmetric..."
+    !if ( .not. matrix_is_symmetric( opdm, ndim ) ) then
+    !  write(iout, "(A)"), "WARNING: opdm is not symmetric! (delta=1E-4)"
+    !end if
+    !if ( .not. matrix_is_symmetric( Vabs, ndim ) ) then
+    !  write(iout, "(A)"), "WARNING: Vabs is not symmetric! (delta=1E-4)"
+    !end if
+    !if ( .not. matrix_is_symmetric( opdm_NO, ndim ) ) then
+    !  write(iout, "(A)"), "WARNING: opdm_NO is not symmetric! (delta=1E-4)"
+    !end if
+    !if ( .not. matrix_is_symmetric( Vabs_NO, ndim ) ) then
+    !  write(iout, "(A)"), "WARNING: Vabs_NO is not symmetric! (delta=1E-4)"
+    !end if
+
     do i=1,ndim
       do j=1,ndim
         !: 2*Tr(opdm_NO * Vabs_NO) componentwise
-        rate_NO = rate_NO + 2.d0*abs(opdm_NO((i-1)*ndim+j) * Vabs_NO((i-1)*ndim+j))
+        rate = rate + abs(opdm_NO((i-1)*ndim+j) * Vabs_NO((i-1)*ndim+j))
       end do
     end do
     do k=1,ndim
-      tmp_NO = 0.d0
+      tmp = 0.d0
       do i=1,k
         do j=1,k
-          tmp_NO = tmp_NO + 2.d0*abs(opdm_NO((i-1)*ndim+j) * Vabs_NO((i-1)*ndim+j))
+          tmp = tmp + abs(opdm_NO((i-1)*ndim+j) * Vabs_NO((i-1)*ndim+j))
         end do
       end do
-      if (tmp_NO/rate_NO .lt. 0.95d0) nva95_NO = k
-      if (tmp_NO/rate_NO .lt. 0.99d0) nva99_NO = k
+      if (tmp/rate .lt. 0.95d0) nva95_NO = k
+      if (tmp/rate .lt. 0.99d0) nva99_NO = k
     end do
 
     if ( nva95_NO .gt. nva95max) nva95max = nva95_NO
     if ( nva99_NO .gt. nva99max) nva99max = nva99_NO
+
+
+    !: For MOs ( DEBUG )
+    rate = 0.d0
+    tmp = 0.d0
+    nva95 = 0
+    nva99 = 0
+    tmprate = 0.d0
+    !: AD: HBS uses state-based abs(dconjg(psi_det(ia))*psiV(ia)) to calculate
+    !      rate for this in mod_analysis.f90 ... This value should be the same.
+    !      (Assumes opdm is symmetric, and we check this above.)
+    tmprate(1) = abs(opdm(1)*Vabs(1))
+    do i = 2,noa+nva
+      tmprate(i) = tmprate(i-1) + abs(opdm(i+(i-1)*ndim)*Vabs((i-1)*ndim+i))
+      do j = 1,i-1
+        tmprate(i) = tmprate(i) + abs(opdm(i+(j-1)*ndim)*Vabs((i-1)*ndim+j))
+        tmprate(i) = tmprate(i) + abs(opdm(j+(i-1)*ndim)*Vabs((j-1)*ndim+i))
+      end do
+    end do
+    do i = 1,nva
+      if (tmprate(i).lt.0.95d0*tmprate(noa+nva)) nva95 = i
+      if (tmprate(i).lt.0.99d0*tmprate(noa+nva)) nva99 = i
+    end do
+    if ( nva95 .gt. nva95maxMO) nva95max_debug = nva95
+    if ( nva99 .gt. nva99maxMO) nva99max_debug = nva99
+
+    !: For MOs
+    rate = 0.0d0
+    tmp = 0.0d0
+    nva95_NO = 0
+    nva99_NO = 0
+    do i=1,ndim
+      do j=1,ndim
+        !: 2*Tr(opdm * Vabs) componentwise
+        rate = rate + abs(opdm((i-1)*ndim+j) * Vabs((i-1)*ndim+j))
+      end do
+    end do
+    do k=1,ndim
+      tmp = 0.d0
+      do i=1,k
+        do j=1,k
+          tmp = tmp + abs(opdm((i-1)*ndim+j) * Vabs((i-1)*ndim+j))
+        end do
+      end do
+      if (tmp/rate .lt. 0.95d0) nva95_NO = k
+      if (tmp/rate .lt. 0.99d0) nva99_NO = k
+    end do
+
+    if ( nva95_NO .gt. nva95maxMO) nva95maxMO = nva95_NO
+    if ( nva99_NO .gt. nva99maxMO) nva99maxMO = nva99_NO
+
+    
+    !: For NOs (SORTED)
+    rate = 0.0d0
+    tmp = 0.0d0
+    nva95_NO_sort = 0
+    nva99_NO_sort = 0
+    sort_vals = 0.d0
+    vals_sorted = 0.d0
+    sort_key = 0
+
+    !: Contribution from Orb i approximated by:
+    !:  Sum_j{ opdm(i,j)*Vabs(i,j) + opdm(j,i)*Vabs(j,i) }
+    do i=1,ndim
+      do j=1,ndim
+        sort_vals(i) = sort_vals(i) + abs(opdm_NO((i-1)*ndim+j)*Vabs_NO((i-1)*ndim+j))
+        sort_vals(i) = sort_vals(i) + abs(opdm_NO((j-1)*ndim+i)*Vabs_NO((j-1)*ndim+i))
+      end do
+    end do
+    call quicksort_descending(sort_vals, vals_sorted, sort_key)
+
+    !if (verbose) then 
+    !  write(iout, *) "NO Contribution Analysis"
+    !  write(iout, *) "i, i_sort, rate, rate_sort"
+    !  write(iout, *) "=========================="
+    !  do i=1,ndim
+    !    write(iout, "(i4, i4, f12.8, f12.8)") i, sort_key(i), sort_vals(i), vals_sorted(i)
+    !  end do
+    !end if
+
+    do i=1,ndim
+      do j=1,ndim
+        !: 2*Tr(opdm * Vabs) componentwise
+        rate = rate + abs(opdm_NO((i-1)*ndim+j) * Vabs_NO((i-1)*ndim+j))
+      end do
+    end do
+    do k=1,ndim
+      tmp = 0.d0
+      do i=1,k
+        do j=1,k
+          !: index (i-1)*ndim+j, but i,j go through sort_key
+          idx = (sort_key(i)-1)*ndim+sort_key(j)
+          tmp = tmp + abs(opdm_NO(idx) * Vabs_NO(idx))
+        end do
+      end do
+      if (tmp/rate .lt. 0.95d0) nva95_NO_sort = k
+      if (tmp/rate .lt. 0.99d0) nva99_NO_sort = k
+    end do
+
+
+
+    !: For MOs (SORTED)
+    rate = 0.0d0
+    tmp = 0.0d0
+    nva95_MO_sort = 0
+    nva99_MO_sort = 0
+    sort_vals = 0.d0
+    vals_sorted = 0.d0
+    sort_key = 0
+
+    !: Contribution from Orb i approximated by:
+    !:  Sum_j{ opdm(i,j)*Vabs(i,j) + opdm(j,i)*Vabs(j,i) }
+    do i=1,ndim
+      do j=1,ndim
+        sort_vals(i) = sort_vals(i) + abs(opdm((i-1)*ndim+j)*Vabs((i-1)*ndim+j))
+        sort_vals(i) = sort_vals(i) + abs(opdm((j-1)*ndim+i)*Vabs((j-1)*ndim+i))
+      end do
+    end do
+    call quicksort_descending(sort_vals, vals_sorted, sort_key)
+
+    !if (verbose) then
+      !write(iout, *) "MO Contribution Analysis"
+      !write(iout, *) "i, i_sort, rate, rate_sort"
+      !write(iout, *) "=========================="
+      !do i=1,ndim
+      !  write(iout, "(i4, i4, f12.8, f12.8)") i, sort_key(i), sort_vals(i), vals_sorted(i)
+      !end do
+    !end if
+
+    do i=1,ndim
+      do j=1,ndim
+        !: 2*Tr(opdm * Vabs) componentwise
+        rate = rate + abs(opdm((i-1)*ndim+j) * Vabs((i-1)*ndim+j))
+      end do
+    end do
+    do k=1,ndim
+      tmp = 0.d0
+      do i=1,k
+        do j=1,k
+          !: index (i-1)*ndim+j, but i,j go through sort_key
+          idx = (sort_key(i)-1)*ndim+sort_key(j)
+          tmp = tmp + abs(opdm(idx) * Vabs(idx))
+        end do
+      end do
+      if (tmp/rate .lt. 0.95d0) nva95_MO_sort = k
+      if (tmp/rate .lt. 0.99d0) nva99_MO_sort = k
+    end do
+
 
     deallocate( temp )
     deallocate( temp2 )
     deallocate( opdm_NO )
     deallocate( Vabs_NO )
 
+    if (verbose) then
+      write(iout,"('For input NOs, averaged opdm (UNSORTED) : nva95max=',i5,', nva99max=',i5)") nva95max, nva99max
+      write(iout,"('For       MOs, averaged opdm (UNSORTED) : nva95max=',i5,', nva99max=',i5)") nva95maxMO, nva99maxMO
+      write(iout,"('For input NOs, averaged opdm (  SORTED) : nva95max=',i5,', nva99max=',i5)") nva95_NO_sort, nva99_NO_sort
+      write(iout,"('For       MOs, averaged opdm (  SORTED) : nva95max=',i5,', nva99max=',i5)") nva95_MO_sort, nva99_MO_sort
+    end if
+
   end subroutine
 
+
+  function matrix_is_symmetric(A, n) result(output)
+    implicit none
+    integer(8), intent(in) :: n
+    real(8), intent(in) :: A(n*n)
+    logical, intent(out) :: output
+
+    integer(8) :: i,j
+    real(8) :: delta
+
+    output = .true.
+    do i=1,n
+      do j=1,n
+        if (i .ne. j) then
+          delta = abs( A((i-1)+j) - A((j-1)+i) )
+          if ( delta .ge. 0.0001 ) then
+            output = .false.
+          end if
+        end if
+      end do
+    end do 
+  end function matrix_is_symmetric
 
 
 end module propagate

@@ -1443,7 +1443,6 @@ contains
        end do
 !:       write(iout,8888) (tmprate(aa)/tmpsum,aa=1,nva)
 !:       flush(iout)
-       tmprate = 0.D0
        tmprate(1) = tmprate(1)/tmpsum
        do aa = 2,nva
          tmprate(aa) = tmprate(aa-1)+tmprate(aa)/tmpsum

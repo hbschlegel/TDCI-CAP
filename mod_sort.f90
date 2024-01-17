@@ -2,52 +2,71 @@ module sorting_module
   implicit none
 contains
 
-  subroutine quicksort_descending(A, B)
+  subroutine quicksort_descending(A, B, key)
     real(8), intent(in)  :: A(:)
     real(8), intent(out) :: B(size(A))
+    integer(8), intent(out) :: key(size(A))
+    integer(8) :: i, lo, hi
+
     B = A
-    call quicksort_helper(B, 1, size(A))
+    do i = 1,size(A)
+      key(i) = i
+    end do
+
+    lo = 1
+    hi = size(A)
+    call quicksort_helper(B, key, lo, hi)
   end subroutine quicksort_descending
   
-  recursive subroutine quicksort_helper(arr, lo, hi)
+  recursive subroutine quicksort_helper(arr, key, lo, hi)
     real(8), intent(inout) :: arr(:)
-    integer, intent(in) :: lo, hi
-    integer :: p
+    integer(8), intent(inout) :: key(:)
+    integer(8), intent(in) :: lo, hi
+    integer(8) :: p
     if (lo < hi) then
-      p = partition(arr, lo, hi)
-      call quicksort_helper(arr, lo, p - 1)
-      call quicksort_helper(arr, p + 1, hi)
+      p = partition(arr, key, lo, hi)
+      call quicksort_helper(arr, key, lo, p - 1)
+      call quicksort_helper(arr, key, p + 1, hi)
     end if
   end subroutine quicksort_helper
 
-  integer function partition(arr, lo, hi) result(p)
+  integer function partition(arr, key, lo, hi) result(p)
     real(8), intent(inout) :: arr(:)
-    integer, intent(in) :: lo, hi
-    real(8) :: pivot, temp
-    integer :: i, j
+    integer(8), intent(inout) :: key(:)
+    integer(8), intent(in) :: lo, hi
+    real(8) :: temp_val
+    integer(8) :: temp_key, i, j
 
-    pivot = arr(hi)
     i = lo
     do j = lo, hi - 1
-      if (arr(j) > pivot) then
-        temp = arr(i)
+      if (arr(j) > arr(hi)) then
+        ! Swap array values
+        temp_val = arr(i)
         arr(i) = arr(j)
-        arr(j) = temp
+        arr(j) = temp_val
+        ! Swap indices in sortkey
+        temp_key = key(i)
+        key(i) = key(j)
+        key(j) = temp_key
+
         i = i + 1
       end if
     end do
-    temp = arr(i)
+    temp_val = arr(i)
     arr(i) = arr(hi)
-    arr(hi) = temp
+    arr(hi) = temp_val
+    temp_key = key(i)
+    key(i) = key(hi)
+    key(hi) = temp_key
     p = i
   end function partition
 
   subroutine sort_eigenpairs_desc(eigenvalues, eigenvectors_1D, n)
     implicit none
-    integer, intent(in) :: n
+    integer(8), intent(in) :: n
     real(8), dimension(n), intent(inout) :: eigenvalues
     real(8), dimension(n*n), intent(inout) :: eigenvectors_1D
-    integer :: i, j, k
+    integer(8) :: i, j, k
     real(8) :: temp_val
 
     ! Bubble sort
