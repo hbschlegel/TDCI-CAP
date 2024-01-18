@@ -112,6 +112,8 @@ contains
     integer(8) :: nva95max, nva99max, nva95maxmax, nva99maxmax
     integer(8) :: nva95maxMO, nva99maxMO, nva95maxmaxMO, nva99maxmaxMO
     integer(8) :: nva95max_debug, nva99max_debug
+    real(8) :: rate_MO, rate_debug
+    
 
 
     call write_header( 'trotter_linear','propagate','enter' )    
@@ -162,6 +164,8 @@ contains
     nva99maxmaxMO = 0
     nva95max_debug = 0
     nva99max_debug = 0
+    rate_debug = 0.d0
+    rate_MO = 0.d0
 
     !if ( .true. ) then
     if ( flag_ReadU_NO ) then
@@ -229,7 +233,7 @@ contains
     !$OMP norm, norm0, normV, mux, muy, muz, rate, efieldx, efieldy, efieldz, &
     !$OMP pop1, ion, ion_coeff, rate_a, rate_b, rate_aa, rate_ab, rate_ba, rate_bb, psi_det0,  &
     !$OMP hp1, hp2, psi, psi1, scratch, iwork, tdvals1, tdvals2, Zion_coeff, &
-    !$OMP nva95max, nva99max, nva95maxMO, nva99maxMO, nva95max_debug, nva99max_debug ),  &
+    !$OMP nva95max, nva99max, nva95maxMO, nva99maxMO, nva95max_debug, nva99max_debug, rate_debug, rate_MO ),  &
     !$OMP SHARED( jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
     !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
     !$OMP abp, cis_vec, exp_abp, exphel, fvect1, fvect2, psi0, tdciresults, tdx, tdy, tdz, &
@@ -506,7 +510,7 @@ contains
                 !: Check max nva for input NOs at this step.
                 if (flag_ReadU_NO) then
                   call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, nva95max_debug, & 
-                                      nva99max_debug, scratch, U_NO_input, vabsmoa )
+                                      nva99max_debug, rate_debug, rate_MO, scratch, U_NO_input, vabsmoa )
                 end if
 
                 !$OMP CRITICAL
@@ -708,8 +712,8 @@ contains
 
 
           if (flag_ReadU_NO) then
-            write(iout,"(12x,'For MOs, nva95max=',i5,', nva99max=',i5)") nva95maxMO, nva99maxMO
-            write(iout,"(12x,'DEBUG:   nva95max=',i5,', nva99max=',i5)") nva95max_debug, nva99max_debug
+            write(iout,"('For MOs: rate=',E24.16,' nva95max=',i5,', nva99max=',i5)") rate_MO, nva95maxMO, nva99maxMO
+            write(iout,"('DEBUG:   rate=',E24.16,' nva95max=',i5,', nva99max=',i5)") rate_debug, nva95max_debug, nva99max_debug
             !: Put current nva maxs into overall nva max
             if (nva95maxmaxMO .lt. nva95maxMO) nva95maxmaxMO = nva95maxMO
             if (nva99maxmaxMO .lt. nva99maxMO) nva99maxmaxMO = nva99maxMO
@@ -741,7 +745,7 @@ contains
       nva99maxMO = 0
       nva95max_debug = 0
       nva99max_debug = 0
-      call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, nva95max_debug, nva99max_debug, &
+      call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, nva95max_debug, nva99max_debug, rate_debug, rate_MO, &
                           opdm_avg, U_NO_input, vabsmoa, .True. )
     end if
 
@@ -2158,11 +2162,12 @@ contains
   end subroutine NO_rate_sanity2
 
   subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, &
-                            nva95max_debug, nva99max_debug, opdm, U_NO, Vabs, verbosity)
+                            nva95max_debug, nva99max_debug, rate_debug, rate_MO, opdm, U_NO, Vabs, verbosity)
     implicit none
     integer(8), intent(inout) :: nva95maxMO, nva99maxMO
     integer(8), intent(inout) :: nva95max, nva99max
     integer(8), intent(inout) :: nva95max_debug, nva99max_debug 
+    real(8), intent(inout) :: rate_debug, rate_MO
     real(8), intent(in) :: opdm(:) !: One-particle density matrix in MO basis
     real(8), intent(in) :: U_NO(:) !: Transformation matrix from MO -> NO.
     !: Interesting, vabsmo is a 2D array (:,:), so I can't do Vabs(:) here.

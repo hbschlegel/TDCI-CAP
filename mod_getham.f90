@@ -312,14 +312,15 @@ contains
     tmpval = 0.d0
     tmpsum = 0.d0
     !: Sum rate for percent denominator
-    !do i = 1,noa+nva
-    write(iout, '(A)') 'Perturbative Rate Analysis:'
-    write(iout, '(A)') 'i   tmpsum'
-    write(iout, '(A)') '=========='
-    do i = 1,nva
-      tmpsum = tmpsum + mo_rate(i)
-      write(iout, '(I5, A, F15.10)') i, ", ", tmpsum
-    end do
+
+    !write(iout, '(A)') 'Perturbative Rate Analysis:'
+    !write(iout, '(A)') 'i   tmpsum'
+    !write(iout, '(A)') '=========='
+    !do i = 1,nva
+    !  tmpsum = tmpsum + mo_rate(i)
+    !  write(iout, '(I5, A, F15.10)') i, ", ", tmpsum
+    !end do
+
     !: Calculate cumulative rate by unsorted MOs
     !do i = 1,noa+nva
     do i = 1,nva

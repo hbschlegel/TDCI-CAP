@@ -842,7 +842,8 @@ contains
 
     integer(8) :: i, i1, j, j1, a, a1, b, b1, ia, jb, ii, jj, aa, bb, istate, ndim, k
     real(8)    :: const, const2, psi2, vabs00, rdum, rate
-    real(8)    :: tmprate(80000), tmpsum, tmp2
+    real(8)    :: tmprate(80000), tmpsum, tmp2, tmprate_direct
+    integer(8) :: nva95_direct, nva99_direct
     complex(8) :: psi0, psi_ia
     logical    :: total_dens
     
@@ -1051,6 +1052,7 @@ contains
        do aa = 1,nva
          tmpsum=tmpsum+tmprate(aa)
        end do 
+       tmprate_direct = tmpsum
 !:       write(iout,8888) (tmprate(aa)/tmpsum,aa=1,nva)
        tmprate(1) = tmprate(1)/tmpsum
        do aa = 2,nva
@@ -1058,6 +1060,9 @@ contains
          if(tmprate(aa).lt.0.95d0) nva95 = aa
          if(tmprate(aa).lt.0.99d0) nva99 = aa
        end do
+       nva95_direct = nva95
+       nva99_direct = nva99
+       
        !write(iout,8889) rate,nva,nva95,nva99
        nva95 = 0
        nva99 = 0
@@ -1077,31 +1082,19 @@ contains
        end do
        !write(iout,8889) tmprate(noa+nva),nva,nva95,nva99
  8888  format(10F10.7)
- 8889  format(" (1077) rate= ",F10.7,"  nva= ",I5,"  nva95= ",I5,"  nva99= ",I5)
+ 8889  format(" (density) rate= ",F10.7,"  nva= ",I5,"  nva95= ",I5,"  nva99= ",I5)
+
+       if ( abs(tmprate_direct - tmprate(nva)) .gt. 1e-6 ) then
+         write(iout, *) "Discrepency detected between direct and density derived rates: "
+         write(iout, "(A, F10.7, A, I5, A, I5)") " (direct ) rate= ",tmprate_direct,", nva95= ", &
+                     nva95_direct, ", nva99= ", nva99_direct
+         write(iout, "(A, F10.7, A, I5, A, I5)") " (density) rate= ",tmprate(nva),", nva95= ", &
+                     nva95, ", nva99= ", nva99
+       end if
+ 
+
        flush(iout)
 !: ********** HBS
-!: ********** ASD
-!       tmpsum=0.d0
-!       tmp2 = tmprate(noa+nva)
-!       tmprate=0.d0
-!       do i = 1,noa+nva
-!         do j = 1,noa+nva
-!           do k = 1,noa+nva
-!             tmprate( (i-1)*(noa+nva)+j ) = tmprate( (i-1)*(noa+nva)+j ) &
-!               + (density( (i-1)*(noa+nva)+k ) * vabs_a(k,j))
-!           end do
-!         end do
-!       end do
-!
-!       do i = 1,noa+nva
-!         tmpsum=tmpsum + tmprate( (i-1)*(noa+nva)+i )
-!         if (tmpsum/tmp2 .lt. 0.95d0) nva95 = i
-!         if (tmpsum/tmp2 .lt. 0.99d0) nva99 = i 
-!       end do
-!       write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " (mm poprate) rate= ",tmp2,", nva=",nva, &
-!          ", nva95_2= ",nva95,", nva99_2= ",nva99
-!
-!: ********** ASD
        call get_norm(normV,nstates,psiV)
        psiV = psiV/normV
 !:      write(iout,*) " normV = ", normV
@@ -1147,7 +1140,8 @@ contains
 
     integer(8) :: i,i1,j,j1,a,a1,b,b1,ia,jb,ii,jj,x,x1,y,y1,aa,bb,xx,yy,istate,ndim
     real(8)    :: psi2, vabs00, rate, rdum
-    real(8)    :: tmprate(1000), tmpsum
+    real(8)    :: tmprate(1000), tmpsum, tmprate_direct
+    integer(8) :: nva95_direct, nva99_direct
     complex(8) :: psi_ia
     logical    :: total_dens
     
@@ -1441,6 +1435,7 @@ contains
        do aa = 1,nva
          tmpsum=tmpsum+tmprate(aa)
        end do
+       tmprate_direct = tmpsum
 !:       write(iout,8888) (tmprate(aa)/tmpsum,aa=1,nva)
 !:       flush(iout)
        tmprate(1) = tmprate(1)/tmpsum
@@ -1449,11 +1444,39 @@ contains
          if(tmprate(aa).lt.0.95d0) nva95 = aa
          if(tmprate(aa).lt.0.99d0) nva99 = aa
        end do
-!:       write(iout,8889) rate,nva,nva95,nva99
+       nva95_direct = nva95
+       nva99_direct = nva99
+
+       !write(iout,8889) rate,nva,nva95,nva99
+       nva95 = 0
+       nva99 = 0
+       tmprate = 0.D0
+       tmprate(1) = abs(density(1)*vabs_a(1,1))
+       do i = 2,noa+nva
+         tmprate(i) = tmprate(i-1) + abs(density(i+(i-1)*ndim)*vabs_a(i,i))
+         do j = 1,i-1
+           tmprate(i) = tmprate(i) + abs(density(i+(j-1)*ndim)*vabs_a(i,j))
+           tmprate(i) = tmprate(i) + abs(density(j+(i-1)*ndim)*vabs_a(j,i))
+         end do
+       end do
+       do aa = 1,nva
+         if(tmprate(aa).lt.0.95d0*tmprate(noa+nva)) nva95 = aa
+         if(tmprate(aa).lt.0.99d0*tmprate(noa+nva)) nva99 = aa
+       end do
+
 !:       flush(iout)
  8887  format(2I5,F10.7)
  8888  format(10F10.7)
- 8889  format(" rate= ",F10.7,"  nva= ",I5,"  nva95= ",I5,"  nva99= ",I5)
+ 8889  format(" (density) rate= ",F10.7,"  nva= ",I5,"  nva95= ",I5,"  nva99= ",I5)
+
+       if ( (abs(tmprate_direct-tmprate(nva)).gt.1e-6) .or. (nva99_direct .ne. nva99 )) then
+         write(iout, *) "Discrepency detected between direct and density derived rates: "
+         write(iout, "(A, F10.7, A, I5, A, I5)") " (direct ) rate= ",tmprate_direct,", nva95= ", &
+                     nva95_direct, ", nva99= ", nva99_direct
+         write(iout, "(A, F10.7, A, I5, A, I5)") " (density) rate= ",tmprate(nva),", nva95= ", &
+                     nva95, ", nva99= ", nva99
+       end if
+
 !: ********** HBS
  
        call get_norm(normV,nstates,psiV)
