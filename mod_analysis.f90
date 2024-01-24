@@ -827,7 +827,7 @@ contains
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
     subroutine pop_rate(iout,noa,nob,norb,nstates,nva,nvb,nva95,nva99,hole,part,state_ip_index,ip_states, &
-      pop,ion,ion_coeff,rate_a,rate_b,psi_det,psiV,normV,vabs_a,vabs_b,unrestricted,density,au2fs)
+      pop,ion,ion_coeff,rate_a,rate_b,psi_det,psiV,normV,vabs_a,vabs_b,unrestricted,density,au2fs,nva_rate)
 
     implicit none
 
@@ -839,11 +839,12 @@ contains
     complex(8), intent(in)    :: psi_det(nstates)
     logical, intent(in)       :: unrestricted
     integer(8),intent(inout):: nva95, nva99
+    real(8), intent(inout), optional :: nva_rate
 
     integer(8) :: i, i1, j, j1, a, a1, b, b1, ia, jb, ii, jj, aa, bb, istate, ndim, k
     real(8)    :: const, const2, psi2, vabs00, rdum, rate
     real(8)    :: tmprate(80000), tmpsum, tmp2, tmprate_direct
-    integer(8) :: nva95_direct, nva99_direct
+    integer(8) :: nva95_direct, nva99_direct, nva95_density, nva99_density
     complex(8) :: psi0, psi_ia
     logical    :: total_dens
     
@@ -1062,6 +1063,7 @@ contains
        end do
        nva95_direct = nva95
        nva99_direct = nva99
+       if (present(nva_rate)) nva_rate = tmpsum
        
        !write(iout,8889) rate,nva,nva95,nva99
        nva95 = 0
@@ -1080,17 +1082,24 @@ contains
          if(tmprate(aa).lt.0.95d0*tmprate(noa+nva)) nva95 = aa
          if(tmprate(aa).lt.0.99d0*tmprate(noa+nva)) nva99 = aa
        end do
+       nva95_density = nva95
+       nva99_density = nva95
+
+       !: Make sure RESULTS files have eq12/direct ci vector method.
+       nva95 = nva95_direct
+       nva99 = nva99_direct
+
        !write(iout,8889) tmprate(noa+nva),nva,nva95,nva99
  8888  format(10F10.7)
- 8889  format(" (density) rate= ",F10.7,"  nva= ",I5,"  nva95= ",I5,"  nva99= ",I5)
+ 8889  format(" (direct) rate= ",F10.7,"  nva= ",I5,"  nva95= ",I5,"  nva99= ",I5)
 
-       if ( abs(tmprate_direct - tmprate(nva)) .gt. 1e-6 ) then
-         write(iout, *) "Discrepency detected between direct and density derived rates: "
-         write(iout, "(A, F10.7, A, I5, A, I5)") " (direct ) rate= ",tmprate_direct,", nva95= ", &
-                     nva95_direct, ", nva99= ", nva99_direct
-         write(iout, "(A, F10.7, A, I5, A, I5)") " (density) rate= ",tmprate(nva),", nva95= ", &
-                     nva95, ", nva99= ", nva99
-       end if
+       !if ( abs(tmprate_direct - tmprate(nva)) .gt. 1e-6 ) then
+       !  write(iout, *) "Discrepency detected between direct and density derived rates: "
+       !  write(iout, "(A, F10.7, A, I5, A, I5)") " (direct ) rate= ",tmprate_direct,", nva95= ", &
+       !              nva95_direct, ", nva99= ", nva99_direct
+       !  write(iout, "(A, F10.7, A, I5, A, I5)") " (density) rate= ",tmprate(nva),", nva95= ", &
+       !              nva95, ", nva99= ", nva99
+       !end if
  
 
        flush(iout)
@@ -1125,7 +1134,7 @@ contains
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
     subroutine pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,nva95,nva99,hole,part,state_ip_index,ip_states, &
-      pop,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb,psi_det,psiV,normV,vabs_a,vabs_b,density,au2fs)
+      pop,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb,psi_det,psiV,normV,vabs_a,vabs_b,density,au2fs,nva_rate)
 
     implicit none
 
@@ -1137,11 +1146,12 @@ contains
     complex(8),intent(inout):: psiv(nstates),ion_coeff(ip_states)
     complex(8), intent(in)  :: psi_det(nstates)
     integer(8),intent(inout):: nva95, nva99
+    real(8), intent(inout), optional :: nva_rate
 
     integer(8) :: i,i1,j,j1,a,a1,b,b1,ia,jb,ii,jj,x,x1,y,y1,aa,bb,xx,yy,istate,ndim
     real(8)    :: psi2, vabs00, rate, rdum
     real(8)    :: tmprate(1000), tmpsum, tmprate_direct
-    integer(8) :: nva95_direct, nva99_direct
+    integer(8) :: nva95_direct, nva99_direct, nva95_density, nva99_density
     complex(8) :: psi_ia
     logical    :: total_dens
     
@@ -1446,6 +1456,7 @@ contains
        end do
        nva95_direct = nva95
        nva99_direct = nva99
+       if (present(nva_rate)) nva_rate = tmpsum
 
        !write(iout,8889) rate,nva,nva95,nva99
        nva95 = 0
@@ -1463,19 +1474,25 @@ contains
          if(tmprate(aa).lt.0.95d0*tmprate(noa+nva)) nva95 = aa
          if(tmprate(aa).lt.0.99d0*tmprate(noa+nva)) nva99 = aa
        end do
+       nva95_density = nva95
+       nva99_density = nva95
+
+       !: Make sure RESULTS files have eq12/direct ci vector method.
+       nva95 = nva95_direct
+       nva99 = nva99_direct
 
 !:       flush(iout)
  8887  format(2I5,F10.7)
  8888  format(10F10.7)
  8889  format(" (density) rate= ",F10.7,"  nva= ",I5,"  nva95= ",I5,"  nva99= ",I5)
 
-       if ( (abs(tmprate_direct-tmprate(nva)).gt.1e-6) .or. (nva99_direct .ne. nva99 )) then
-         write(iout, *) "Discrepency detected between direct and density derived rates: "
-         write(iout, "(A, F10.7, A, I5, A, I5)") " (direct ) rate= ",tmprate_direct,", nva95= ", &
-                     nva95_direct, ", nva99= ", nva99_direct
-         write(iout, "(A, F10.7, A, I5, A, I5)") " (density) rate= ",tmprate(nva),", nva95= ", &
-                     nva95, ", nva99= ", nva99
-       end if
+       !if ( (abs(tmprate_direct-tmprate(nva)).gt.1e-6) .or. (nva99_direct .ne. nva99 )) then
+       !  write(iout, *) "Discrepency detected between direct and density derived rates: "
+       !  write(iout, "(A, F10.7, A, I5, A, I5)") " (direct ) rate= ",tmprate_direct,", nva95= ", &
+       !              nva95_direct, ", nva99= ", nva99_direct
+       !  write(iout, "(A, F10.7, A, I5, A, I5)") " (density) rate= ",tmprate(nva),", nva95= ", &
+       !              nva95_density, ", nva99= ", nva99_density
+       !end if
 
 !: ********** HBS
  

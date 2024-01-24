@@ -111,8 +111,12 @@ contains
     real(8), allocatable :: U_NO_input(:) !: U_NO read from file
     integer(8) :: nva95max, nva99max, nva95maxmax, nva99maxmax
     integer(8) :: nva95maxMO, nva99maxMO, nva95maxmaxMO, nva99maxmaxMO
+    integer(8) :: nva95max_direct, nva99max_direct,nva95maxmax_direct,nva99maxmax_direct
+    integer(8) :: nva95MO_sort, nva99MO_sort, nva95NO_sort,nva99NO_sort
+    integer(8) :: nva95maxMO_sort, nva99maxMO_sort, nva95maxNO_sort,nva99maxNO_sort
     integer(8) :: nva95max_debug, nva99max_debug
-    real(8) :: rate_MO, rate_debug
+    real(8) :: rate_density, rate_direct, rate_debug
+    real(8) :: ratemax_density, ratemax_direct, ratemax_debug
     
 
 
@@ -162,10 +166,21 @@ contains
     nva99maxMO = 0
     nva95maxmaxMO = 0
     nva99maxmaxMO = 0
+    nva95max_direct = 0
+    nva99max_direct = 0
+    nva95maxmax_direct = 0
+    nva99maxmax_direct = 0
     nva95max_debug = 0
     nva99max_debug = 0
     rate_debug = 0.d0
-    rate_MO = 0.d0
+    nva95MO_sort = 0
+    nva99MO_sort = 0
+    nva95NO_sort = 0
+    nva99NO_sort = 0
+    nva95maxMO_sort = 0
+    nva99maxMO_sort = 0
+    nva95maxNO_sort = 0
+    nva99maxNO_sort = 0
 
     !if ( .true. ) then
     if ( flag_ReadU_NO ) then
@@ -233,7 +248,9 @@ contains
     !$OMP norm, norm0, normV, mux, muy, muz, rate, efieldx, efieldy, efieldz, &
     !$OMP pop1, ion, ion_coeff, rate_a, rate_b, rate_aa, rate_ab, rate_ba, rate_bb, psi_det0,  &
     !$OMP hp1, hp2, psi, psi1, scratch, iwork, tdvals1, tdvals2, Zion_coeff, &
-    !$OMP nva95max, nva99max, nva95maxMO, nva99maxMO, nva95max_debug, nva99max_debug, rate_debug, rate_MO ),  &
+    !$OMP nva95max, nva99max, nva95maxMO, nva99maxMO, nva95max_debug, nva99max_debug, &
+    !$OMP nva95MO_sort, nva99MO_sort, nva95NO_sort, nva99NO_sort, &
+    !$OMP nva95max_direct, nva99max_direct, rate_density, rate_direct, rate_debug ),  &
     !$OMP SHARED( jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
     !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
     !$OMP abp, cis_vec, exp_abp, exphel, fvect1, fvect2, psi0, tdciresults, tdx, tdy, tdz, &
@@ -242,7 +259,9 @@ contains
     !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
     !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save, &
     !$OMP opdm_avg, opdm_avg_abs, opdm_avg_N, U_NO, U_NO_abs, natorb_occ, natorb_occ_abs, cmo_a, &
-    !$OMP U_NO_input, flag_ReadU_NO, nva95maxmax, nva99maxmax, nva95maxmaxMO, nva99maxmaxMO )
+    !$OMP U_NO_input, flag_ReadU_NO, nva95maxmax, nva99maxmax, nva95maxmaxMO, nva99maxmaxMO, &
+    !$OMP nva95maxMO_sort, nva99maxMO_sort, nva95maxNO_sort, nva99maxNO_sort, &
+    !$OMP nva95maxmax_direct, nva99maxmax_direct, ratemax_density,ratemax_direct )
     
     !$OMP DO  
 
@@ -256,8 +275,14 @@ contains
        nva99max = 0
        nva95maxMO = 0
        nva99maxMO = 0
+       nva95max_direct = 0
+       nva99max_direct = 0
        nva95max_debug = 0
        nva99max_debug = 0
+       nva95MO_sort = 0
+       nva99MO_sort = 0
+       nva95NO_sort = 0
+       nva99NO_sort = 0
 
        !: get directions stored in TDCItdciresults
        dirx1 = tdciresults(idir)%x0  
@@ -498,19 +523,25 @@ contains
                   call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
-                    psi_det0,psi1,normV,vabsmoa,vabsmob,scratch,au2fs)
+                    psi_det0,psi1,normV,vabsmoa,vabsmob,scratch,au2fs,rate_direct)
                 else
                   call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
-                    vabsmoa,vabsmob,unrestricted,scratch,au2fs)
+                    vabsmoa,vabsmob,unrestricted,scratch,au2fs,rate_direct)
                 end if 
                 !: 1-RDM (opdm) should be stored in scratch now.
 
                 !: Check max nva for input NOs at this step.
                 if (flag_ReadU_NO) then
-                  call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, nva95max_debug, & 
-                                      nva99max_debug, rate_debug, rate_MO, scratch, U_NO_input, vabsmoa )
+                  nva95max_direct = jj
+                  nva99max_direct = kk
+                  ratemax_direct = rate_direct
+                  call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, &
+                          nva95MO_sort, nva99MO_sort, nva95NO_sort,nva99NO_sort, &
+                          nva95max_debug, nva99max_debug,rate_debug, &
+                          !nva95max_density, nva99max_density, rate_density, &
+                          opdm_avg, U_NO_input, vabsmoa )
                 end if
 
                 !$OMP CRITICAL
@@ -711,20 +742,36 @@ contains
           write(iout,"(12x,'final norm = ',f10.5)")          norm**2
 
 
-          if (flag_ReadU_NO) then
-            write(iout,"('For MOs: rate=',E24.16,' nva95max=',i5,', nva99max=',i5)") rate_MO, nva95maxMO, nva99maxMO
-            write(iout,"('DEBUG:   rate=',E24.16,' nva95max=',i5,', nva99max=',i5)") rate_debug, nva95max_debug, nva99max_debug
-            !: Put current nva maxs into overall nva max
-            if (nva95maxmaxMO .lt. nva95maxMO) nva95maxmaxMO = nva95maxMO
-            if (nva99maxmaxMO .lt. nva99maxMO) nva99maxmaxMO = nva99maxMO
+          write(iout,"(12x,'For input NOs, nva95max=',i5,', nva99max=',i5)") nva95max, nva99max
+          write(iout,"('For MOs (direct): rate=',E24.16,' nva95max=',i5,', nva99max=',i5)") &
+                  rate_direct, nva95max_direct, nva99max_direct
+          write(iout,"('For MOs (density): rate=',E24.16,' nva95max=',i5,', nva99max=',i5)") &
+                  rate_debug, nva95max_debug, nva99max_debug
+          !write(iout,"('DEBUG:   rate=',E24.16,' nva95max=',i5,', nva99max=',i5)") &
+          !        rate_debug, nva95max_debug, nva99max_debug
 
-            write(iout,"(12x,'For input NOs, nva95max=',i5,', nva99max=',i5)") nva95max, nva99max
-            !: Put current nva maxs into overall nva max
-            if (nva95maxmax .lt. nva95max) nva95maxmax = nva95max
-            if (nva99maxmax .lt. nva99max) nva99maxmax = nva99max
+          !: Put current nva maxs into overall nva max
+          if (nva95maxmaxMO .lt. nva95maxMO) nva95maxmaxMO = nva95maxMO
+          if (nva99maxmaxMO .lt. nva99maxMO) then
+            nva99maxmaxMO = nva99maxMO
+            !ratemax_density = rate_density
+            ratemax_density = rate_debug
           end if
+          if (nva95maxmax_direct .lt. nva95max_direct) nva95maxmax_direct = nva95max_direct
+          if (nva99maxmax_direct .lt. nva99max_direct) then
+            nva99maxmax_direct = nva99max_direct
+            ratemax_direct = rate_direct
+          end if
+          !: Put current nva maxs into overall nva max
+          if (nva95maxmax .lt. nva95max) nva95maxmax = nva95max
+          if (nva99maxmax .lt. nva99max) nva99maxmax = nva99max
+
+          if (nva95maxMO_sort .lt. nva95MO_sort) nva95maxMO_sort =nva95MO_sort
+          if (nva99maxMO_sort .lt. nva99MO_sort) nva99maxMO_sort =nva99MO_sort
+          if (nva95maxNO_sort .lt. nva95NO_sort) nva95maxNO_sort =nva95NO_sort
+          if (nva99maxNO_sort .lt. nva99NO_sort) nva99maxNO_sort =nva99NO_sort
+
           flush(iout)
-          
 
           !$OMP END CRITICAL
        end do emax_loop
@@ -734,18 +781,35 @@ contains
     ithread = omp_get_thread_num()
     !$OMP END PARALLEL
 
-    write(iout,*) "AVERAGED NATURAL ORBITALS START"
-    
+    write(iout,*) "POST-PROPAGATION ANALYSIS:"
+    flush(iout)
+
     if (flag_ReadU_NO) then
-      write(iout,"('For input NOs, all directions: nva95maxmax=',i5,', nva99maxmax=',i5)") nva95maxmax, nva99maxmax
-      write(iout,"('For       MOs, all directions: nva95maxmax=',i5,', nva99maxmax=',i5)") nva95maxmaxMO, nva99maxmaxMO
+      write(iout,"('For input NOs, all directions (UNSORTED): nva95max=',i5,', nva99max=',i5)") nva95maxmax, nva99maxmax
+      write(iout,"('For input NOs, all directions (  SORTED): nva95max=',i5,', nva99max=',i5)") nva95maxNO_sort, nva99maxNO_sort
+
+      write(iout,"('For MOs, all directions: rate(density,   SORTED)=',F10.7,', nva95max=',i5, &
+                  ', nva99max=',i5)") ratemax_density, nva95maxMO_sort, nva99maxMO_sort
+      write(iout,"('For MOs, all directions: rate(density, UNSORTED)=',F10.7,', nva95max=',i5, &
+                  ', nva99max=',i5)") ratemax_density, nva95maxmaxMO, nva99maxmaxMO
+      write(iout,"('For MOs, all directions: rate(direct, UNSORTED)=',F10.7,', nva95max=',i5, & 
+                  ', nva99max=',i5)") ratemax_direct, nva95maxmax_direct, nva99maxmax_direct
       nva95max = 0
       nva99max = 0
       nva95maxMO = 0
       nva99maxMO = 0
+      nva95max_direct = 0
+      nva99max_direct = 0
       nva95max_debug = 0
       nva99max_debug = 0
-      call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, nva95max_debug, nva99max_debug, rate_debug, rate_MO, &
+      nva95MO_sort = 0
+      nva99MO_sort = 0
+      nva95NO_sort = 0
+      nva99NO_sort = 0
+      call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, &
+                          nva95MO_sort, nva99MO_sort, nva95MO_sort,nva99NO_sort, &
+                          nva95max_debug, nva99max_debug, rate_debug, &
+                          !nva95max_density, nva99max_density, rate_density, &
                           opdm_avg, U_NO_input, vabsmoa, .True. )
     end if
 
@@ -812,7 +876,7 @@ contains
     character(4) :: dirstr, emaxstr
     character(100) :: cifile, datafile
     !: lapack stuff and misc
-    integer(8) :: info1, info2, lscratch, liwork
+    integer(8) :: info1, info2, info3, lscratch, liwork
     real(8)    :: start1, start2, finish1, finish2
     integer(8), allocatable :: iwork(:)
     real(8), allocatable    :: scratch(:)
@@ -824,7 +888,16 @@ contains
     real(8), allocatable :: natorb_occ_abs(:) !: Natural orbital occupations (eigenvalues)
     real(8), allocatable :: U_NO(:) !: MO->NO transformation matrix
     real(8), allocatable :: U_NO_abs(:) !: MO->NO_abs transformation matrix
-    integer(8) :: opdm_avg_N
+    integer(8) :: opdm_avg_N, ndim
+    real(8), allocatable :: U_NO_input(:) !: U_NO read from file
+    integer(8) :: nva95max, nva99max, nva95maxmax, nva99maxmax
+    integer(8) :: nva95maxMO, nva99maxMO, nva95maxmaxMO, nva99maxmaxMO
+    integer(8) :: nva95max_direct, nva99max_direct,nva95maxmax_direct,nva99maxmax_direct
+    integer(8) :: nva95MO_sort, nva99MO_sort, nva95NO_sort,nva99NO_sort
+    integer(8) :: nva95maxMO_sort, nva99maxMO_sort, nva95maxNO_sort,nva99maxNO_sort
+    integer(8) :: nva95max_debug, nva99max_debug
+    real(8) :: rate_density, rate_direct, rate_debug
+    real(8) :: ratemax_density, ratemax_direct, ratemax_debug
 
     call write_header( 'trotter_circular','propagate','enter' )    
     call writeme_propagate( 'trot_cir', 'equation' ) 
@@ -847,12 +920,14 @@ contains
     call writeme_propagate( 'trot_lin', 'psi0' )    
     
     !: Natural Orbital initialization
-    allocate( opdm_avg(norb*norb) )
-    allocate( opdm_avg_abs(norb*norb) )
-    allocate(natorb_occ(norb))
-    allocate(natorb_occ_abs(norb))
-    allocate( U_NO(norb*norb) )
-    allocate( U_NO_abs(norb*norb) )
+    ndim = noa+nva
+    allocate( opdm_avg(ndim*ndim) )
+    allocate( opdm_avg_abs(ndim*ndim) )
+    allocate(natorb_occ(ndim))
+    allocate(natorb_occ_abs(ndim))
+    allocate( U_NO(ndim*ndim) )
+    allocate( U_NO_abs(ndim*ndim) )
+    allocate( U_NO_input(ndim*ndim) )
     opdm_avg = 0.d0
     opdm_avg_abs = 0.d0
     natorb_occ = 0.d0
@@ -861,6 +936,35 @@ contains
     U_NO_abs = 0.d0
     opdm_avg_N = ndir*(nstep/outstep)
     write(iout, '(A,i5)') "opdm_avg_N: ", opdm_avg_N
+    write(iout, '(A)') "This is the circular propagator!", opdm_avg_N
+    nva95max = 0
+    nva99max = 0
+    nva95maxmax = 0
+    nva99maxmax = 0
+    nva95maxMO = 0
+    nva99maxMO = 0
+    nva95maxmaxMO = 0
+    nva99maxmaxMO = 0
+    nva95max_direct = 0
+    nva99max_direct = 0
+    nva95maxmax_direct = 0
+    nva99maxmax_direct = 0
+    nva95max_debug = 0
+    nva99max_debug = 0
+    rate_debug = 0.d0
+    nva95MO_sort = 0
+    nva99MO_sort = 0
+    nva95NO_sort = 0
+    nva99NO_sort = 0
+    nva95maxMO_sort = 0
+    nva99maxMO_sort = 0
+    nva95maxNO_sort = 0
+    nva99maxNO_sort = 0
+
+    !if ( .true. ) then
+    if ( flag_ReadU_NO ) then
+      call read_dbin( U_NO_input, (ndim*ndim), "U_NO_input.bin", info3)
+    end if
     
     !: get initial population
     allocate( pop0(norb), pop1(norb), ion(norb), psi_det0(nstates) )
@@ -922,7 +1026,10 @@ contains
     !$OMP psi_j, psi_k, temp, temp1, temp2, cdum,           &
     !$OMP norm, norm0, normV, mux, muy, muz, rate, efieldx, efieldy, efieldz, &
     !$OMP pop1, ion, ion_coeff, rate_a, rate_b, rate_aa, rate_ab, rate_ba, rate_bb, psi_det0,  &
-    !$OMP hp1, hp2, psi, psi1, scratch, iwork, tdvals1, tdvals2, Zion_coeff ),        &
+    !$OMP hp1, hp2, psi, psi1, scratch, iwork, tdvals1, tdvals2, Zion_coeff,        &
+    !$OMP nva95max, nva99max, nva95maxMO, nva99maxMO, nva95max_debug, nva99max_debug, &
+    !$OMP nva95MO_sort, nva99MO_sort, nva95NO_sort, nva99NO_sort, &
+    !$OMP nva95max_direct, nva99max_direct, rate_density, rate_direct, rate_debug ),  &
     !$OMP SHARED( jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
     !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
     !$OMP abp, cis_vec, exp_abp, exphel, fvect1, fvect2, psi0, tdciresults, tdx, tdy, tdz, &
@@ -930,7 +1037,10 @@ contains
     !$OMP state_ip_index, ip_states, read_states, ip_vec, Zproj_ion, Qread_ion_coeff, Qwrite_ion_coeff, &
     !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
     !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save, &
-    !$OMP opdm_avg, opdm_avg_abs, opdm_avg_N, U_NO, U_NO_abs, natorb_occ, natorb_occ_abs, cmo_a)
+    !$OMP opdm_avg, opdm_avg_abs, opdm_avg_N, U_NO, U_NO_abs, natorb_occ, natorb_occ_abs, cmo_a, &
+    !$OMP U_NO_input, flag_ReadU_NO, nva95maxmax, nva99maxmax, nva95maxmaxMO, nva99maxmaxMO, &
+    !$OMP nva95maxMO_sort, nva99maxMO_sort, nva95maxNO_sort, nva99maxNO_sort, &
+    !$OMP nva95maxmax_direct, nva99maxmax_direct, ratemax_density,ratemax_direct )
 
     
     !$OMP DO
@@ -938,6 +1048,20 @@ contains
 
        ithread = omp_get_thread_num()
        call cpu_time( start1 ) 
+
+       !: reset nva max
+       nva95max = 0
+       nva99max = 0
+       nva95maxMO = 0
+       nva99maxMO = 0
+       nva95max_direct = 0
+       nva99max_direct = 0
+       nva95max_debug = 0
+       nva99max_debug = 0
+       nva95MO_sort = 0
+       nva99MO_sort = 0
+       nva95NO_sort = 0
+       nva99NO_sort = 0
 
        !: get directions stored in TDCItdciresults
        dirx1 = tdciresults(idir)%x1 ; dirx2 = tdciresults(idir)%x2
@@ -1218,16 +1342,28 @@ contains
                   call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
-                    psi_det0,psi1,normV,vabsmoa,vabsmob,scratch,au2fs)
+                    psi_det0,psi1,normV,vabsmoa,vabsmob,scratch,au2fs,rate_direct)
                 else
                   call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
-                    vabsmoa,vabsmob,unrestricted,scratch,au2fs)
+                    vabsmoa,vabsmob,unrestricted,scratch,au2fs,rate_direct)
                 end if
                 !: 1-RDM should be stored in scratch now.
                 !: Why does scratch have size (nstuse,nstuse) while density in
                 !:  pop_rate has size (norb,norb)?
+
+                !: Check max nva for input NOs at this step.
+                if (flag_ReadU_NO) then
+                  nva95max_direct = jj
+                  nva99max_direct = kk
+                  ratemax_direct = rate_direct
+                  call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, &
+                          nva95maxMO_sort, nva99maxMO_sort, nva95maxMO_sort,nva99maxMO_sort, &
+                          nva95max_debug, nva99max_debug,rate_debug, &
+                          !nva95max_density, nva99max_density, rate_density, &
+                          opdm_avg, U_NO_input, vabsmoa )
+                end if
 
                 !$OMP CRITICAL
                 !: set critical for sum so we dont have multiple threads
@@ -1238,9 +1374,9 @@ contains
                 call add_opdm_average( opdm_avg, scratch, opdm_avg_N )
                 call add_opdm_average( opdm_avg_abs, scratch, opdm_avg_N, .false., .true. )
 
-                call generate_natural_orbitals( scratch, U_NO, natorb_occ )
-                call NO_rate_sanity( scratch, U_NO, natorb_occ, vabsmoa, cmo_a)
-                flush(iout)    
+                !call generate_natural_orbitals( scratch, U_NO, natorb_occ )
+                !call NO_rate_sanity( scratch, U_NO, natorb_occ, vabsmoa, cmo_a)
+                !flush(iout)    
                 !call dgemm_sanity 
 
                 !$OMP END CRITICAL
@@ -1406,9 +1542,42 @@ contains
           write(iout,"(12x,'(iemax=1) LAPACK dysev TD diagonalization INFO=',i0)") info1
           write(iout,"(12x,'propagation time:',f12.4,' s')") finish2-start2
           write(iout,"(12x,'final norm = ',f10.5)")          norm**2
-          flush(iout)
-          !$OMP END CRITICAL
 
+
+          if (flag_ReadU_NO) then
+            write(iout,"('For MOs (direct): rate=',E24.16,' nva95max=',i5,', nva99max=',i5)") &
+                    rate_direct, nva95max_direct, nva99max_direct
+            write(iout,"('For MOs (density): rate=',E24.16,' nva95max=',i5,', nva99max=',i5)") &
+                    rate_debug, nva95max_debug, nva99max_debug
+            !write(iout,"('DEBUG:   rate=',E24.16,' nva95max=',i5,', nva99max=',i5)") &
+            !        rate_debug, nva95max_debug, nva99max_debug
+            !: Put current nva maxs into overall nva max
+            if (nva95maxmaxMO .lt. nva95maxMO) nva95maxmaxMO = nva95maxMO
+            if (nva99maxmaxMO .lt. nva99maxMO) then
+              nva99maxmaxMO = nva99maxMO
+              !ratemax_density = rate_density
+              ratemax_density = rate_debug
+            end if
+            if (nva95maxmax_direct .lt. nva95max_direct) nva95maxmax_direct = nva95max_direct
+            if (nva99maxmax_direct .lt. nva99max_direct) then
+              nva99maxmax_direct = nva99max_direct
+              ratemax_direct = rate_direct
+            end if
+
+            write(iout,"(12x,'For input NOs, nva95max=',i5,', nva99max=',i5)") nva95max, nva99max
+            !: Put current nva maxs into overall nva max
+            if (nva95maxmax .lt. nva95max) nva95maxmax = nva95max
+            if (nva99maxmax .lt. nva99max) nva99maxmax = nva99max
+
+            if (nva95maxMO_sort .lt. nva95MO_sort) nva95maxMO_sort =nva95MO_sort
+            if (nva99maxMO_sort .lt. nva99MO_sort) nva99maxMO_sort =nva99MO_sort
+            if (nva95maxNO_sort .lt. nva95NO_sort) nva95maxNO_sort =nva95NO_sort
+            if (nva99maxNO_sort .lt. nva99NO_sort) nva99maxNO_sort =nva99NO_sort
+
+          end if
+          flush(iout)
+
+          !$OMP END CRITICAL
 
        end do emax_loop
     end do dir_loop
@@ -1416,17 +1585,44 @@ contains
     !$OMP END DO
     !$OMP END PARALLEL
 
-    write(iout,*) "AVERAGED NATURAL ORBITALS START"
+    write(iout,*) "POST-PROPAGATION ANALYSIS:"
+    flush(iout)
+
+    if (flag_ReadU_NO) then
+      write(iout,"('For input NOs, all directions (UNSORTED): nva95max=',i5,', nva99max=',i5)") nva95maxmax, nva99maxmax
+      write(iout,"('For input NOs, all directions (  SORTED): nva95max=',i5,', nva99max=',i5)") nva95maxmax, nva99maxmax
+
+      write(iout,"('For MOs, all directions: rate(density,   SORTED)=',F10.7,', nva95max=',i5, &
+                  ', nva99max=',i5)") ratemax_density, nva95maxMO_sort, nva99maxmaxMO
+      write(iout,"('For MOs, all directions: rate(density, UNSORTED)=',F10.7,', nva95max=',i5, &
+                  ', nva99max=',i5)") ratemax_density, nva95maxmaxMO, nva99maxmaxMO
+      write(iout,"('For MOs, all directions: rate(direct, UNSORTED)=',F10.7,', nva95max=',i5, & 
+                  ', nva99max=',i5)") ratemax_direct, nva95maxmax_direct, nva99maxmax_direct
+      nva95max = 0
+      nva99max = 0
+      nva95maxMO = 0
+      nva99maxMO = 0
+      nva95max_direct = 0
+      nva99max_direct = 0
+      nva95max_debug = 0
+      nva99max_debug = 0
+      nva95maxMO_sort = 0
+      nva99maxMO_sort = 0
+      nva95maxNO_sort = 0
+      nva99maxNO_sort = 0
+      call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, &
+                          nva95maxMO_sort, nva99maxMO_sort, nva95maxMO_sort,nva99maxNO_sort, &
+                          nva95max_debug, nva99max_debug, rate_debug, &
+                          !nva95max_density, nva99max_density, rate_density, &
+                          opdm_avg, U_NO_input, vabsmoa, .True. )
+    end if
 
     call generate_natural_orbitals( opdm_avg, U_NO, natorb_occ, .false. )
     call generate_natural_orbitals( opdm_avg_abs, U_NO_abs, natorb_occ_abs, .false. )
     call NO_rate_sanity2( opdm_avg, U_NO, natorb_occ, opdm_avg_abs, U_NO_abs, natorb_occ_abs, vabsmoa, cmo_a)
 
-    call write_header( 'trotter_linear','propagate','leave' )
-    call cpu_time(finish)
-    write(iout,"(2x,'Total propagation time:',f12.4,' s')") finish - start  
-    flush(iout)
-
+    !call io_bin_test
+    call write_dbin(U_NO, (noa+nva)*(noa+nva), "U_NO_out.bin")
 
     call write_header( 'trotter_circular','propagate','leave' )
     call cpu_time(finish)
@@ -2161,13 +2357,19 @@ contains
 
   end subroutine NO_rate_sanity2
 
-  subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, &
-                            nva95max_debug, nva99max_debug, rate_debug, rate_MO, opdm, U_NO, Vabs, verbosity)
+  subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
+                            nva95maxMO_sort, nva99maxMO_sort, nva95maxNO_sort, nva99maxNO_sort, &
+                            nva95max_debug, nva99max_debug, rate_debug, &
+                            !nva95max_density, nva99max_density, rate_density, &
+                            opdm, U_NO, Vabs, verbosity)
     implicit none
     integer(8), intent(inout) :: nva95maxMO, nva99maxMO
-    integer(8), intent(inout) :: nva95max, nva99max
+    integer(8), intent(inout) :: nva95maxNO, nva99maxNO
+    integer(8), intent(inout) :: nva95maxMO_sort, nva99maxMO_sort
+    integer(8), intent(inout) :: nva95maxNO_sort, nva99maxNO_sort
     integer(8), intent(inout) :: nva95max_debug, nva99max_debug 
-    real(8), intent(inout) :: rate_debug, rate_MO
+    !integer(8), intent(inout) :: nva95max_density, nva99max_density 
+    real(8), intent(inout) :: rate_debug  !, rate_density
     real(8), intent(in) :: opdm(:) !: One-particle density matrix in MO basis
     real(8), intent(in) :: U_NO(:) !: Transformation matrix from MO -> NO.
     !: Interesting, vabsmo is a 2D array (:,:), so I can't do Vabs(:) here.
@@ -2232,6 +2434,10 @@ contains
     !  write(iout, "(A)"), "WARNING: Vabs_NO is not symmetric! (delta=1E-4)"
     !end if
 
+    !: For NOs (UNSORTED)
+    rate = 0.d0
+    nva95_NO = 0
+    nva99_NO = 0
     do i=1,ndim
       do j=1,ndim
         !: 2*Tr(opdm_NO * Vabs_NO) componentwise
@@ -2249,19 +2455,16 @@ contains
       if (tmp/rate .lt. 0.99d0) nva99_NO = k
     end do
 
-    if ( nva95_NO .gt. nva95max) nva95max = nva95_NO
-    if ( nva99_NO .gt. nva99max) nva99max = nva99_NO
+    if ( nva95_NO .gt. nva95maxNO) nva95maxNO = nva95_NO
+    if ( nva99_NO .gt. nva99maxNO) nva99maxNO = nva99_NO
 
 
-    !: For MOs ( DEBUG )
+    !: For MOs ( DEBUG, UNSORTED )
     rate = 0.d0
     tmp = 0.d0
     nva95 = 0
     nva99 = 0
     tmprate = 0.d0
-    !: AD: HBS uses state-based abs(dconjg(psi_det(ia))*psiV(ia)) to calculate
-    !      rate for this in mod_analysis.f90 ... This value should be the same.
-    !      (Assumes opdm is symmetric, and we check this above.)
     tmprate(1) = abs(opdm(1)*Vabs(1))
     do i = 2,noa+nva
       tmprate(i) = tmprate(i-1) + abs(opdm(i+(i-1)*ndim)*Vabs((i-1)*ndim+i))
@@ -2275,9 +2478,12 @@ contains
       if (tmprate(i).lt.0.99d0*tmprate(noa+nva)) nva99 = i
     end do
     if ( nva95 .gt. nva95maxMO) nva95max_debug = nva95
-    if ( nva99 .gt. nva99maxMO) nva99max_debug = nva99
+    if ( nva99 .gt. nva99maxMO) then
+      nva99max_debug = nva99
+      rate_debug = tmprate(noa+nva)
+    end if
 
-    !: For MOs
+    !: For MOs (UNSORTED)
     rate = 0.0d0
     tmp = 0.0d0
     nva95_NO = 0
@@ -2317,7 +2523,7 @@ contains
     do i=1,ndim
       do j=1,ndim
         sort_vals(i) = sort_vals(i) + abs(opdm_NO((i-1)*ndim+j)*Vabs_NO((i-1)*ndim+j))
-        sort_vals(i) = sort_vals(i) + abs(opdm_NO((j-1)*ndim+i)*Vabs_NO((j-1)*ndim+i))
+        !sort_vals(i) = sort_vals(i) + abs(opdm_NO((j-1)*ndim+i)*Vabs_NO((j-1)*ndim+i))
       end do
     end do
     call quicksort_descending(sort_vals, vals_sorted, sort_key)
@@ -2349,6 +2555,8 @@ contains
       if (tmp/rate .lt. 0.95d0) nva95_NO_sort = k
       if (tmp/rate .lt. 0.99d0) nva99_NO_sort = k
     end do
+    if ( nva95_NO_sort .gt. nva95maxNO_sort) nva95maxNO_sort = nva95_NO_sort
+    if ( nva99_NO_sort .gt. nva99maxNO_sort) nva99maxNO_sort = nva99_NO_sort
 
 
 
@@ -2366,7 +2574,7 @@ contains
     do i=1,ndim
       do j=1,ndim
         sort_vals(i) = sort_vals(i) + abs(opdm((i-1)*ndim+j)*Vabs((i-1)*ndim+j))
-        sort_vals(i) = sort_vals(i) + abs(opdm((j-1)*ndim+i)*Vabs((j-1)*ndim+i))
+        !sort_vals(i) = sort_vals(i) + abs(opdm((j-1)*ndim+i)*Vabs((j-1)*ndim+i))
       end do
     end do
     call quicksort_descending(sort_vals, vals_sorted, sort_key)
@@ -2398,6 +2606,8 @@ contains
       if (tmp/rate .lt. 0.95d0) nva95_MO_sort = k
       if (tmp/rate .lt. 0.99d0) nva99_MO_sort = k
     end do
+    if ( nva95_MO_sort .gt. nva95maxMO_sort) nva95maxMO_sort = nva95_MO_sort
+    if ( nva99_MO_sort .gt. nva99maxMO_sort) nva99maxMO_sort = nva99_MO_sort
 
 
     deallocate( temp )
@@ -2406,7 +2616,7 @@ contains
     deallocate( Vabs_NO )
 
     if (verbose) then
-      write(iout,"('For input NOs, averaged opdm (UNSORTED) : nva95max=',i5,', nva99max=',i5)") nva95max, nva99max
+      write(iout,"('For input NOs, averaged opdm (UNSORTED) : nva95max=',i5,', nva99max=',i5)") nva95maxNO, nva99maxNO
       write(iout,"('For       MOs, averaged opdm (UNSORTED) : nva95max=',i5,', nva99max=',i5)") nva95maxMO, nva99maxMO
       write(iout,"('For input NOs, averaged opdm (  SORTED) : nva95max=',i5,', nva99max=',i5)") nva95_NO_sort, nva99_NO_sort
       write(iout,"('For       MOs, averaged opdm (  SORTED) : nva95max=',i5,', nva99max=',i5)") nva95_MO_sort, nva99_MO_sort

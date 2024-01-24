@@ -178,6 +178,8 @@ contains
    
     !: AD
     write(iout, *) "Eq 18 (Field Perturbed Orbitals) OmniDirectional:"
+    write(iout, *) norb, noa, nva, orben(1), dipxmoa(2), dipymoa(2), dipzmoa(2), vabsmoa(1)
+
     call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.030d0, 1.d0, 1.d0, 1.d0)
     call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.035d0, 1.d0, 1.d0, 1.d0)
     call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.040d0, 1.d0, 1.d0, 1.d0)
@@ -190,14 +192,17 @@ contains
     call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.075d0, 1.d0, 1.d0, 1.d0)
     call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.080d0, 1.d0, 1.d0, 1.d0)
     call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.090d0, 1.d0, 1.d0, 1.d0)
+    write(iout, *) " "
     write(iout, *) "Eq 18 (Field Perturbed Orbitals) Directional:"
     write(iout, *) "Emax = 0.050 au"
     write(iout, *) "Theta=0"
     call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.050d0, 1.d0, 0.d0, 0.d0)
+    write(iout, *) " "
     write(iout, *) "Theta=45"
     call generate_field_perturbed_orbitals( &
       norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
       0.050d0, 1.d0/sqrt(2.d0), 1.d0/sqrt(2.d0), 0.d0)
+    write(iout, *) " "
     write(iout, *) "Theta=90"
     call generate_field_perturbed_orbitals( &
       norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
@@ -206,16 +211,19 @@ contains
     call generate_field_perturbed_orbitals( &
       norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
       0.050d0, -1.d0/sqrt(2.d0), 1.d0/sqrt(2.d0), 0.d0)
+    write(iout, *) " "
     write(iout, *) "Theta=180"
     call generate_field_perturbed_orbitals( &
       norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
       0.050d0, -1.d0, 1.d0/sqrt(2.d0), 0.d0)
 
+    write(iout, *) " "
     write(iout, *) "Emax = 0.035"
     write(iout, *) "Field directon (0, 1/sqrt(2), 1/sqrt(2))"
     call generate_field_perturbed_orbitals( &
       norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
       0.0350d0, 0.d0, 1.d0/sqrt(2.d0), 1.d0/sqrt(2.d0))
+    write(iout, *) " "
     write(iout, *) "Diagonalize EFock::"
     call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.002d0 )
     call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.005d0 )
@@ -316,10 +324,11 @@ contains
     !write(iout, '(A)') 'Perturbative Rate Analysis:'
     !write(iout, '(A)') 'i   tmpsum'
     !write(iout, '(A)') '=========='
-    !do i = 1,nva
-    !  tmpsum = tmpsum + mo_rate(i)
-    !  write(iout, '(I5, A, F15.10)') i, ", ", tmpsum
-    !end do
+
+    do i = 1,nva
+      tmpsum = tmpsum + mo_rate(i)
+      !write(iout, '(I5, A, F15.10)') i, ", ", tmpsum
+    end do
 
     !: Calculate cumulative rate by unsorted MOs
     !do i = 1,noa+nva
