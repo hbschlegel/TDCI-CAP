@@ -1,7 +1,7 @@
-module read_integrals
+module readintegrals
 
 
-  use global_variables
+  use variables_global
   implicit none
 
   
@@ -1572,4 +1572,4 @@ contains
   end function get_index
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
-end module read_integrals
+end module readintegrals

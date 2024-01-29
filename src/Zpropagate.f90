@@ -1,7 +1,7 @@
 module Zpropagate
   
-  use global_variables
-  use analyze_psi
+  use variables_global
+  use analysis
   use util
   
   implicit none

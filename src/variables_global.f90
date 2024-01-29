@@ -1,12 +1,12 @@
-module global_variables
+module variables_global
 
 
   !: contains main variables 
 
 
-  use units
-  use setup_variables
-  use route_control
+  use variables_units
+  use variables_setup
+  use variables_control
 
   
   implicit none
@@ -319,4 +319,4 @@ contains
   end subroutine track_mem
   !:----------------------------!
   !:----------------------------!
-end module global_variables
+end module variables_global

@@ -1,4 +1,4 @@
-module units 
+module variables_units 
 
   !: module units
   !: contains units conversion parameters and functions
@@ -204,4 +204,4 @@ contains
     
   end function convert_energy
   ! ****************************************************************! 
-end module units
+end module variables_units

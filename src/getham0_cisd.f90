@@ -1,6 +1,6 @@
-module get_ham0_cisd
+module getham0_cisd
   
-  use global_variables
+  use variables_global
   implicit none
 
 
@@ -13,7 +13,7 @@ contains
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   subroutine get_cisd_0(sigma)
 
-    use read_integrals
+    use readintegrals
     implicit none
     
     real(8), intent(inout) :: sigma(nstates)
@@ -74,7 +74,7 @@ contains
   subroutine get_cisd_ia_AA(i_in,a_in,sigma)
     
 
-    use read_integrals
+    use readintegrals
     implicit none
 
     integer(8), intent(in) :: i_in, a_in
@@ -250,7 +250,7 @@ contains
   subroutine get_cisd_ia_BB(i_in,a_in,sigma)
     
 
-    use read_integrals
+    use readintegrals
     implicit none
 
     integer(8), intent(in) :: i_in, a_in
@@ -421,7 +421,7 @@ contains
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   subroutine get_cisd_ijab_AAAA(i_in, j_in, a_in, b_in, sigma)
 
-    use read_integrals
+    use readintegrals
     implicit none
 
     integer(8), intent(in) :: i_in, j_in, a_in, b_in
@@ -807,7 +807,7 @@ contains
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   subroutine get_cisd_ijab_BBBB(i_in, j_in, a_in, b_in, sigma)
 
-    use read_integrals
+    use readintegrals
     implicit none
 
     integer(8), intent(in) :: i_in, j_in, a_in, b_in
@@ -1188,7 +1188,7 @@ contains
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   subroutine get_cisd_ijab_ABAB( i_in, j_in, a_in, b_in, sigma )
     
-    use read_integrals
+    use readintegrals
     implicit none
 
     integer(8), intent(in) :: i_in, j_in, a_in, b_in
@@ -1453,7 +1453,7 @@ contains
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   subroutine get_cisd_diagonal( sigma )
 
-    use read_integrals
+    use readintegrals
     implicit none
 
     real(8), parameter :: scf = -75.9835736457
@@ -1766,5 +1766,5 @@ contains
   end subroutine write_cisd_hamiltonian
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
-end module get_ham0_cisd
+end module getham0_cisd
 

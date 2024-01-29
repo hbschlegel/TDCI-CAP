@@ -1456,7 +1456,7 @@ contains
   !==================================================================!
   subroutine math_ham
 
-    use read_integrals
+    use readintegrals
 
     implicit none
     integer(8) :: istate, xx, ii, aa, yy, jj, bb, ia, jb

@@ -1,6 +1,6 @@
-module analyze_psi
+module analysis
   
-  !use global_variables ! <C> use at your risk, beware of private & shared OMP variables
+  !use variables_global ! <C> use at your risk, beware of private & shared OMP variables
   implicit none
 
   
@@ -2404,4 +2404,4 @@ contains
 !:     write(iout,"(9f12.7)") (psi(i),i=1,nstuse)
 
   end subroutine get_Zion_psi1
-end module analyze_psi
+end module analysis

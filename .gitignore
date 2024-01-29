@@ -1,0 +1,6 @@
+**/*.mod
+**/*.o
+bin/tdci
+errors_*
+output_*
+compile.job

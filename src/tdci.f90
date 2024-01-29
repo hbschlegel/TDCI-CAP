@@ -9,15 +9,15 @@
 program main
 
   
-  use global_variables !: inherits units, setup_variables, route_control
+  use variables_global !: inherits units, variables_setup, variables_control
   use initialize
-  use read_integrals
+  use readintegrals
   use write_info
-  use get_field
-  use get_ham          !: inherits get_ham0
+  use getfield
+  use getham          !: inherits getham0
   use propagate
   use Zpropagate 
-  use mod_davidson_ip  !: only to check Hamiltonian
+  use davidson_ip  !: only to check Hamiltonian
 
   
   implicit none
@@ -56,7 +56,7 @@ program main
   !: generate field 
   !: read polarization directions, dirform<0 in polar ; dirform>0, in Cartesian
   !: for circularly polarized pulses, two vectors perpendicular to propdirection   
-  if( Qget_field ) then
+  if( Qgetfield ) then
      call check_emax
      call get_lindirection
      if (.not.linear) call get_circdirection
@@ -71,7 +71,7 @@ program main
   !: form CIS Hamiltonian and diagonalize 
   !: matrix elements stored in cis_vec since cis_vec will be fed into dysev diagonalization
   !: dysev will spit out eigenvectors into cis_vec.
-  if ( Qget_ham0 ) then
+  if ( Qgetham0 ) then
      select case ( trim(jobtype) ) 
      case( flag_cis ) 
         call get_cisN

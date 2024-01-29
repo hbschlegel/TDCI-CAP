@@ -1,6 +1,6 @@
-  module get_ham0
+  module getham0
   
-  use global_variables
+  use variables_global
   use util
   
   implicit none
@@ -110,7 +110,7 @@ contains
 
     !: get CIS Hamiltonian
 
-    use read_integrals
+    use readintegrals
     use util
  
     implicit none
@@ -120,7 +120,7 @@ contains
     real(8) :: sign, storeme
     
     
-    call write_header( 'get_cis','get_ham0','enter' )
+    call write_header( 'get_cis','getham0','enter' )
     
     call cpu_time(start)
     call writeme_ham0( 'cis', 'form' ) 
@@ -176,7 +176,7 @@ contains
     call cpu_time(finish)
     write(iout,"(' Hamiltonian generation time:',f12.4,' seconds')") finish-start    
 
-    call write_header( 'get_cis','get_ham0','leave' )
+    call write_header( 'get_cis','getham0','leave' )
     
 
   end subroutine get_cisN
@@ -187,7 +187,7 @@ contains
 
     !: get SOC-CIS Hamiltonian
 
-    use read_integrals
+    use readintegrals
     use util
  
     implicit none
@@ -198,7 +198,7 @@ contains
     real(8) :: sign, storeme
     
     
-    call write_header( 'get_soc_cis','get_ham0','enter' )
+    call write_header( 'get_soc_cis','getham0','enter' )
     
     call cpu_time(start)
     call writeme_ham0( 'soc', 'form' ) 
@@ -261,7 +261,7 @@ contains
     call cpu_time(finish)
     write(iout,"(' Hamiltonian generation time:',f12.4,' seconds')") finish-start    
 
-    call write_header( 'get_soc_cis','get_ham0','leave' )
+    call write_header( 'get_soc_cis','getham0','leave' )
     
 
   end subroutine get_soc_cisN
@@ -381,7 +381,7 @@ contains
 
     !: get IP-CISD Hamiltonian
 
-    use read_integrals
+    use readintegrals
     implicit none
 
     integer(8) :: istate, xorb, iorb, aorb
@@ -390,7 +390,7 @@ contains
     real(8) :: sign, storeme
     
     
-    call write_header( 'get_ip_cisd','get_ham0','enter' )
+    call write_header( 'get_ip_cisd','getham0','enter' )
     
     call cpu_time(start)
     call writeme_ham0( 'ip', 'form' ) 
@@ -549,7 +549,7 @@ contains
     call cpu_time(finish)
     write(iout,"(' Hamiltonian generation time:',f12.4,' seconds')") finish-start    
 
-    call write_header( 'get_ip_cisd','get_ham0','leave' )
+    call write_header( 'get_ip_cisd','getham0','leave' )
     
 
   end subroutine get_ip_cisd
@@ -709,7 +709,7 @@ contains
 
     !: get SOCIP-CISD Hamiltonian
 
-    use read_integrals
+    use readintegrals
     use util
  
     implicit none
@@ -720,7 +720,7 @@ contains
     real(8) :: sign, storeme
     
     
-    call write_header( 'get_socip_cisd','get_ham0','enter' )
+    call write_header( 'get_socip_cisd','getham0','enter' )
     
     call cpu_time(start)
     call writeme_ham0( 'socip', 'form' ) 
@@ -912,7 +912,7 @@ contains
     call cpu_time(finish)
     write(iout,"(' Hamiltonian generation time:',f12.4,' seconds')") finish-start    
 
-    call write_header( 'get_socip_cisd','get_ham0','leave' )
+    call write_header( 'get_socip_cisd','getham0','leave' )
     
 
   end subroutine get_socip_cisd
@@ -950,7 +950,7 @@ contains
     complex(8), allocatable :: scratch1(:,:)
 
 
-    write(iout,'(A)') ' in subroutine get_soc_ao2mo in MODULE get_ham0 '
+    write(iout,'(A)') ' in subroutine get_soc_ao2mo in MODULE getham0 '
 
     !: convert to au units
     socxao(:,:) = socfac * constant * socxao(:,:)
@@ -1227,7 +1227,7 @@ contains
 
     !: assign hole and particle excitation indices for doubly ionized states
 
-    use read_integrals
+    use readintegrals
     use util
 
     implicit none
@@ -1388,7 +1388,7 @@ contains
 
     !: assign hole and particle excitation indices for doubly ionized states
 
-    use read_integrals
+    use readintegrals
     use util
 
     implicit none
@@ -1555,7 +1555,7 @@ contains
     use util
     implicit none
     
-    call write_header( 'diagonalize', 'get_ham0', 'enter' )    
+    call write_header( 'diagonalize', 'getham0', 'enter' )    
 
     call cpu_time(start)
     
@@ -1568,7 +1568,7 @@ contains
     write(iout,"(' LAPACK diagonalization time:',f12.4,' seconds')") finish-start
     flush(iout)
  
-    call write_header( 'diagonalize','get_ham0','leave' )
+    call write_header( 'diagonalize','getham0','leave' )
     
   end subroutine diagonalize
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1581,7 +1581,7 @@ contains
     use util
     implicit none
     
-    call write_header( 'diagonalize', 'get_ham0', 'enter' )    
+    call write_header( 'diagonalize', 'getham0', 'enter' )    
     
     call cpu_time(start)
 
@@ -1596,7 +1596,7 @@ contains
     write(iout,"(' LAPACK diagonalization time:',f12.4,' seconds')") finish-start
     flush(iout)
  
-    call write_header( 'diagonalize','get_ham0','leave' )
+    call write_header( 'diagonalize','getham0','leave' )
     
   end subroutine Zdiagonalize
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1682,4 +1682,4 @@ contains
     
   end subroutine errors_getham0
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
-end module get_ham0
+end module getham0

@@ -1,7 +1,7 @@
-module get_field
+module getfield
   
 
-  use global_variables
+  use variables_global
   implicit none  
 
   !: contains subroutine  check_emax
@@ -27,7 +27,7 @@ contains
     integer(8) :: nphi, ntheta, iphi, itheta, i
 
     
-    call write_header( 'check_emax','get_field','enter' )
+    call write_header( 'check_emax','getfield','enter' )
     
     
     if( read_emax(1).lt.-100.0 ) then
@@ -59,7 +59,7 @@ contains
     end if
     
     
-    call write_header( 'check_emax','get_field','leave' )
+    call write_header( 'check_emax','getfield','leave' )
 
     
   end subroutine check_emax
@@ -79,7 +79,7 @@ contains
     real(8)     :: tmpx, tmpy, tmpz, dnorm, theta, phi
     
     
-    call write_header( 'get_lindirection','get_field','enter' )
+    call write_header( 'get_lindirection','getfield','enter' )
 
     
     total = nemax * ndir
@@ -132,7 +132,7 @@ contains
     end if
     
     write(iout,'(A)') ' finished assigning datatype tdciresults'
-    call write_header( 'get_lindirection','get_field','leave' )
+    call write_header( 'get_lindirection','getfield','leave' )
     
 
   end subroutine get_lindirection
@@ -155,7 +155,7 @@ contains
     real(8)    :: alltheta(ndir), allphi(ndir)
 
 
-    call write_header( 'get_circdirection','get_field','enter' )
+    call write_header( 'get_circdirection','getfield','enter' )
     write(iout,'(A)') ' generating E1 and E2 for each propagation direcion '
 
 
@@ -195,7 +195,7 @@ contains
     euler = euler * rad2deg
     
     write(iout,'(A)') ' finished setting up E_1 and E_2 '
-    call write_header( 'get_circdirection','get_field','leave' )
+    call write_header( 'get_circdirection','getfield','leave' )
     
     
   end subroutine get_circdirection
@@ -209,7 +209,7 @@ contains
     implicit none
     
 
-    call write_header( 'shape_field','get_field','enter' )
+    call write_header( 'shape_field','getfield','enter' )
     
     select case ( trim(envelope) ) 
     case( 'none' ) ; call null_env
@@ -226,7 +226,7 @@ contains
     
     
         
-    call write_header( 'shape_field','get_field','leave' )
+    call write_header( 'shape_field','getfield','leave' )
     
 
   end subroutine shape_field
@@ -591,4 +591,4 @@ contains
 
     
   end subroutine errors_getfield
-end module get_field
+end module getfield

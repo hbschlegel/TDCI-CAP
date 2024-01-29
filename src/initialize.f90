@@ -1,7 +1,7 @@
 module initialize
   
 
-  use global_variables
+  use variables_global
   implicit none
 
 
@@ -405,8 +405,8 @@ contains
        if ( trim(restartbinfile) .eq. 'none' ) call errors_modreadin( 'set_variables','norestart' )
        Qallocate_main = .True.
        Qread_hamdata  = .False.
-       Qget_field     = .True.
-       Qget_ham0      = .False.
+       Qgetfield     = .True.
+       Qgetham0      = .False.
        Qget_nstuse    = .False.
        Qalloc_vabsmo  = .True.
        Qalloc_dipmo   = .True.       
@@ -423,11 +423,11 @@ contains
     if ( flag_davidson ) then
        Qallocate_main = .False.
        Qread_hamdata  = .True.
-       Qget_field     = .False.
+       Qgetfield     = .False.
        Qwrite_specifics1 = .False.
        Qwrite_ham0    = .False.
        Qwrite_specifics2 = .False.
-       Qget_ham0      = .False.
+       Qgetham0      = .False.
        Qget_nstuse    = .False.
        Qget_1eham     = .False.
        Qget_expVabs   = .False.
@@ -814,7 +814,7 @@ contains
   subroutine deallocate_main( option )
     
     
-    use read_integrals
+    use readintegrals
     
     implicit none
 
@@ -996,7 +996,7 @@ contains
     !: read in rest of tdci.dat to build the Hamiltonian
 
 
-    use read_integrals
+    use readintegrals
     implicit none
 
 
@@ -1219,7 +1219,7 @@ contains
           write(iout,'(A)') ' - Maya Angelous'
           write(iout,'(A)') divide
        case( 'date' )          
-          write(iout,'(A)') ' I WAS COMPILED ON Mon Jan 22 10:12:21 EST 2024 '
+          write(iout,'(A)') ' I WAS COMPILED ON Sun Jan 28 21:29:53 EST 2024 '
           write(iout,'(A)') ' I AM A REVISED CODE FOR CW PULSE GENERATION '
           write(iout,'(A)') ' RAMPING PARAMETER SET TO RAMP_STEP=16000, NOT NSTEP'
           call dnt(iout)          

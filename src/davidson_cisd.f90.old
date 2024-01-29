@@ -9,7 +9,7 @@ module mod_davidson_cisd
   !:       Monster Matrices:  Their Eigenvalues and Eigenvectors
   
   use omp_lib
-  use global_variables
+  use variables_global
   use util
 
   implicit none
@@ -20,7 +20,7 @@ contains
   !--------------------------------------------------------------------------------------!
   subroutine davidson_cisd
     
-    use get_ham0_cisd
+    use getham0_cisd
 
     implicit none
     

@@ -1,9 +1,9 @@
 module propagate
   
-  use global_variables
-  use analyze_psi
+  use variables_global
+  use analysis
   use util
-  use sorting_module
+  use sort
   use io_binary  ! io_bin_test, write_dbin, read_dbin
   
   implicit none

@@ -1,9 +1,9 @@
-module get_ham
+module getham
     
-  use global_variables
-  use get_ham0
-  use get_ham0_cisd
-  use sorting_module
+  use variables_global
+  use getham0
+  use getham0_cisd
+  use sort
   
   implicit none
 
@@ -32,7 +32,7 @@ contains
     real(8)    :: cutoff
 
     
-    call write_header( 'get_nstuse','get_ham','enter' )    
+    call write_header( 'get_nstuse','getham','enter' )    
     
     
     !: set ionization to Koopman's value, determine number of
@@ -66,7 +66,7 @@ contains
     end if
     
     
-    call write_header( 'get_nstuse','get_ham','leave' )
+    call write_header( 'get_nstuse','getham','leave' )
     
     
   end subroutine get_nstuse
@@ -89,7 +89,7 @@ contains
     complex(8), allocatable :: Zwork1(:),Zwork2(:),Zwork3(:),Zwork4(:)
 
     
-    call write_header( 'get_1eham','get_ham','enter' )
+    call write_header( 'get_1eham','getham','enter' )
     write(iout,'(A)') ' starting AO-->MO-->det-->CIS transformation, OMP parallelization'    
     call cpu_time(start1)
     
@@ -235,7 +235,7 @@ contains
     call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.080d0 )
     call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.090d0 )
 
-    call write_header( 'get_1eham','get_ham','leave' )
+    call write_header( 'get_1eham','getham','leave' )
     call cpu_time(finish1)
     write(iout,"(' One electorn integral transformation time:',f12.4,' seconds')") finish1-start1 
 
@@ -788,7 +788,7 @@ contains
     integer(8) :: read_nstates, i, j
 
 
-    call write_header( 'read_restart_bin','get_ham','enter' )
+    call write_header( 'read_restart_bin','getham','enter' )
     
     inquire( file=trim(restartbinfile), exist=iamhere )
     if ( .not.iamhere ) call errors_modgetham( 'restart', 'nofile' )
@@ -868,7 +868,7 @@ contains
     !case( flag_ip )  ; call get_ip_index       
     !end select
 
-    call write_header( 'read_restart_bin','get_ham','leave')
+    call write_header( 'read_restart_bin','getham','leave')
 
 
   end subroutine read_restart_bin
@@ -890,7 +890,7 @@ contains
 
   end subroutine writeme_ham
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
-  ! SUBROUTINE errors_modget_ham
+  ! SUBROUTINE errors_modgetham
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   subroutine errors_modgetham(myroutine,option)
 
@@ -925,4 +925,4 @@ contains
   end subroutine errors_modgetham
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
-end module get_ham
+end module getham

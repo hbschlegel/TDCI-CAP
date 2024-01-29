@@ -3,88 +3,118 @@
 
 SHELL := /bin/bash
 
+
+# Directories
+# Source, object, binary, and module directories
+SRC = src
+OBJ = obj
+BIN = bin
+MOD = $(OBJ)/modules
+
+# Source and object files
+F90_SOURCES = $(wildcard $(SRC)/*.f90)
+F_SOURCES = $(wildcard $(SRC)/*.F)
+SOURCES = $(F90_SOURCES) $(F_SOURCES)
+
+F90_OBJECTS = $(patsubst $(SRC)/%.f90,$(OBJ)/%.o,$(F90_SOURCES))
+F_OBJECTS = $(patsubst $(SRC)/%.F,$(OBJ)/%.o,$(F_SOURCES))
+OBJECTS = $(F90_OBJECTS) $(F_OBJECTS)
+
+$(info SOURCES: $(SOURCES))
+$(info OBJECTS: $(OBJECTS))
+
 FC = pgf95
 FFLAGS = -tp x64 -O3 
 LIBDIR = /wsu/el7/pgi/2018-187/linux86-64/18.7/lib/
 LAPACK_LIBS = -L${LIBDIR} -llapack -lblas
 OPT_FLAGS = -Minfo -Mneginfo -time -fast -Mconcur=allcores -mp=allcores -Munroll -Mvect
-ALL_OBJECTS = tdci.o units.o setup_variables.o control_variables.o variables_global.o write_info.o read_integrals.o initialize.o getfield.o util.o sort.o io_binary.o getham0_cisd.o getham0.o getham.o propagate.o Zpropagate.o analysis.o davidson_ip.o qcmatrixio.o
+O_FLAGS = -module $(MOD) -I$(MOD)
+
+#ALL_OBJECTS = $(OBJ)/tdci.o $(OBJ)/variables_units.o $(OBJ)/variables_setup.o $(OBJ)/variables_control.o $(OBJ)/variables_global.o $(OBJ)/write_info.o $(OBJ)/readintegrals.o $(OBJ)/initialize.o $(OBJ)/getfield.o $(OBJ)/util.o $(OBJ)/sort.o $(OBJ)/io_binary.o $(OBJ)/getham0_cisd.o $(OBJ)/getham0.o $(OBJ)/getham.o $(OBJ)/propagate.o $(OBJ)/Zpropagate.o $(OBJ)/analysis.o $(OBJ)/davidson_ip.o $(OBJ)/qcmatrixio.o
 
 
-all : update tdci 
 
-tdci : $(ALL_OBJECTS)
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(ALL_OBJECTS) $(LAPACK_LIBS) -o tdci
+all : update $(BIN)/tdci 
 
-tdci.o : tdci.f90 variables_global.o initialize.o write_info.o getfield.o util.o getham0_cisd.o getham0.o getham.o analysis.o propagate.o Zpropagate.o davidson_ip.o	
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c tdci.f90 -o tdci.o
+$(BIN)/tdci : $(OBJECTS)
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(OBJECTS) $(LAPACK_LIBS) $(O_FLAGS) -o $(BIN)/tdci
 
-#davidson_cisd.o : mod_davidson_cisd.f90 variables_global.o util.o getham0_cisd.o
-#	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_davidson_cisd.f90 -o davidson_cisd.o
+# General pattern rule for object files
+$(OBJ)/%.o : $(SRC)/%.f90
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-davidson_ip.o : mod_davidson_ip.f90 variables_global.o util.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_davidson_ip.f90 -o davidson_ip.o
+# Require all other objects be built
+$(OBJ)/tdci.o : $(SRC)/tdci.f90 $(filter-out $(OBJ)/tdci.o,$(OBJECTS))
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-Zpropagate.o : mod_Zpropagate.f90 analysis.o util.o variables_global.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_Zpropagate.f90 -o Zpropagate.o
+#$(OBJ)/davidson_cisd.o : $(SRC)/davidson_cisd.f90 $(OBJ)/variables_global.o $(OBJ)/util.o $(OBJ)/getham0_cisd.o
+#	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $(SRC)/davidson_cisd.f90 -o $(OBJ)/davidson_cisd.o
 
-propagate.o : mod_propagate.f90 analysis.o util.o variables_global.o sort.o io_binary.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_propagate.f90 -o propagate.o
+$(OBJ)/davidson_ip.o : $(SRC)/davidson_ip.f90 $(OBJ)/variables_global.o $(OBJ)/util.o
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-analysis.o : mod_analysis.f90 util.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_analysis.f90 -o analysis.o
+$(OBJ)/Zpropagate.o : $(SRC)/Zpropagate.f90 $(OBJ)/analysis.o $(OBJ)/util.o $(OBJ)/variables_global.o
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-getham.o : mod_getham.f90 getham0.o getham0_cisd.o variables_global.o util.o sort.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_getham.f90 -o getham.o 
+$(OBJ)/propagate.o : $(SRC)/propagate.f90 $(OBJ)/analysis.o $(OBJ)/util.o $(OBJ)/variables_global.o $(OBJ)/sort.o $(OBJ)/io_binary.o
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-getham0.o : mod_getham0.f90 variables_global.o read_integrals.o util.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_getham0.f90 -o getham0.o
+$(OBJ)/analysis.o : $(SRC)/analysis.f90 $(OBJ)/util.o
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-getham0_cisd.o : mod_getham0_cisd.f90 variables_global.o read_integrals.o util.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_getham0_cisd.f90 -o getham0_cisd.o
+$(OBJ)/getham.o : $(SRC)/getham.f90 $(OBJ)/getham0.o $(OBJ)/getham0_cisd.o $(OBJ)/variables_global.o $(OBJ)/util.o $(OBJ)/sort.o
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-getfield.o : mod_getfield.f90 variables_global.o util.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_getfield.f90 -o getfield.o
+$(OBJ)/getham0.o : $(SRC)/getham0.f90 $(OBJ)/variables_global.o $(OBJ)/readintegrals.o $(OBJ)/util.o
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-initialize.o : mod_initialize.f90 read_integrals.o variables_global.o util.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_initialize.f90 -o initialize.o
+$(OBJ)/getham0_cisd.o : $(SRC)/getham0_cisd.f90 $(OBJ)/variables_global.o $(OBJ)/readintegrals.o $(OBJ)/util.o
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-read_integrals.o : mod_readintegrals.f90 variables_global.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_readintegrals.f90 -o read_integrals.o
+$(OBJ)/getfield.o : $(SRC)/getfield.f90 $(OBJ)/variables_global.o $(OBJ)/util.o
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-write_info.o : mod_write.f90 units.o setup_variables.o control_variables.o variables_global.o util.o
-	$(FC) -c mod_write.f90 -o write_info.o
+$(OBJ)/initialize.o : $(SRC)/initialize.f90 $(OBJ)/readintegrals.o $(OBJ)/variables_global.o $(OBJ)/util.o
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-util.o : mod_util.f90 read_integrals.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) -c mod_util.f90 -o util.o
+$(OBJ)/readintegrals.o : $(SRC)/readintegrals.f90 $(OBJ)/variables_global.o $(OBJ)/qcmatrixio.o
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-variables_global.o : mod_variables_global.f90 units.o setup_variables.o control_variables.o 
-	$(FC) -c mod_variables_global.f90 -o variables_global.o
+$(OBJ)/write_info.o : $(SRC)/write_info.f90 $(OBJ)/variables_units.o $(OBJ)/variables_setup.o $(OBJ)/variables_control.o $(OBJ)/variables_global.o $(OBJ)/util.o
+	$(FC) $(O_FLAGS) -c $< -o $@ 
 
-control_variables.o : mod_variables_control.f90
-	$(FC) -c mod_variables_control.f90 -o control_variables.o
+$(OBJ)/util.o : $(SRC)/util.f90 $(OBJ)/readintegrals.o
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-setup_variables.o : mod_variables_setup.f90 
-	$(FC) -c mod_variables_setup.f90 -o setup_variables.o
+$(OBJ)/variables_global.o : $(SRC)/variables_global.f90 $(OBJ)/variables_units.o $(OBJ)/variables_setup.o $(OBJ)/variables_control.o 
+	$(FC) $(O_FLAGS) -c $< -o $@ 
 
-units.o : mod_variables_units.f90
-	$(FC) -c mod_variables_units.f90 -o units.o
+$(OBJ)/variables_control.o : $(SRC)/variables_control.f90
+	$(FC) $(O_FLAGS) -c $< -o $@ 
 
-sort.o : mod_sort.f90
-	$(FC) -c mod_sort.f90 -o sort.o
+$(OBJ)/variables_setup.o : $(SRC)/variables_setup.f90 
+	$(FC) $(O_FLAGS) -c $< -o $@ 
 
-io_binary.o : mod_io_binary.f90
-	$(FC) -c mod_io_binary.f90 -o io_binary.o
+$(OBJ)/variables_units.o : $(SRC)/variables_units.f90
+	$(FC) $(O_FLAGS) -c $< -o $@ 
+
+$(OBJ)/sort.o : $(SRC)/sort.f90
+	$(FC) $(O_FLAGS) -c $< -o $@ 
+
+$(OBJ)/io_binary.o : $(SRC)/io_binary.f90
+	$(FC) $(O_FLAGS) -c $< -o $@ 
 
 update : 
+	mkdir -p $(BIN)
+	mkdir -p $(OBJ)
 	./CHANGE_DATE
 
-qcmatrixio.o : qcmatrixio.F
-	pgfortran -c qcmatrixio.F -o qcmatrixio.o
+$(OBJ)/qcmatrixio.o : $(SRC)/qcmatrixio.F
+	pgfortran $(O_FLAGS) -c $< -o $@
 
 clean :
 	@( echo " *** CLEANING *** ")
-	rm $(ALL_OBJECTS)
+	rm $(OBJECTS)
 
 
 

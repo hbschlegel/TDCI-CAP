@@ -1,7 +1,7 @@
-module route_control 
+module variables_control 
 
 
-  !: module route_control
+  !: module variables_control
   !: controls the flow of the program 
   
 
@@ -28,8 +28,8 @@ module route_control
        Qallocate_main = .true. , &
        Qread_hamdata  = .true. , &
        Qget_nstuse    = .true. , &
-       Qget_field     = .true.,  &
-       Qget_ham0      = .true. , &
+       Qgetfield     = .true.,  &
+       Qgetham0      = .true. , &
        Qget_1eham     = .true. , &
        Qread_binaries = .false., &
        Qget_expVabs   = .true. , &
@@ -101,4 +101,4 @@ module route_control
   logical :: Qread_buckets(21) = .False.
        
   
-end module route_control
+end module variables_control

@@ -1,6 +1,6 @@
-module setup_variables
+module variables_setup
 
-  !: module setup_variables
+  !: module variables_setup
   !: these are not required for the propagation step
 
   
@@ -75,5 +75,5 @@ module setup_variables
   complex(8), allocatable :: & 
        socmoAA(:,:), socmoBB(:,:), socmoAB(:,:) 
   
-end module setup_variables
+end module variables_setup
   

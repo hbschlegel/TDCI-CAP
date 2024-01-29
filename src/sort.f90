@@ -1,4 +1,4 @@
-module sorting_module
+module sort
   implicit none
 contains
 
@@ -110,5 +110,5 @@ contains
 
 
 
-end module sorting_module
+end module sort
 

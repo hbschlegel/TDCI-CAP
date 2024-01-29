@@ -1,7 +1,7 @@
 module write_info 
 
 
-  use global_variables
+  use variables_global
   use util
   implicit none
 
