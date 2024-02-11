@@ -390,7 +390,7 @@ contains
        storeme = 0.d0
        
        SS : if( ii.eq.0 .and. jj.eq.0 ) then
-          if( xx.eq.yy ) storeme = -orben(xorb)
+          if( xx.eq.yy ) storeme = -Mol%orben(xorb)
           go to 78
        end if SS
        
@@ -435,12 +435,12 @@ contains
           end if kdelta_iy
           
           diagonal : if ( jb.eq.ia ) then
-             if ( aa.lt.0 ) storeme = storeme - orben(i) - orben(x) + orben(noa+a)
-             if ( AA.gt.0 ) storeme = storeme - orben(nrorb+I) - orben(nrorb+X) + orben(nrorb+nob+A)
+             if ( aa.lt.0 ) storeme = storeme - Mol%orben(i) - Mol%orben(x) + Mol%orben(noa+a)
+             if ( AA.gt.0 ) storeme = storeme - Mol%orben(nrorb+I) - Mol%orben(nrorb+X) + Mol%orben(nrorb+nob+A)
           end if diagonal
           
           special_off : if ( ii.eq.yy .and. xx.eq.jj .and. aa.eq.bb ) then
-             storeme = storeme - orben(nrorb+I) - orben(nrorb+X) + orben(nrorb+nob+A)
+             storeme = storeme - Mol%orben(nrorb+I) - Mol%orben(nrorb+X) + Mol%orben(nrorb+nob+A)
           end if special_off
           
        end if DD
@@ -485,7 +485,7 @@ contains
 
 
     !$OMP PARALLEL DEFAULT(NONE), SHARED( eig_states, nstates, mroot, &
-    !$OMP dipx00, dipy00, dipz00, dipxmoa, dipxmob, dipymoa, dipymob, dipzmoa, dipzmob, &
+    !$OMP Mol, &
     !$OMP dipx_ia, dipy_ia, dipz_ia, dipx, dipy, dipz ),&
     !$OMP PRIVATE( ia, iroot, coeff_ia )
     !$OMP SECTIONS
@@ -494,7 +494,7 @@ contains
     do ia=1, nstates       
        coeff_ia = eig_states(ia,1)
        dipx_ia  = 0.d0
-       call get_dip_col( ia, dipx00, dipxmoa, dipxmob, dipx_ia )       
+       call get_dip_col( ia, Mol%dipx00, Mol%dipxmoa, Mol%dipxmob, dipx_ia )       
        do iroot=1, mroot
           dipx(iroot) = dipx(iroot) + coeff_ia * dot_product( dipx_ia(:), eig_states(:,iroot) )
        end do
@@ -504,7 +504,7 @@ contains
     do ia=1, nstates       
        coeff_ia = eig_states(ia,1)  
        dipy_ia  = 0.d0
-       call get_dip_col( ia, dipy00, dipymoa, dipymob, dipy_ia )       
+       call get_dip_col( ia, Mol%dipy00, Mol%dipymoa, Mol%dipymob, dipy_ia )       
        do iroot=1, mroot
           dipy(iroot) = dipy(iroot) + coeff_ia * dot_product( dipy_ia(:), eig_states(:,iroot) )
        end do
@@ -514,7 +514,7 @@ contains
     do ia=1, nstates       
        coeff_ia = eig_states(ia,1) 
        dipz_ia  = 0.d0
-       call get_dip_col( ia, dipz00, dipzmoa, dipzmob, dipz_ia )       
+       call get_dip_col( ia, Mol%dipz00, Mol%dipzmoa, Mol%dipzmob, dipz_ia )       
        do iroot=1, mroot
           dipz(iroot) = dipz(iroot) + coeff_ia * dot_product( dipz_ia(:), eig_states(:,iroot) )
        end do
@@ -557,19 +557,19 @@ contains
     
 
     !$OMP PARALLEL DEFAULT(NONE), SHARED( eig_states, mroot, nrorb, &
-    !$OMP dipxmoa, dipxmob, dipymoa, dipymob, dipzmoa, dipzmob, dipx, dipy, dipz ),&
+    !$OMP Mol, dipx, dipy, dipz ),&
     !$OMP PRIVATE( iroot, i, rtmp, diptmp, densA, densB )
     !$OMP SECTIONS
     
     !$OMP SECTION
     do iroot=1, mroot
        call get_density( eig_states(:,1), eig_states(:,iroot), densA, densB )
-       diptmp = matmul( densA, dipxmoa )
+       diptmp = matmul( densA, Mol%dipxmoa )
        rtmp = 0.d0
        do i=1, nrorb
           rtmp = rtmp + diptmp(i,i)
        end do
-       diptmp = matmul( densB, dipxmob )
+       diptmp = matmul( densB, Mol%dipxmob )
        do i=1, nrorb
           rtmp = rtmp + diptmp(i,i)
        end do
@@ -579,12 +579,12 @@ contains
     !$OMP SECTION
     do iroot=1, mroot
        call get_density( eig_states(:,1), eig_states(:,iroot), densA, densB )
-       diptmp = matmul( densA, dipymoa )
+       diptmp = matmul( densA, Mol%dipymoa )
        rtmp = 0.d0
        do i=1, nrorb
           rtmp = rtmp + diptmp(i,i)
        end do
-       diptmp = matmul( densB, dipymob )
+       diptmp = matmul( densB, Mol%dipymob )
        do i=1, nrorb
           rtmp = rtmp + diptmp(i,i)
        end do
@@ -594,12 +594,12 @@ contains
     !$OMP SECTION
     do iroot=1, mroot
        call get_density( eig_states(:,1), eig_states(:,iroot), densA, densB )
-       diptmp = matmul( densA, dipzmoa )
+       diptmp = matmul( densA, Mol%dipzmoa )
        rtmp = 0.d0
        do i=1, nrorb
           rtmp = rtmp + diptmp(i,i)
        end do
-       diptmp = matmul( densB, dipzmob )
+       diptmp = matmul( densB, Mol%dipzmob )
        do i=1, nrorb
           rtmp = rtmp + diptmp(i,i)
        end do
@@ -618,27 +618,27 @@ contains
     implicit none
 
 
-    allocate( dipxmoa(nrorb,nrorb), dipymoa(nrorb,nrorb), dipzmoa(nrorb,nrorb) )
-    allocate( dipxmob(nrorb,nrorb), dipymob(nrorb,nrorb), dipzmob(nrorb,nrorb) )
+    allocate( Mol%dipxmoa(nrorb,nrorb), Mol%dipymoa(nrorb,nrorb), Mol%dipzmoa(nrorb,nrorb) )
+    allocate( Mol%dipxmob(nrorb,nrorb), Mol%dipymob(nrorb,nrorb), Mol%dipzmob(nrorb,nrorb) )
 
 
-    dipxmoa = 0.d0 ; dipymoa = 0.d0 ; dipzmoa = 0.d0
-    dipxmob = 0.d0 ; dipymob = 0.d0 ; dipzmob = 0.d0
+    Mol%dipxmoa = 0.d0 ; Mol%dipymoa = 0.d0 ; Mol%dipzmoa = 0.d0
+    Mol%dipxmob = 0.d0 ; Mol%dipymob = 0.d0 ; Mol%dipzmob = 0.d0
 
     !$OMP PARALLEL
     !$OMP SECTIONS
 
     !$OMP SECTION
-    call ao2mo(nbasis,nrorb,dipxao,dipxmoa,cmo_a)
-    call ao2mo(nbasis,nrorb,dipxao,dipxmob,cmo_b)
+    call ao2mo(nbasis,nrorb,Mol%dipxao,Mol%dipxmoa,Mol%cmo_a)
+    call ao2mo(nbasis,nrorb,Mol%dipxao,Mol%dipxmob,Mol%cmo_b)
     
     !$OMP SECTION
-    call ao2mo(nbasis,nrorb,dipyao,dipymoa,cmo_a)
-    call ao2mo(nbasis,nrorb,dipyao,dipymob,cmo_b)
+    call ao2mo(nbasis,nrorb,Mol%dipyao,Mol%dipymoa,Mol%cmo_a)
+    call ao2mo(nbasis,nrorb,Mol%dipyao,Mol%dipymob,Mol%cmo_b)
 
     !$OMP SECTION
-    call ao2mo(nbasis,nrorb,dipzao,dipzmoa,cmo_a)
-    call ao2mo(nbasis,nrorb,dipzao,dipzmob,cmo_b)
+    call ao2mo(nbasis,nrorb,Mol%dipzao,Mol%dipzmoa,Mol%cmo_a)
+    call ao2mo(nbasis,nrorb,Mol%dipzao,Mol%dipzmob,Mol%cmo_b)
     
     !$OMP END SECTIONS
     !$OMP END PARALLEL

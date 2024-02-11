@@ -73,33 +73,33 @@ contains
 !     on which the file is open.
 !
       !: read MatrixElements.dat
-      Call Open_Read(trim(tdcidatfile),IU,LabFil,IVers,NLab,GVers,job_title, &
-        natoms,nbasis,NBsUse,ICharg,Multip,NE,Len12L,Len4L,IOpCl,ICGU)
+      Call Open_Read(trim(tdcidatfile),IU,LabFil,IVers,NLab,GVers,Mol%job_title, &
+        Mol%natoms,nbasis,NBsUse,Mol%ICharg,Mol%Multip,NE,Len12L,Len4L,IOpCl,ICGU)
       Write(IOut,1000) trim(filename), IU
       If(IU.le.0) Stop
       Write(IOut,1010) trim(LabFil),IVers,NLab,trim(GVers),           &
-        trim(job_title),natoms,nbasis,NBsUse,ICharg,Multip,NE,Len12L, &
+        trim(Mol%job_title),Mol%natoms,nbasis,NBsUse,Mol%ICharg,Mol%Multip,NE,Len12L, &
         Len4L,IOpCl,ICGU
 !
 !     Read the header records, which contain basic information about
 !     the molecule such as number of atoms, atomic numbers, Cartesian
 !     coordinates, and information about the basis functions.
 !
-      Call Rd_Head(IU,NLab,natoms,nbasis,IAn,IAtTyp,AtmChg,C,IBfAtm,  &
+      Call Rd_Head(IU,NLab,Mol%natoms,nbasis,IAn,IAtTyp,AtmChg,C,IBfAtm,  &
         IBfTyp,AtmWgt,NFC,NFV,ITran,IDum9,NShlAO,NPrmAO,NShlDB,NPrmDB,&
         NBTot)
  
       ntt = nbasis*(nbasis+1)/2 
-      If(Multip.ge.0) then
-        NAE = (NE+Multip-1)/2
-        NBE = (NE-Multip+1)/2
+      If(Mol%Multip.ge.0) then
+        NAE = (NE+Mol%Multip-1)/2
+        NBE = (NE-Mol%Multip+1)/2
       else
-        NAE = (NE+Multip+1)/2
-        NBE = (NE-Multip-1)/2
+        NAE = (NE+Mol%Multip+1)/2
+        NBE = (NE-Mol%Multip-1)/2
         endIf
  
-      unrstedflag = IOpCl
-      vabsflag = 1
+      Mol%unrstedflag = IOpCl
+      Mol%vabsflag = 1
  
       NOA = NAE - NFC
       NOB = NBE - NFC
@@ -110,13 +110,13 @@ contains
 !:      write(42,*) nae,nbe,noa,nob,nva,nvb,nrorb
 
     !: allocate coordinate arrays
-    allocate( xcoord(natoms), ycoord(natoms), zcoord(natoms), myatom(natoms) )    
-    do i = 1, natoms
-         xcoord(i) = c(1,i)
-         ycoord(i) = c(2,i)
-         zcoord(i) = c(3,i)
-         write(myatom(i),'(I3)') ian(i)
-!:         write(42,*) ian(i),atmchg(i),xcoord(i),ycoord(i),zcoord(i)
+    allocate( Mol%xcoord(Mol%natoms), Mol%ycoord(Mol%natoms), Mol%zcoord(Mol%natoms), Mol%myatom(Mol%natoms)) 
+    do i = 1, Mol%natoms
+         Mol%xcoord(i) = c(1,i)
+         Mol%ycoord(i) = c(2,i)
+         Mol%zcoord(i) = c(3,i)
+         write(Mol%myatom(i),'(I3)') ian(i)
+!:         write(42,*) ian(i),atmchg(i),Mol%xcoord(i),Mol%ycoord(i),Mol%zcoord(i)
          end do
  
       call get_size_variables
@@ -129,25 +129,25 @@ contains
       If(.not.EOF .and. NTot.le.MaxArr) then
         select case ( trim(CBuf) )
         case ( trim('ALPHA ORBITAL ENERGIES') )
-          allocate( orben(2*nrorb) )
+          allocate( Mol%orben(2*nrorb) )
           Call Rd_RBuf(IU,NTot,LenBuf,RArr)
           do i = 1,NRorb
-            orben(i) = RArr(NFC+i)
-!:            write(42,*) i,orben(i)
+            Mol%orben(i) = RArr(NFC+i)
+!:            write(42,*) i,Mol%orben(i)
             end do
         case ( trim('BETA ORBITAL ENERGIES') )
           Call Rd_RBuf(IU,NTot,LenBuf,RArr)
           do i = 1,NRorb
-            orben(NRorb+i) = RArr(NFC+i)
-!:            write(42,*) NRorb+i,orben(NRorb+i)
+            Mol%orben(NRorb+i) = RArr(NFC+i)
+!:            write(42,*) NRorb+i,Mol%orben(NRorb+i)
             end do
         case ( trim('TRANS MO COEFFICIENTS') )
-          allocate( cmo_a(nrorb*nbasis) )
+          allocate( Mol%cmo_a(nrorb*nbasis) )
           Call Rd_RBuf(IU,NTot,LenBuf,RArr)
-          cmo_a = RArr(1:nrorb*nbasis)
+          Mol%cmo_a = RArr(1:nrorb*nbasis)
           If(IOpCl.eq.1) then
-            allocate( cmo_b(nrorb*nbasis) )
-            cmo_b = RArr(nrorb*nbasis+1:2*nrorb*nbasis)
+            allocate( Mol%cmo_b(nrorb*nbasis) )
+            Mol%cmo_b = RArr(nrorb*nbasis+1:2*nrorb*nbasis)
             end if
         case ( trim('ALPHA SCF DENSITY MATRIX') )
           allocate( density(ntt) )
@@ -156,99 +156,99 @@ contains
           Call Rd_RBuf(IU,NTot,LenBuf,RArr)
           If(IOpCl.eq.1) density = density + RArr(1:ntt)
         case ( trim('DIPOLE INTEGRALS') )
-          allocate( dipxao(ntt), dipyao(ntt), dipzao(ntt) )
+          allocate( Mol%dipxao(ntt), Mol%dipyao(ntt), Mol%dipzao(ntt) )
           Call Rd_RBuf(IU,NTot,LenBuf,RArr)
-          dipxao = RArr(1:ntt)
-          dipyao = RArr(ntt+1:2*ntt)
-          dipzao = RArr(2*ntt+1:3*ntt)
+          Mol%dipxao = RArr(1:ntt)
+          Mol%dipyao = RArr(ntt+1:2*ntt)
+          Mol%dipzao = RArr(2*ntt+1:3*ntt)
         case ( trim(' File   619') )
-          allocate(socxao(nbasis,nbasis),socyao(nbasis,nbasis),soczao(nbasis,nbasis))
+          allocate(Mol%socxao(nbasis,nbasis),Mol%socyao(nbasis,nbasis),Mol%soczao(nbasis,nbasis))
           Call Rd_RBuf(IU,NTot,LenBuf,RArr)
           ij = 0
           do i = 1,nbasis
             do j = 1,i
               ij = ij + 1
-              socxao(i,j) = dcmplx( 0.d0, RArr(ij) )
-              socxao(j,i) = dconjg(socxao(i,j))
-              socyao(i,j) = dcmplx( 0.d0, RArr(ij+ntt) )
-              socyao(j,i) = dconjg(socyao(i,j))
-              soczao(i,j) = dcmplx( 0.d0, RArr(ij+2*ntt) )
-              soczao(j,i) = dconjg(soczao(i,j))
+              Mol%socxao(i,j) = dcmplx( 0.d0, RArr(ij) )
+              Mol%socxao(j,i) = dconjg(Mol%socxao(i,j))
+              Mol%socyao(i,j) = dcmplx( 0.d0, RArr(ij+ntt) )
+              Mol%socyao(j,i) = dconjg(Mol%socyao(i,j))
+              Mol%soczao(i,j) = dcmplx( 0.d0, RArr(ij+2*ntt) )
+              Mol%soczao(j,i) = dconjg(Mol%soczao(i,j))
               end do
             end do
         case ( trim(' File   828') )
-          allocate( vabsao(ntt) )
-          Call Rd_RBuf(IU,NTot,LenBuf,vabsao)
-!:          write(iout,*) 'file 828', (vabsao(i),i=1,ntt)
+          allocate( Mol%vabsao(ntt) )
+          Call Rd_RBuf(IU,NTot,LenBuf,Mol%vabsao)
+!:          write(iout,*) 'file 828', (Mol%vabsao(i),i=1,ntt)
         case ( trim(' File     1') )
-          allocate( dijabAA(nva3,noa3) )
-          Call Rd_RBf2(IU,NTot,nva3,noa3,LenBuf,dijabAA)
+          allocate( Mol%dijabAA(nva3,noa3) )
+          Call Rd_RBf2(IU,NTot,nva3,noa3,LenBuf,Mol%dijabAA)
         case ( trim(' File     2') )
-          allocate( dijabAB(nob*nvb,noa*nva) )
-          Call Rd_RBf2(IU,NTot,nob*nvb,noa*nva,LenBuf,dijabAB)
-!:          write(42,*) 'Bucket 2 head',(dijabAB(i,1),i=1,100)
-!:          write(42,*) 'Bucket 2 tail',(dijabAB(nob*nvb-100+i,noa*nva),i=1,100)
+          allocate( Mol%dijabAB(nob*nvb,noa*nva) )
+          Call Rd_RBf2(IU,NTot,nob*nvb,noa*nva,LenBuf,Mol%dijabAB)
+!:          write(42,*) 'Bucket 2 head',(Mol%dijabAB(i,1),i=1,100)
+!:          write(42,*) 'Bucket 2 tail',(Mol%dijabAB(nob*nvb-100+i,noa*nva),i=1,100)
         case ( trim(' File     3') )
-          allocate( dijabBB(nvb3,nob3) )
-          Call Rd_RBf2(IU,NTot,nvb3,nob3,LenBuf,dijabBB)
+          allocate( Mol%dijabBB(nvb3,nob3) )
+          Call Rd_RBf2(IU,NTot,nvb3,nob3,LenBuf,Mol%dijabBB)
         case ( trim(' File     4') )
-          allocate( dijklAA(noa3,noa3) )
-          Call Rd_RBf3(IU,NTot,noa3,noa3,LenBuf,dijklAA)
+          allocate( Mol%dijklAA(noa3,noa3) )
+          Call Rd_RBf3(IU,NTot,noa3,noa3,LenBuf,Mol%dijklAA)
         case ( trim(' File     5') )
-          allocate( diajbAA(noa*nva,noa*nva) )
-          Call Rd_RBf2(IU,NTot,noa*nva,noa*nva,LenBuf,diajbAA)
-!:          write(42,*) 'Bucket 5 head',(diajbAA(i,1),i=1,100)
-!:          write(42,*) 'Bucket 5 tail',(diajbAA(nob*nvb-100+i,noa*nva),i=1,100)
+          allocate( Mol%diajbAA(noa*nva,noa*nva) )
+          Call Rd_RBf2(IU,NTot,noa*nva,noa*nva,LenBuf,Mol%diajbAA)
+!:          write(42,*) 'Bucket 5 head',(Mol%diajbAA(i,1),i=1,100)
+!:          write(42,*) 'Bucket 5 tail',(Mol%diajbAA(nob*nvb-100+i,noa*nva),i=1,100)
         case ( trim(' File     6') )
-          allocate( dijklAB(nob2,noa2) )
-          Call Rd_RBf2(IU,NTot,nob2,noa2,LenBuf,dijklAB)
+          allocate( Mol%dijklAB(nob2,noa2) )
+          Call Rd_RBf2(IU,NTot,nob2,noa2,LenBuf,Mol%dijklAB)
         case ( trim(' File     7') )
-          allocate( diajbAB(nvb2,noa2) )
-          Call Rd_RBf2(IU,NTot,nvb2,noa2,LenBuf,diajbAB)
+          allocate( Mol%diajbAB(nvb2,noa2) )
+          Call Rd_RBf2(IU,NTot,nvb2,noa2,LenBuf,Mol%diajbAB)
         case ( trim(' File     8') )
-          allocate( diajbBA(nva2,nob2) )
-          Call Rd_RBf2(IU,NTot,nva2,nob2,LenBuf,diajbBA)
+          allocate( Mol%diajbBA(nva2,nob2) )
+          Call Rd_RBf2(IU,NTot,nva2,nob2,LenBuf,Mol%diajbBA)
         case ( trim(' File     9') )
-          allocate( dijklBB(nob3,nob3) )
-          Call Rd_RBf3(IU,NTot,nob3,nob3,LenBuf,dijklBB)
+          allocate( Mol%dijklBB(nob3,nob3) )
+          Call Rd_RBf3(IU,NTot,nob3,nob3,LenBuf,Mol%dijklBB)
         case ( trim(' File    10') )
-          allocate( diajbBB(nob*nvb,nob*nvb) )
-          Call Rd_RBf2(IU,NTot,nob*nvb,nob*nvb,LenBuf,diajbBB)
-!:          write(42,*) 'Bucket 10 head',(diajbBB(i,1),i=1,100)
-!:          write(42,*) 'Bucket 10 tail',(diajbBB(nob*nvb-100+i,noa*nva),i=1,100)
+          allocate( Mol%diajbBB(nob*nvb,nob*nvb) )
+          Call Rd_RBf2(IU,NTot,nob*nvb,nob*nvb,LenBuf,Mol%diajbBB)
+!:          write(42,*) 'Bucket 10 head',(Mol%diajbBB(i,1),i=1,100)
+!:          write(42,*) 'Bucket 10 tail',(Mol%diajbBB(nob*nvb-100+i,noa*nva),i=1,100)
         case ( trim(' File    11') )
-          allocate( dijkaAA(noa*nva,noa3))
-          Call Rd_RBf2(IU,NTot,noa*nva,noa3,LenBuf,dijkaAA)
+          allocate( Mol%dijkaAA(noa*nva,noa3))
+          Call Rd_RBf2(IU,NTot,noa*nva,noa3,LenBuf,Mol%dijkaAA)
         case ( trim(' File    12') )
-          allocate( dijkaAB(nob*nvb,noa2))
-          Call Rd_RBf2(IU,NTot,nob*nvb,noa2,LenBuf,dijkaAB)
+          allocate( Mol%dijkaAB(nob*nvb,noa2))
+          Call Rd_RBf2(IU,NTot,nob*nvb,noa2,LenBuf,Mol%dijkaAB)
         case ( trim(' File    13') )
-          allocate( dijkaBA(noa*nva,nob2))
-          Call Rd_RBf2(IU,NTot,noa*nva,nob2,LenBuf,dijkaBA)
+          allocate( Mol%dijkaBA(noa*nva,nob2))
+          Call Rd_RBf2(IU,NTot,noa*nva,nob2,LenBuf,Mol%dijkaBA)
         case ( trim(' File    14') )
-          allocate( dijkaBB(nob*nvb,nob3))
-          Call Rd_RBf2(IU,NTot,nob*nvb,nob3,LenBuf,dijkaBB)
+          allocate( Mol%dijkaBB(nob*nvb,nob3))
+          Call Rd_RBf2(IU,NTot,nob*nvb,nob3,LenBuf,Mol%dijkaBB)
         case ( trim(' File    15') )
-          allocate( diabcAA(nva3,noa*nva))
-          Call Rd_RBf2(IU,NTot,nva3,noa*nva,LenBuf,diabcAA)
+          allocate( Mol%diabcAA(nva3,noa*nva))
+          Call Rd_RBf2(IU,NTot,nva3,noa*nva,LenBuf,Mol%diabcAA)
         case ( trim(' File    16') )
-          allocate( diabcAB(nvb2,noa*nva))
-          Call Rd_RBf2(IU,NTot,nvb2,noa*nva,LenBuf,diabcAB)
+          allocate( Mol%diabcAB(nvb2,noa*nva))
+          Call Rd_RBf2(IU,NTot,nvb2,noa*nva,LenBuf,Mol%diabcAB)
         case ( trim(' File    17') )
-          allocate( diabcBA(nva2,nob*nvb))
-          Call Rd_RBf2(IU,NTot,nva2,nob*nvb,LenBuf,diabcBA)
+          allocate( Mol%diabcBA(nva2,nob*nvb))
+          Call Rd_RBf2(IU,NTot,nva2,nob*nvb,LenBuf,Mol%diabcBA)
         case ( trim(' File    18') )
-          allocate( diabcBB(nvb3,nob*nvb))
-          Call Rd_RBf2(IU,NTot,nvb3,nob*nvb,LenBuf,diabcBB)
+          allocate( Mol%diabcBB(nvb3,nob*nvb))
+          Call Rd_RBf2(IU,NTot,nvb3,nob*nvb,LenBuf,Mol%diabcBB)
         case ( trim(' File    19') )
-          allocate( dabcdAA(nva3,nva3) )
-          Call Rd_RBf3(IU,NTot,nva3,nva3,LenBuf,dabcdAA)
+          allocate( Mol%dabcdAA(nva3,nva3) )
+          Call Rd_RBf3(IU,NTot,nva3,nva3,LenBuf,Mol%dabcdAA)
         case ( trim(' File    20') )
-          allocate( dabcdAB(nvb2,nva2) )
-          Call Rd_RBf2(IU,NTot,nvb2,nva2,LenBuf,dabcdAB)
+          allocate( Mol%dabcdAB(nvb2,nva2) )
+          Call Rd_RBf2(IU,NTot,nvb2,nva2,LenBuf,Mol%dabcdAB)
         case ( trim(' File    21') )
-          allocate( dabcdBB(nvb3,nvb3) )
-          Call Rd_RBf3(IU,NTot,nvb3,nvb3,LenBuf,dabcdBB)
+          allocate( Mol%dabcdBB(nvb3,nvb3) )
+          Call Rd_RBf3(IU,NTot,nvb3,nvb3,LenBuf,Mol%dabcdBB)
         case default
           write(iout,*) 'skipping ',CBUF
           Call Rd_Skip(IU,NTot,LenBuf)
@@ -256,36 +256,36 @@ contains
         Goto 10
         endIf
         deallocate( RArr )
-!:        deallocate(orben,cmo_a,socxao,socyao,soczao,vabsao)
-!:        If(IOpCl.eq.1) deallocate(cmo_b)
-!:        deallocate(dijabAB,diajbAA,diajbBB)
+!:        deallocate(Mol%orben,Mol%cmo_a,Mol%socxao,Mol%socyao,Mol%soczao,Mol%vabsao)
+!:        If(IOpCl.eq.1) deallocate(Mol%cmo_b)
+!:        deallocate(Mol%dijabAB,Mol%diajbAA,Mol%diajbBB)
       Call Close_MatF(IU)
 !
 !    Calculate dipole moment
 !
-     dipx00 = 0.d0
-     dipy00 = 0.d0
-     dipz00 = 0.d0
+     Mol%dipx00 = 0.d0
+     Mol%dipy00 = 0.d0
+     Mol%dipz00 = 0.d0
      do i = 1,ntt
-       dipx00 = dipx00 - 2*density(i)*dipxao(i)
-       dipy00 = dipy00 - 2*density(i)*dipyao(i)
-       dipz00 = dipz00 - 2*density(i)*dipzao(i)
+       Mol%dipx00 = Mol%dipx00 - 2*density(i)*Mol%dipxao(i)
+       Mol%dipy00 = Mol%dipy00 - 2*density(i)*Mol%dipyao(i)
+       Mol%dipz00 = Mol%dipz00 - 2*density(i)*Mol%dipzao(i)
        end do
      do i = 1,nbasis
        ij = i*(i+1)/2
-       dipx00 = dipx00 + density(ij)*dipxao(ij)
-       dipy00 = dipy00 + density(ij)*dipyao(ij)
-       dipz00 = dipz00 + density(ij)*dipzao(ij)
+       Mol%dipx00 = Mol%dipx00 + density(ij)*Mol%dipxao(ij)
+       Mol%dipy00 = Mol%dipy00 + density(ij)*Mol%dipyao(ij)
+       Mol%dipz00 = Mol%dipz00 + density(ij)*Mol%dipzao(ij)
        end do
-     do i = 1,natoms
-       dipx00 = dipx00 + AtmChg(i)*xcoord(i)
-       dipy00 = dipy00 + AtmChg(i)*ycoord(i)
-       dipz00 = dipz00 + AtmChg(i)*zcoord(i)
+     do i = 1,Mol%natoms
+       Mol%dipx00 = Mol%dipx00 + AtmChg(i)*Mol%xcoord(i)
+       Mol%dipy00 = Mol%dipy00 + AtmChg(i)*Mol%ycoord(i)
+       Mol%dipz00 = Mol%dipz00 + AtmChg(i)*Mol%zcoord(i)
        end do
-    write(42,*) " dipole ",dipx00,dipy00,dipz00
+    write(42,*) " dipole ",Mol%dipx00,Mol%dipy00,Mol%dipz00
     deallocate( density )
-!:    deallocate(dipxao,dipyao,dipzao)
-!:    deallocate(xcoord,ycoord,zcoord,myatom)
+!:    deallocate(Mol%dipxao,Mol%dipyao,Mol%dipzao)
+!:    deallocate(Mol%xcoord,Mol%ycoord,Mol%zcoord,Mol%myatom)
             
     call write_header( 'read_matrixelements','initialize','leave' )
     
@@ -306,11 +306,11 @@ contains
 
     if ( Qstore ) then
 
-       allocate( vabsao(ntt) )
-       write(iout,form1e) 'vabsao', ntt  ;   call track_mem( ntt )
+       allocate( Mol%vabsao(ntt) )
+       write(iout,form1e) 'Mol%vabsao', ntt  ;   call track_mem( ntt )
        
        read(10, '(A)') cskip
-       read(10,*) ( vabsao(i) , i=1, ntt )
+       read(10,*) ( Mol%vabsao(i) , i=1, ntt )
        write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
        
     else
@@ -338,11 +338,11 @@ contains
     
     if ( Qstore ) then
 
-       allocate( dipxao(ntt) )
-       write(iout,form1e) 'dipxao', ntt  ;  call track_mem( ntt )       
+       allocate( Mol%dipxao(ntt) )
+       write(iout,form1e) 'Mol%dipxao', ntt  ;  call track_mem( ntt )       
        
        read(10,'(A)') cskip
-       read(10,*) ( dipxao(i) , i=1, ntt )
+       read(10,*) ( Mol%dipxao(i) , i=1, ntt )
        write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
        
     else
@@ -370,11 +370,11 @@ contains
 
     if ( Qstore ) then
 
-       allocate( dipyao(ntt) )
-       write(iout,form1e) 'dipyao', ntt  ;  call track_mem( ntt )
+       allocate( Mol%dipyao(ntt) )
+       write(iout,form1e) 'Mol%dipyao', ntt  ;  call track_mem( ntt )
        
        read(10,'(A)') cskip
-       read(10,*) ( dipyao(i) , i=1, ntt )
+       read(10,*) ( Mol%dipyao(i) , i=1, ntt )
        write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
 
     else
@@ -402,11 +402,11 @@ contains
     
     if ( Qstore ) then
 
-       allocate( dipzao(ntt) )
-       write(iout,form1e) 'dipzao', ntt  ;  call track_mem( ntt )
+       allocate( Mol%dipzao(ntt) )
+       write(iout,form1e) 'Mol%dipzao', ntt  ;  call track_mem( ntt )
        
        read(10,'(A)') cskip
-       read(10,*) ( dipzao(i) , i=1, ntt )
+       read(10,*) ( Mol%dipzao(i) , i=1, ntt )
        write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
        
     else
@@ -436,20 +436,20 @@ contains
 
     if ( Qstore ) then
 
-       !allocate( socxao(ntt), r_array(ntt) )
-       allocate( socxao(nbasis,nbasis) ) 
-       write(iout,form1e) 'socxao', ntt  ;  call track_mem( ntt )       
+       !allocate( Mol%socxao(ntt), r_array(ntt) )
+       allocate( Mol%socxao(nbasis,nbasis) ) 
+       write(iout,form1e) 'Mol%socxao', ntt  ;  call track_mem( ntt )       
 
        read(10,'(A)') cskip
        do i=1, nbasis
           do j=1, i
              read(10,*) rdum
-             socxao(i,j) = dcmplx( 0.d0, rdum )
-             socxao(j,i) = dconjg( socxao(i,j) )
+             Mol%socxao(i,j) = dcmplx( 0.d0, rdum )
+             Mol%socxao(j,i) = dconjg( Mol%socxao(i,j) )
           end do
        end do
        !read(10,*) ( r_array(i), i=1, ntt )
-       !socxao(:) = dcmplx( 0.d0, r_array(:) )
+       !Mol%socxao(:) = dcmplx( 0.d0, r_array(:) )
        write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
        
        !deallocate( r_array )
@@ -481,20 +481,20 @@ contains
 
     if ( Qstore ) then
 
-       !allocate( socyao(ntt), r_array(ntt) )
-       allocate( socyao(nbasis,nbasis) )
-       write(iout,form1e) 'socyao', ntt  ;  call track_mem( ntt )
+       !allocate( Mol%socyao(ntt), r_array(ntt) )
+       allocate( Mol%socyao(nbasis,nbasis) )
+       write(iout,form1e) 'Mol%socyao', ntt  ;  call track_mem( ntt )
        
        read(10,'(A)') cskip
        do i=1, nbasis
           do j=1, i
              read(10,*) rdum
-             socyao(i,j) = dcmplx( 0.d0, rdum )
-             socyao(j,i) = dconjg( socyao(i,j) )
+             Mol%socyao(i,j) = dcmplx( 0.d0, rdum )
+             Mol%socyao(j,i) = dconjg( Mol%socyao(i,j) )
           end do
        end do
        !read(10,*) ( r_array(i), i=1, ntt )
-       !socyao(:) = dcmplx( 0.d0, r_array(:) )
+       !Mol%socyao(:) = dcmplx( 0.d0, r_array(:) )
        write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
        
        !deallocate( r_array )
@@ -526,20 +526,20 @@ contains
 
     if ( Qstore ) then
 
-       !allocate( soczao(ntt), r_array(ntt) )
-       allocate( soczao(nbasis,nbasis) )
-       write(iout,form1e) 'soczao', ntt  ;  call track_mem( ntt )
+       !allocate( Mol%soczao(ntt), r_array(ntt) )
+       allocate( Mol%soczao(nbasis,nbasis) )
+       write(iout,form1e) 'Mol%soczao', ntt  ;  call track_mem( ntt )
        
        read(10,'(A)') cskip
        do i=1, nbasis
           do j=1, i
              read(10,*) rdum
-             soczao(i,j) = dcmplx( 0.d0, rdum )
-             soczao(j,i) = dconjg( soczao(i,j) )
+             Mol%soczao(i,j) = dcmplx( 0.d0, rdum )
+             Mol%soczao(j,i) = dconjg( Mol%soczao(i,j) )
           end do
        end do
        !read(10,*) ( r_array(i), i=1, ntt )
-       !soczao(:) = dcmplx( 0.d0, r_array(:) )
+       !Mol%soczao(:) = dcmplx( 0.d0, r_array(:) )
        write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
 
        !deallocate( r_array ) 
@@ -569,11 +569,11 @@ contains
     
     if ( Qstore ) then
 
-       allocate( orben(norb) )
-       write(iout,form1e) 'orben', norb  ;  call track_mem( norb )
+       allocate( Mol%orben(norb) )
+       write(iout,form1e) 'Mol%orben', norb  ;  call track_mem( norb )
        
        read(10,'(A)') cskip
-       read(10,*) ( orben(i) , i=1, norb )
+       read(10,*) ( Mol%orben(i) , i=1, norb )
        write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
 
     else
@@ -601,17 +601,17 @@ contains
 
     if ( Qstore ) then
 
-       allocate( cmo_a(nrorb*nbasis) )
-       write(iout,form1e) 'cmo_a', nrorb*nbasis  ;  call track_mem( nrorb*nbasis )
+       allocate( Mol%cmo_a(nrorb*nbasis) )
+       write(iout,form1e) 'Mol%cmo_a', nrorb*nbasis  ;  call track_mem( nrorb*nbasis )
        
        if ( unrestricted ) then
-          allocate( cmo_b(nrorb*nbasis) ) 
-          write(iout,form1e) 'cmo_b', nrorb*nbasis  ;  call track_mem( nrorb*nbasis )
+          allocate( Mol%cmo_b(nrorb*nbasis) ) 
+          write(iout,form1e) 'Mol%cmo_b', nrorb*nbasis  ;  call track_mem( nrorb*nbasis )
        end if
        
        read(10,'(A)') cskip
-       read(10,*) ( cmo_a(i) , i=1, nbasis*nrorb )       
-       if (unrestricted) read(10,*) ( cmo_b(i) , i=1, nbasis*nrorb )
+       read(10,*) ( Mol%cmo_a(i) , i=1, nbasis*nrorb )       
+       if (unrestricted) read(10,*) ( Mol%cmo_b(i) , i=1, nbasis*nrorb )
        write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
 
     else
@@ -674,12 +674,12 @@ contains
     call get_size_variables
 
     
-    allocate( dijabAA(nva3,noa3) )            ; dijabAA = 0.d0 ! Bucket 2    
-    write(iout,form2e) 'dijabAA', nva3, noa3  ; call track_mem( nva3*noa3 )
+    allocate( Mol%dijabAA(nva3,noa3) )            ; Mol%dijabAA = 0.d0 ! Bucket 2    
+    write(iout,form2e) 'Mol%dijabAA', nva3, noa3  ; call track_mem( nva3*noa3 )
 
     
     read(10,'(A)') cskip
-    read(10,*) ( ( dijabAA(j,i), j=1, nva3 ), i=1, noa3 )
+    read(10,*) ( ( Mol%dijabAA(j,i), j=1, nva3 ), i=1, noa3 )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
     
 
@@ -697,15 +697,15 @@ contains
     call get_size_variables
 
     
-    allocate( dijabAB(nobnvb,noanva) )            ;  dijabAB = 0.d0 ! Bucket 2    
-    write(iout,form2e) 'dijabAB', nobnvb, noanva  ;  call track_mem( nobnvb*noanva )
+    allocate( Mol%dijabAB(nobnvb,noanva) )            ;  Mol%dijabAB = 0.d0 ! Bucket 2    
+    write(iout,form2e) 'Mol%dijabAB', nobnvb, noanva  ;  call track_mem( nobnvb*noanva )
     
     
     read(10,'(A)') cskip
-    read(10,*) ( ( dijabAB(j,i), j=1, nobnvb ), i=1, noanva )
+    read(10,*) ( ( Mol%dijabAB(j,i), j=1, nobnvb ), i=1, noanva )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
-!:          write(42,*) 'Bucket 2 head',(dijabAB(i,1),i=1,100)
-!:          write(42,*) 'Bucket 2 tail',(dijabAB(nob*nvb-100+i,noa*nva),i=1,100)
+!:          write(42,*) 'Bucket 2 head',(Mol%dijabAB(i,1),i=1,100)
+!:          write(42,*) 'Bucket 2 tail',(Mol%dijabAB(nob*nvb-100+i,noa*nva),i=1,100)
     
     
   end subroutine read_bucket_2
@@ -721,12 +721,12 @@ contains
     call get_size_variables
 
     
-    allocate( dijabBB(nvb3,nob3) )            ;  dijabBB = 0.d0 ! Bucket 2    
-    write(iout,form2e) 'dijabBB', nvb3, nob3  ;  call track_mem( nvb3*nob3 )
+    allocate( Mol%dijabBB(nvb3,nob3) )            ;  Mol%dijabBB = 0.d0 ! Bucket 2    
+    write(iout,form2e) 'Mol%dijabBB', nvb3, nob3  ;  call track_mem( nvb3*nob3 )
 
     
     read(10,'(A)') cskip
-    read(10,*) ( ( dijabBB(j,i), j=1, nvb3 ), i=1, nob3 )
+    read(10,*) ( ( Mol%dijabBB(j,i), j=1, nvb3 ), i=1, nob3 )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
     
 
@@ -744,15 +744,15 @@ contains
     call get_size_variables
 
     
-    allocate( dijklAA(noa3,noa3) )            ;  dijklAA = 0.d0 
-    write(iout,form2e) 'dijklAA', noa3, noa3  ;  call track_mem( noa3*noa3 )
+    allocate( Mol%dijklAA(noa3,noa3) )            ;  Mol%dijklAA = 0.d0 
+    write(iout,form2e) 'Mol%dijklAA', noa3, noa3  ;  call track_mem( noa3*noa3 )
     
 
     read(10,'(A)') cskip
     do i=1, noa3
        do j=i, noa3
-          read(10,*) dijklAA(j,i)
-          dijklAA(i,j) = dijklAA(j,i)
+          read(10,*) Mol%dijklAA(j,i)
+          Mol%dijklAA(i,j) = Mol%dijklAA(j,i)
        end do
     end do
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
@@ -772,15 +772,15 @@ contains
     call get_size_variables
 
     
-    allocate( diajbAA(noanva,noanva) )            ;  diajbAA = 0.d0 ! Bucket 5 
-    write(iout,form2e) 'diajbAA', noanva, noanva  ;  call track_mem( noanva*noanva )
+    allocate( Mol%diajbAA(noanva,noanva) )            ;  Mol%diajbAA = 0.d0 ! Bucket 5 
+    write(iout,form2e) 'Mol%diajbAA', noanva, noanva  ;  call track_mem( noanva*noanva )
     
 
     read(10,'(A)') cskip
-    read(10,*) ( ( diajbAA(j,i), j=1, noanva ), i=1, noanva )
+    read(10,*) ( ( Mol%diajbAA(j,i), j=1, noanva ), i=1, noanva )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
-!:          write(42,*) 'Bucket 5 head',(diajbAA(i,1),i=1,100)
-!:          write(42,*) 'Bucket 5 tail',(diajbAA(nob*nvb-100+i,noa*nva),i=1,100)
+!:          write(42,*) 'Bucket 5 head',(Mol%diajbAA(i,1),i=1,100)
+!:          write(42,*) 'Bucket 5 tail',(Mol%diajbAA(nob*nvb-100+i,noa*nva),i=1,100)
 
     
   end subroutine read_bucket_5
@@ -797,12 +797,12 @@ contains
     call get_size_variables
 
     
-    allocate( dijklAB(nob2,noa2) )            ;  dijklAB = 0.d0 
-    write(iout,form2e) 'dijklAB', nob2, noa2  ;  call track_mem( nob2*noa2 )
+    allocate( Mol%dijklAB(nob2,noa2) )            ;  Mol%dijklAB = 0.d0 
+    write(iout,form2e) 'Mol%dijklAB', nob2, noa2  ;  call track_mem( nob2*noa2 )
 
     
     read(10,'(A)') cskip
-    read(10,*) ( ( dijklAB(j,i), j=1, nob2 ), i=1, noa2 )
+    read(10,*) ( ( Mol%dijklAB(j,i), j=1, nob2 ), i=1, noa2 )
     write(iout,'(A)') ' finishd reading '//trim(adjustl(cskip))
     
     
@@ -820,12 +820,12 @@ contains
     call get_size_variables
 
 
-    allocate( diajbAB(nvb2,noa2) )            ;  diajbAB = 0.d0 
-    write(iout,form2e) 'diajbAB', nvb2, noa2  ;  call track_mem( nvb*noa2 )
+    allocate( Mol%diajbAB(nvb2,noa2) )            ;  Mol%diajbAB = 0.d0 
+    write(iout,form2e) 'Mol%diajbAB', nvb2, noa2  ;  call track_mem( nvb*noa2 )
 
 
     read(10,'(A)') cskip
-    read(10,*) ( ( diajbAB(j,i), j=1, nvb2 ), i=1, noa2 )
+    read(10,*) ( ( Mol%diajbAB(j,i), j=1, nvb2 ), i=1, noa2 )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
     
 
@@ -843,12 +843,12 @@ contains
     call get_size_variables
 
 
-    allocate( diajbBA(nva2,nob2) )            ;  diajbBA = 0.d0 
-    write(iout,form2e) 'diajbBA', nva2, nob2  ;  call track_mem( nva2*nob2 )
+    allocate( Mol%diajbBA(nva2,nob2) )            ;  Mol%diajbBA = 0.d0 
+    write(iout,form2e) 'Mol%diajbBA', nva2, nob2  ;  call track_mem( nva2*nob2 )
 
     
     read(10,'(A)') cskip
-    read(10,*) ( ( diajbBA(j,i), j=1, nva2 ), i=1, nob2 )
+    read(10,*) ( ( Mol%diajbBA(j,i), j=1, nva2 ), i=1, nob2 )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
     
     
@@ -866,15 +866,15 @@ contains
     call get_size_variables
 
 
-    allocate( dijklBB(nob3,nob3) )            ;  dijklBB = 0.d0 
-    write(iout,form2e) 'dijklBB', nob3, nob3  ;  call track_mem( nob3*nob3 )
+    allocate( Mol%dijklBB(nob3,nob3) )            ;  Mol%dijklBB = 0.d0 
+    write(iout,form2e) 'Mol%dijklBB', nob3, nob3  ;  call track_mem( nob3*nob3 )
 
 
     read(10,'(A)') cskip
     do i=1, nob3
        do j=i, nob3
-          read(10,*) dijklBB(j,i)
-          dijklBB(i,j) = dijklBB(j,i)
+          read(10,*) Mol%dijklBB(j,i)
+          Mol%dijklBB(i,j) = Mol%dijklBB(j,i)
        end do
     end do
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
@@ -894,17 +894,17 @@ contains
     call get_size_variables
 
     
-    allocate( diajbBB(nobnvb,nobnvb) )            ;  diajbBB = 0.d0 ! Bucket 10
-    write(iout,form2e) 'diajbBB', nobnvb, nobnvb  ;  call track_mem( nobnvb*nobnvb ) 
+    allocate( Mol%diajbBB(nobnvb,nobnvb) )            ;  Mol%diajbBB = 0.d0 ! Bucket 10
+    write(iout,form2e) 'Mol%diajbBB', nobnvb, nobnvb  ;  call track_mem( nobnvb*nobnvb ) 
 
     
     if(unrestricted) then
        read(10,'(A)') cskip
-       read(10,*) ( ( diajbBB(j,i), j=1, nobnvb ), i=1, nobnvb )
+       read(10,*) ( ( Mol%diajbBB(j,i), j=1, nobnvb ), i=1, nobnvb )
        write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
     end if
-!:          write(42,*) 'Bucket 10 head',(diajbBB(i,1),i=1,100)
-!:          write(42,*) 'Bucket 10 tail',(diajbBB(nob*nvb-100+i,noa*nva),i=1,100)
+!:          write(42,*) 'Bucket 10 head',(Mol%diajbBB(i,1),i=1,100)
+!:          write(42,*) 'Bucket 10 tail',(Mol%diajbBB(nob*nvb-100+i,noa*nva),i=1,100)
 
     
   end subroutine read_bucket_10
@@ -921,12 +921,12 @@ contains
     call get_size_variables
 
     
-    allocate( dijkaAA(noanva,noa3))             ;  dijkaAA = 0.d0 
-    write(iout,form2e) 'dijkaAA', noa3, noanva  ;  call track_mem( noa3*noanva )
+    allocate( Mol%dijkaAA(noanva,noa3))             ;  Mol%dijkaAA = 0.d0 
+    write(iout,form2e) 'Mol%dijkaAA', noa3, noanva  ;  call track_mem( noa3*noanva )
 
 
     read(10,'(A)') cskip
-    read(10,*) ( ( dijkaAA(j,i), j=1, noanva ), i=1, noa3 )
+    read(10,*) ( ( Mol%dijkaAA(j,i), j=1, noanva ), i=1, noa3 )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
     
     
@@ -944,12 +944,12 @@ contains
     call get_size_variables
 
 
-    allocate( dijkaAB(nobnvb,noa2))             ;  dijkaAB = 0.d0 
-    write(iout,form2e) 'dijkaAB', nobnvb, noa2  ;  call track_mem( noa2*nobnvb )
+    allocate( Mol%dijkaAB(nobnvb,noa2))             ;  Mol%dijkaAB = 0.d0 
+    write(iout,form2e) 'Mol%dijkaAB', nobnvb, noa2  ;  call track_mem( noa2*nobnvb )
     
 
     read(10,'(A)') cskip
-    read(10,*) ( ( dijkaAB(j,i), j=1, nobnvb ), i=1, noa2 )
+    read(10,*) ( ( Mol%dijkaAB(j,i), j=1, nobnvb ), i=1, noa2 )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
     
 
@@ -967,12 +967,12 @@ contains
     call get_size_variables
 
     
-    allocate( dijkaBA(noanva,nob2))             ;  dijkaBA = 0.d0 
-    write(iout,form2e) 'dijkaBA', noanva, nob2  ;  call track_mem( nob2*noanva )
+    allocate( Mol%dijkaBA(noanva,nob2))             ;  Mol%dijkaBA = 0.d0 
+    write(iout,form2e) 'Mol%dijkaBA', noanva, nob2  ;  call track_mem( nob2*noanva )
     
 
     read(10,'(A)') cskip
-    read(10,*) ( ( dijkaBA(j,i), j=1, noanva ), i=1, nob2 )
+    read(10,*) ( ( Mol%dijkaBA(j,i), j=1, noanva ), i=1, nob2 )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
 
     
@@ -990,12 +990,12 @@ contains
     call get_size_variables
 
     
-    allocate( dijkaBB(nobnvb,nob3))             ;  dijkaBB = 0.d0 
-    write(iout,form2e) 'dijkaBB', nobnvb, nob3  ;  call track_mem( nob3*nobnvb )
+    allocate( Mol%dijkaBB(nobnvb,nob3))             ;  Mol%dijkaBB = 0.d0 
+    write(iout,form2e) 'Mol%dijkaBB', nobnvb, nob3  ;  call track_mem( nob3*nobnvb )
 
 
     read(10,'(A)') cskip
-    read(10,*) ( ( dijkaBB(j,i), j=1, nobnvb ), i=1, nob3 )
+    read(10,*) ( ( Mol%dijkaBB(j,i), j=1, nobnvb ), i=1, nob3 )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
 
     
@@ -1013,12 +1013,12 @@ contains
     call get_size_variables
 
     
-    allocate( diabcAA(nva3,noanva))             ;  diabcAA = 0.d0 
-    write(iout,form2e) 'diabcAA', noanva, nva3  ;  call track_mem( noanva*nva3 )
+    allocate( Mol%diabcAA(nva3,noanva))             ;  Mol%diabcAA = 0.d0 
+    write(iout,form2e) 'Mol%diabcAA', noanva, nva3  ;  call track_mem( noanva*nva3 )
     
     
     read(10,'(A)') cskip
-    read(10,*) ( ( diabcAA(j,i), j=1, nva3 ), i=1, noanva )
+    read(10,*) ( ( Mol%diabcAA(j,i), j=1, nva3 ), i=1, noanva )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
 
     
@@ -1036,12 +1036,12 @@ contains
     call get_size_variables
 
     
-    allocate( diabcAB(nvb2,noanva))             ;  diabcAB = 0.d0
-    write(iout,form2e) 'diabcAB', nvb2, noanva  ;  call track_mem( noanva*nvb2 ) 
+    allocate( Mol%diabcAB(nvb2,noanva))             ;  Mol%diabcAB = 0.d0
+    write(iout,form2e) 'Mol%diabcAB', nvb2, noanva  ;  call track_mem( noanva*nvb2 ) 
     
     
     read(10,'(A)') cskip
-    read(10,*) ( ( diabcAB(j,i), j=1, nvb2 ), i=1, noanva )
+    read(10,*) ( ( Mol%diabcAB(j,i), j=1, nvb2 ), i=1, noanva )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
     
     
@@ -1059,12 +1059,12 @@ contains
     call get_size_variables    
 
     
-    allocate( diabcBA(nva2,nobnvb))             ;  diabcBA = 0.d0 
-    write(iout,form2e) 'diabcBA', nva2, nobnvb  ;  call track_mem( nobnvb*nva2 )
+    allocate( Mol%diabcBA(nva2,nobnvb))             ;  Mol%diabcBA = 0.d0 
+    write(iout,form2e) 'Mol%diabcBA', nva2, nobnvb  ;  call track_mem( nobnvb*nva2 )
     
 
     read(10,'(A)') cskip
-    read(10,*) ( ( diabcBA(j,i), j=1, nva2 ), i=1, nobnvb )
+    read(10,*) ( ( Mol%diabcBA(j,i), j=1, nva2 ), i=1, nobnvb )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
 
     
@@ -1082,12 +1082,12 @@ contains
     call get_size_variables
     
 
-    allocate( diabcBB(nvb3,nobnvb))              ;  diabcBB = 0.d0 
-    write(iout,form2e)  'diabcBB', nvb3, nobnvb  ;  call track_mem( nobnvb*nvb3 )
+    allocate( Mol%diabcBB(nvb3,nobnvb))              ;  Mol%diabcBB = 0.d0 
+    write(iout,form2e)  'Mol%diabcBB', nvb3, nobnvb  ;  call track_mem( nobnvb*nvb3 )
     
 
     read(10,'(A)') cskip
-    read(10,*) ( ( diabcBB(j,i), j=1, nvb3 ), i=1, nobnvb )
+    read(10,*) ( ( Mol%diabcBB(j,i), j=1, nvb3 ), i=1, nobnvb )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
     
 
@@ -1105,15 +1105,15 @@ contains
     call get_size_variables
 
 
-    allocate( dabcdAA(nva3,nva3) )            ;  dabcdAA = 0.d0 
-    write(iout,form2e) 'dabcdAA', nva3, nva3  ;  call track_mem( nva3*nva3 )
+    allocate( Mol%dabcdAA(nva3,nva3) )            ;  Mol%dabcdAA = 0.d0 
+    write(iout,form2e) 'Mol%dabcdAA', nva3, nva3  ;  call track_mem( nva3*nva3 )
     
 
     read(10,'(A)') cskip
     do i=1, nva3
        do j=i, nva3
-          read(10,*) dabcdAA(j,i)
-          dabcdAA(i,j) = dabcdAA(j,i)
+          read(10,*) Mol%dabcdAA(j,i)
+          Mol%dabcdAA(i,j) = Mol%dabcdAA(j,i)
        end do
     end do
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
@@ -1132,12 +1132,12 @@ contains
     call get_size_variables
 
     
-    allocate( dabcdAB(nvb2,nva2) )            ;  dabcdAB = 0.d0 
-    write(iout,form2e) 'dabcdAB', nvb2, nva2  ;  call track_mem( nva2*nvb2 )
+    allocate( Mol%dabcdAB(nvb2,nva2) )            ;  Mol%dabcdAB = 0.d0 
+    write(iout,form2e) 'Mol%dabcdAB', nvb2, nva2  ;  call track_mem( nva2*nvb2 )
     
 
     read(10,'(A)') cskip
-    read(10,*) ( ( dabcdAB(j,i), j=1, nvb2 ), i=1, nva2 )
+    read(10,*) ( ( Mol%dabcdAB(j,i), j=1, nvb2 ), i=1, nva2 )
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
     
 
@@ -1155,15 +1155,15 @@ contains
     call get_size_variables
 
 
-    allocate( dabcdBB(nvb3,nvb3) )            ;  dabcdBB = 0.d0
-    write(iout,form2e) 'dabcdBB', nvb3, nvb3  ;  call track_mem( nvb3*nvb3 )
+    allocate( Mol%dabcdBB(nvb3,nvb3) )            ;  Mol%dabcdBB = 0.d0
+    write(iout,form2e) 'Mol%dabcdBB', nvb3, nvb3  ;  call track_mem( nvb3*nvb3 )
     
     
     read(10,'(A)') cskip
     do i=1, nvb3
        do j=i, nvb3
-          read(10,*) dabcdBB(j,i)
-          dabcdBB(i,j) = dabcdBB(j,i)
+          read(10,*) Mol%dabcdBB(j,i)
+          Mol%dabcdBB(i,j) = Mol%dabcdBB(j,i)
        end do
     end do
     write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
@@ -1184,7 +1184,7 @@ contains
     ij = get_index( i,j, noa, 'lt' )
     ab = get_index( a,b, nva, 'lt' )
 
-    get_dijabAA = dijabAA(ab,ij)
+    get_dijabAA = Mol%dijabAA(ab,ij)
 
   end function get_dijabAA
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1200,7 +1200,7 @@ contains
     IJ = get_index( I, J, nob, 'lt' )
     AB = get_index( A, B, nvb, 'lt' )
     
-    get_dijabBB = dijabBB(AB,IJ)
+    get_dijabBB = Mol%dijabBB(AB,IJ)
     
   end function get_dijabBB
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1216,7 +1216,7 @@ contains
     ia = get_index( i,a, nva, 'all' )
     jb = get_index( j,b, nvb, 'all' )
 
-    get_dijabAB = dijabAB(jb,ia)
+    get_dijabAB = Mol%dijabAB(jb,ia)
 
   end function get_dijabAB
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1237,7 +1237,7 @@ contains
     kl = get_index( k,l, noa, 'lt' )
     ij = get_index( i,j, noa, 'lt' )
 
-    get_dijklAA = sign * dijklAA(kl,ij)
+    get_dijklAA = sign * Mol%dijklAA(kl,ij)
 
   end function get_dijklAA
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1253,7 +1253,7 @@ contains
     ia = get_index( i,a, nva, 'all' )
     jb = get_index( j,b, nva, 'all' )
 
-    get_diajbAA = diajbAA(jb,ia)
+    get_diajbAA = Mol%diajbAA(jb,ia)
 
   end function get_diajbAA
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1269,7 +1269,7 @@ contains
     jl = get_index( j, l, nob, 'le' )
     ik = get_index( i, k, noa, 'le' )
 
-    get_dijklAB = dijklAB(jl,ik)
+    get_dijklAB = Mol%dijklAB(jl,ik)
 
   end function get_dijklAB
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1285,7 +1285,7 @@ contains
     ab = get_index( a,b, nvb, 'le' )
     ij = get_index( i,j, noa, 'le' )
 
-    get_diajbAB = diajbAB(ab,ij)
+    get_diajbAB = Mol%diajbAB(ab,ij)
 
   end function get_diajbAB
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1301,7 +1301,7 @@ contains
     ab = get_index( a,b, nva, 'le' )
     ij = get_index( i,j, nob, 'le' )
 
-    get_diajbBA = diajbBA(ab,ij)
+    get_diajbBA = Mol%diajbBA(ab,ij)
 
   end function get_diajbBA
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1322,7 +1322,7 @@ contains
     kl = get_index( k,l, nob, 'lt' )
     ij = get_index( i,j, nob, 'lt' )
 
-    get_dijklBB = sign * dijklBB(kl,ij)
+    get_dijklBB = sign * Mol%dijklBB(kl,ij)
 
   end function get_dijklBB
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1338,7 +1338,7 @@ contains
     ia = get_index( i,a, nvb, 'all' )
     jb = get_index( j,b, nvb, 'all' )
 
-    get_diajbBB = diajbBB(jb,ia)
+    get_diajbBB = Mol%diajbBB(jb,ia)
 
   end function get_diajbBB
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1358,7 +1358,7 @@ contains
     ka = get_index( k, a, nva, 'all' )
     ij = get_index( i, j, noa, 'lt' )
 
-    get_dijkaAA = sign * dijkaAA(ka,ij)
+    get_dijkaAA = sign * Mol%dijkaAA(ka,ij)
 
   end function get_dijkaAA
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1374,7 +1374,7 @@ contains
     ja = get_index( j,a, nvb, 'all' )
     ik = get_index( i,k, noa, 'le' )
 
-    get_dijkaAB = dijkaAB(ja,ik)
+    get_dijkaAB = Mol%dijkaAB(ja,ik)
 
   end function get_dijkaAB
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1390,7 +1390,7 @@ contains
     ja = get_index( j, a, nva, 'all' )
     ik = get_index( i, k, nob, 'le' )
 
-    get_dijkaBA = dijkaBA(ja,ik)
+    get_dijkaBA = Mol%dijkaBA(ja,ik)
 
   end function get_dijkaBA
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1410,7 +1410,7 @@ contains
     ka = get_index( k, a, nvb, 'all' )
     ij = get_index( i, j, nob, 'lt' )
 
-    get_dijkaBB = sign * dijkaBB(ka,ij)
+    get_dijkaBB = sign * Mol%dijkaBB(ka,ij)
 
   end function get_dijkaBB
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1430,7 +1430,7 @@ contains
     bc = get_index( b, c, nva, 'lt'  )
     ia = get_index( i, a, nva, 'all' )
 
-    get_diabcAA = sign * diabcAA(bc,ia)
+    get_diabcAA = sign * Mol%diabcAA(bc,ia)
 
   end function get_diabcAA
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1446,7 +1446,7 @@ contains
     ac = get_index( a, c, nvb, 'le'  )
     ib = get_index( i, b, nva, 'all' )
 
-    get_diabcAB = diabcAB(ac,ib)
+    get_diabcAB = Mol%diabcAB(ac,ib)
 
   end function get_diabcAB
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1462,7 +1462,7 @@ contains
     ac = get_index( a, c, nva, 'le' )
     ib = get_index( i, b, nvb, 'all' )
 
-    get_diabcBA = diabcBA(ac,ib)
+    get_diabcBA = Mol%diabcBA(ac,ib)
 
   end function get_diabcBA
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1482,7 +1482,7 @@ contains
     bc = get_index( b, c, nvb, 'lt'  )
     ia = get_index( i, a, nvb, 'all' )
 
-    get_diabcBB = sign * diabcBB(bc,ia)
+    get_diabcBB = sign * Mol%diabcBB(bc,ia)
 
   end function get_diabcBB
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1503,7 +1503,7 @@ contains
     ab = get_index( a, b, nva, 'lt' )
     cd = get_index( c, d, nva, 'lt' )
 
-    get_dabcdAA = sign * dabcdAA(cd,ab)
+    get_dabcdAA = sign * Mol%dabcdAA(cd,ab)
 
   end function get_dabcdAA
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1521,7 +1521,7 @@ contains
     bd = get_index( b, d, nvb, 'le' )
     ac = get_index( a, c, nva, 'le' )
 
-    get_dabcdAB = dabcdAB(bd,ac)
+    get_dabcdAB = Mol%dabcdAB(bd,ac)
 
   end function get_dabcdAB
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1542,7 +1542,7 @@ contains
     cd = get_index( c, d, nvb, 'lt' )
     ab = get_index( a, b, nvb, 'lt' )
 
-    get_dabcdBB = sign * dabcdBB(cd,ab)
+    get_dabcdBB = sign * Mol%dabcdBB(cd,ab)
 
   end function get_dabcdBB
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!

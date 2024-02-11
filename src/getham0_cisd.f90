@@ -238,7 +238,7 @@ contains
 
 
     ia = (i-1)*nva + a + 1 
-    rdum = - orben(i) + orben(noa+a)
+    rdum = - Mol%orben(i) + Mol%orben(noa+a)
     rdum = rdum - get_diajbAA(i,a,i,a)
     sigma(ia) = rdum
 
@@ -409,7 +409,7 @@ contains
     
     
     ia = (I-1)*NVB + A + 1 + noanva
-    rdum = - orben(nrorb+I) + orben(nrorb+NOB+A)
+    rdum = - Mol%orben(nrorb+I) + Mol%orben(nrorb+NOB+A)
     rdum = rdum - get_diajbBB(I,A,I,A)
     sigma(ia) = rdum
     
@@ -791,7 +791,7 @@ contains
     !: *** DIAGONAL  *** :!
     
 
-    rdum = - orben(i) - orben(j) + orben(noa+a) + orben(noa+b)
+    rdum = - Mol%orben(i) - Mol%orben(j) + Mol%orben(noa+a) + Mol%orben(noa+b)
     rdum = rdum + get_dijklAA(i,j,i,j) + get_dabcdAA(a,b,a,b)
     rdum = rdum - get_diajbAA(i,a,i,a) - get_diajbAA(i,b,i,b)
     rdum = rdum - get_diajbAA(j,a,j,a) - get_diajbAA(j,b,j,b)    
@@ -1172,7 +1172,7 @@ contains
     !: *** DIAGONAL  *** :!
     
 
-    rdum = - orben(nrorb+I) - orben(nrorb+J) + orben(nrorb+NOB+A) + orben(nrorb+NOB+B)
+    rdum = - Mol%orben(nrorb+I) - Mol%orben(nrorb+J) + Mol%orben(nrorb+NOB+A) + Mol%orben(nrorb+NOB+B)
     rdum = rdum + get_dijklBB(I,J,I,J) + get_dabcdBB(A,B,A,B)
     rdum = rdum - get_diajbBB(I,A,I,A) - get_diajbBB(I,B,I,B)
     rdum = rdum - get_diajbBB(J,A,J,A) - get_diajbBB(J,B,J,B)    
@@ -1440,7 +1440,7 @@ contains
     !: diagonal
 
     jb = state_index(-i,J) + (a-1)*NVB + B - 1 
-    rdum = - orben(i) - orben(nrorb+J) + orben(noa+a) + orben(nrorb+NOB+B)
+    rdum = - Mol%orben(i) - Mol%orben(nrorb+J) + Mol%orben(noa+a) + Mol%orben(nrorb+NOB+B)
     rdum = rdum + get_dijklAB(i,J,i,J) + get_dabcdAB(a,B,a,B)
     rdum = rdum - get_diajbBA(J,a,J,a) - get_diajbAB(i,B,i,B)
     rdum = rdum - get_diajbAA(i,a,i,a) - get_diajbBB(J,B,J,B)
@@ -1474,7 +1474,7 @@ contains
     do i=1, noa
        do a=1, nva
           ia = ia + 1 
-          sigma(ia) = - orben(i) + orben(noa+a) - get_diajbAA(i,a,i,a)
+          sigma(ia) = - Mol%orben(i) + Mol%orben(noa+a) - get_diajbAA(i,a,i,a)
           write(100,'(5(i5,1x),f20.10)') ia, -i, 0, -a, 0, sigma(ia)
        end do
     end do
@@ -1483,7 +1483,7 @@ contains
     do i=1, nob
        do a=1, nvb
           ia = ia + 1 
-          sigma(ia) = - orben(nrorb+i) + orben(nrorb+nob+a) - get_diajbBB(i,a,i,a)
+          sigma(ia) = - Mol%orben(nrorb+i) + Mol%orben(nrorb+nob+a) - get_diajbBB(i,a,i,a)
           write(100,'(5(i5,1x),f20.10)') ia, i, 0, a, 0, sigma(ia)
        end do
     end do
@@ -1495,7 +1495,7 @@ contains
           do a=1, nva
              do B=1, NVB                
                 ia = ia + 1 
-                rdum = - orben(i) - orben(nrorb+J) + orben(noa+a) + orben(nrorb+NOB+B)
+                rdum = - Mol%orben(i) - Mol%orben(nrorb+J) + Mol%orben(noa+a) + Mol%orben(nrorb+NOB+B)
                 rdum = rdum + get_dijklAB(i,J,i,J) + get_dabcdAB(a,B,a,B)
                 rdum = rdum - get_diajbBA(J,a,J,a) - get_diajbAB(i,B,i,B)
                 rdum = rdum - get_diajbAA(i,a,i,a) - get_diajbBB(J,B,J,B)
@@ -1513,7 +1513,7 @@ contains
           do a=1, nva
              do b=(a+1), nva
                 ia = ia + 1 
-                rdum = - orben(i) - orben(j) + orben(noa+a) + orben(noa+b)
+                rdum = - Mol%orben(i) - Mol%orben(j) + Mol%orben(noa+a) + Mol%orben(noa+b)
                 rdum = rdum + get_dijklAA(i,j,i,j) + get_dabcdAA(a,b,a,b)
                 rdum = rdum - get_diajbAA(i,a,i,a) - get_diajbAA(j,a,j,a)
                 rdum = rdum - get_diajbAA(i,b,i,b) - get_diajbAA(j,b,j,b)
@@ -1531,7 +1531,7 @@ contains
           do A=1, NVB
              do B=(A+1), NVB
                 ia = ia + 1 
-                rdum = - orben(nrorb+I) - orben(nrorb+J) + orben(nrorb+NOB+A) + orben(nrorb+NOB+B)
+                rdum = - Mol%orben(nrorb+I) - Mol%orben(nrorb+J) + Mol%orben(nrorb+NOB+A) + Mol%orben(nrorb+NOB+B)
                 rdum = rdum + get_dijklBB(I,J,I,J) + get_dabcdBB(A,B,A,B)
                 rdum = rdum - get_diajbBB(I,A,I,A) - get_diajbBB(I,B,I,B)
                 rdum = rdum - get_diajbBB(J,A,J,A) - get_diajbBB(J,B,J,B)    

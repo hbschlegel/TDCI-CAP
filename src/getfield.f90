@@ -33,8 +33,8 @@ contains
     if( read_emax(1).lt.-100.0 ) then
        call errors_getfield( 'check_emax','no_enput' )
        nemax = 3 
-       moenergy = dabs( orben(noa) )
-       if( unrestricted ) moenergy = dabs( orben(nrorb+nob) )
+       moenergy = dabs( Mol%orben(noa) )
+       if( unrestricted ) moenergy = dabs( Mol%orben(nrorb+nob) )
 
        !: guessed field strength on Keldysh parameter gamma = 1.0
        guessfield = omega * dsqrt( 2.d0 * moenergy )
@@ -267,14 +267,14 @@ contains
     
     write(iout,'(A)') ' in subroutine cos_env for cosine envelope'           
     
-    env = 0.d0 
+    Mol%field_env = 0.d0 
     fvect1 = 0.d0
     tau = 2.d0*pi / field_duration
 
     do istp=1, nstep
        if ( dble(istp) < field_duration ) then
-          env(istp) = 0.5d0 - 0.5d0*dcos( dble(istp) * tau )
-          fvect1(istp) = env(istp)*dcos( omega*dt*dble(istp) - phase )
+          Mol%field_env(istp) = 0.5d0 - 0.5d0*dcos( dble(istp) * tau )
+          fvect1(istp) = Mol%field_env(istp)*dcos( omega*dt*dble(istp) - phase )
        end if
     end do
     
@@ -297,7 +297,7 @@ contains
 
     write(iout,'(A)') ' in subroutine trap_env for trapezoidal envelope'    
     
-    env = 0.d0 
+    Mol%field_env = 0.d0 
     fvect1 = 0.d0
     
     do istp=1, nstep
@@ -306,18 +306,18 @@ contains
           if ( dble(istp) < (ncyc-1)*period ) then
              !: slope up in first cycle
              if ( dble(istp) < int(period) ) then
-                env(istp) = dble(istp)/period
-                env(istp) = 1.d0
-                fvect1(istp) = env(istp)*dsin( omega*dt*dble(istp) - phase )
+                Mol%field_env(istp) = dble(istp)/period
+                Mol%field_env(istp) = 1.d0
+                fvect1(istp) = Mol%field_env(istp)*dsin( omega*dt*dble(istp) - phase )
              else
                 !: flat/constant
-                env(istp) = 1.d0
+                Mol%field_env(istp) = 1.d0
                 fvect1(istp) = 1.d0*dsin( omega*dt*dble(istp) - phase )
              end if
           else 
              ! < C> slope down in last cycle
-             env(istp) = ( field_duration - dble(istp) ) / period !: = (ncyc*period-istp)/period
-             fvect1(istp) = env(istp)*dsin( omega*dt*dble(istp) - phase)
+             Mol%field_env(istp) = ( field_duration - dble(istp) ) / period !: = (ncyc*period-istp)/period
+             fvect1(istp) = Mol%field_env(istp)*dsin( omega*dt*dble(istp) - phase)
           end if
           
        end if
@@ -350,14 +350,14 @@ contains
     write(iout,'(A)') ' in subroutine gau_env for Gaussian envelope'
     
     
-    env = 0.d0 
+    Mol%field_env = 0.d0 
     fvect1 = 0.d0
     
     do istp=1, nstep
        if ( dble(istp) < field_duration ) then
           frac = dble(istp)/field_duration
-          env(istp) = norm * ( dexp(-wdth*(frac-0.5d0 )**2) - 1.d0/16.d0 )
-          fvect1(istp) = env(istp) * dsin( omega*dt*dble(istp) - phase )
+          Mol%field_env(istp) = norm * ( dexp(-wdth*(frac-0.5d0 )**2) - 1.d0/16.d0 )
+          fvect1(istp) = Mol%field_env(istp) * dsin( omega*dt*dble(istp) - phase )
        end if
     end do
     
@@ -386,7 +386,7 @@ contains
     write(iout,'(A)') ' in subroutine cw_env for static pulse' 
     
     fvect1 = 0.d0 
-    env = 0.d0
+    Mol%field_env = 0.d0
 
     do istp = 1, nstep
        if ( istp .le. int(frac*dble(ramp_step)*0.05d0/dt) ) then
@@ -396,7 +396,7 @@ contains
        end if
     end do
 
-    env = fvect1
+    Mol%field_env = fvect1
     
     write(iout, '(A)') ' leaving subroutine cw_env'
     
@@ -418,15 +418,15 @@ contains
 
     write(iout,'(A)') ' in subroutine cs_env for Bandrauk pulse (linear rise to constant)'
     
-    env = 0.d0 
+    Mol%field_env = 0.d0 
     fvect1 = 0.d0
     
     do istp = 1, nstep
        if ( dble(istp) < field_duration ) then
-          env(istp) = dble(istp) / field_duration
-          fvect1(istp) = env(istp)*dcos( omega*dt*dble(istp) - phase )
+          Mol%field_env(istp) = dble(istp) / field_duration
+          fvect1(istp) = Mol%field_env(istp)*dcos( omega*dt*dble(istp) - phase )
        else
-          env(istp) = 1.d0
+          Mol%field_env(istp) = 1.d0
           fvect1(istp) = 1.d0*dcos( omega*dt*dble(istp) - phase )
        end if
     end do
@@ -450,7 +450,7 @@ contains
 
     write(iout, '(A)') ' in subroutine ramp_env for linear ramping field'
     write(iout, *) nstep
-    env = 0.d0
+    Mol%field_env = 0.d0
     fvect1 = 0.d0
     denom = nstep-50
     write(iout, *) denom
@@ -458,10 +458,10 @@ contains
     do istp = 1, nstep
       if ( istp < denom) then
         fvect1(istp) = dble(istp)/denom
-        env(istp) = dble(istp)/denom
+        Mol%field_env(istp) = dble(istp)/denom
       else
         fvect1(istp) = 1.d0
-        env(istp) = 1.d0
+        Mol%field_env(istp) = 1.d0
       end if
     end do
 
@@ -485,13 +485,13 @@ contains
     write(iout,'(A)') ' in subroutine sin2_env for sin squared pulse'
 
     
-    env = 0.d0 
+    Mol%field_env = 0.d0 
     fvect1 = 0.d0
 
     do istp = 1,nstep
        if ( dble(istp) < field_duration ) then
-          env(istp) = dsin( pi*dble(istp) / field_duration )**2
-          fvect1(istp) = env(istp) * dsin( omega*dt*dble(istp)-phase )
+          Mol%field_env(istp) = dsin( pi*dble(istp) / field_duration )**2
+          fvect1(istp) = Mol%field_env(istp) * dsin( omega*dt*dble(istp)-phase )
        end if
     end do
 
@@ -516,15 +516,15 @@ contains
     if ( xpol.lt.0.d0 ) write(iout,'(A)') ' in subroutine circ_env for LEFT circularly/ellptclly polarized'
     if ( xpol.gt.0.d0 ) write(iout,'(A)') ' in subroutine circ_env for RIGHT circularly/ellptclly polarized'
     
-    env = 0.d0 
+    Mol%field_env = 0.d0 
     fvect1 = 0.d0 
     fvect2 = 0.d0
 
     do istp=1, nstep       
        if ( dble(istp) < field_duration ) then
-          env(istp) = dsin( pi*dble(istp) / field_duration )**2
-          fvect1(istp) = xpol * env(istp) * dsin( omega*dt*dble(istp) - phase )
-          fvect2(istp) = ypol * env(istp) * dcos( omega*dt*dble(istp) - phase )
+          Mol%field_env(istp) = dsin( pi*dble(istp) / field_duration )**2
+          fvect1(istp) = xpol * Mol%field_env(istp) * dsin( omega*dt*dble(istp) - phase )
+          fvect2(istp) = ypol * Mol%field_env(istp) * dcos( omega*dt*dble(istp) - phase )
        end if
     end do
     

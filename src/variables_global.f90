@@ -11,18 +11,15 @@ module variables_global
   
   implicit none
 
-  
   !: default file parameters
   integer(8),   parameter :: iout = 42            !: unit number for outfile 'tdci.log'
   character(5), parameter :: inputfile  = 'input' !: see make_input
   character(5), parameter :: fieldfile  = 'enput' !: see make_enput
  
-
   !: pretty write
   character(48), parameter :: divide      = ' _______________________________________________'
   character(48), parameter :: smalldivide = ' ______'
   
-
   !: jobtype flags
   character(3), parameter :: flag_cis  = 'cis'
   character(3), parameter :: flag_soc  = 'soc'   !: for cis with soc
@@ -32,7 +29,11 @@ module variables_global
   character(4), parameter :: flag_cisd = 'cisd'
 
   
+  !: MolInfo class instance, contains everything from variables_setup
+  class(MolInfo), allocatable :: Mol
   
+
+
   !: data type for recording tdciresults
   type tdcidat 
      real(8) :: fstrength0, fstrength1, fstrength2

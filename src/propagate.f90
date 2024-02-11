@@ -251,14 +251,14 @@ contains
     !$OMP nva95max, nva99max, nva95maxMO, nva99maxMO, nva95max_debug, nva99max_debug, &
     !$OMP nva95MO_sort, nva99MO_sort, nva95NO_sort, nva99NO_sort, &
     !$OMP nva95max_direct, nva99max_direct, rate_density, rate_direct, rate_debug ),  &
-    !$OMP SHARED( jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
+    !$OMP SHARED( Mol, jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
     !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
     !$OMP abp, cis_vec, exp_abp, exphel, fvect1, fvect2, psi0, tdciresults, tdx, tdy, tdz, &
-    !$OMP vabsmoa, vabsmob, noa, nob, nva, nvb, norb, hole_index, part_index, &
+    !$OMP noa, nob, nva, nvb, norb, hole_index, part_index, &
     !$OMP state_ip_index, ip_states, read_states, ip_vec, Zproj_ion, Qread_ion_coeff, Qwrite_ion_coeff, &
     !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
     !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save, &
-    !$OMP opdm_avg, opdm_avg_abs, opdm_avg_N, U_NO, U_NO_abs, natorb_occ, natorb_occ_abs, cmo_a, &
+    !$OMP opdm_avg, opdm_avg_abs, opdm_avg_N, U_NO, U_NO_abs, natorb_occ, natorb_occ_abs, &
     !$OMP U_NO_input, flag_ReadU_NO, nva95maxmax, nva99maxmax, nva95maxmaxMO, nva99maxmaxMO, &
     !$OMP nva95maxMO_sort, nva99maxMO_sort, nva95maxNO_sort, nva99maxNO_sort, &
     !$OMP nva95maxmax_direct, nva99maxmax_direct, ratemax_density,ratemax_direct )
@@ -499,7 +499,7 @@ contains
                 call get_psid( nstuse, nstates, cis_vec, norm, psi, psi_det0 )
                 ii = (itime-1)*(noa+nob)*(noa+nob+1)
                 call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                  psi_det0,psi1,norm,vabsmoa,vabsmob,unrestricted, &
+                  psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
                   rate, Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),ion_coeff,scratch)
 !:                  write(iout,"('W0',i5,i7,16f12.8)") itime,ii,rate,scratch(1:noa+nob)
                   do i = 1,noa+nob
@@ -523,12 +523,12 @@ contains
                   call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
-                    psi_det0,psi1,normV,vabsmoa,vabsmob,scratch,au2fs,rate_direct)
+                    psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,scratch,au2fs,rate_direct)
                 else
                   call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
-                    vabsmoa,vabsmob,unrestricted,scratch,au2fs,rate_direct)
+                    Mol%vabsmoa,Mol%vabsmob,unrestricted,scratch,au2fs,rate_direct)
                 end if 
                 !: 1-RDM (opdm) should be stored in scratch now.
 
@@ -540,7 +540,7 @@ contains
                         nva95MO_sort, nva99MO_sort, nva95NO_sort,nva99NO_sort, &
                         nva95max_debug, nva99max_debug,rate_debug, &
                         !nva95max_density, nva99max_density, rate_density, &
-                        opdm_avg, U_NO_input, vabsmoa )
+                        opdm_avg, U_NO_input, Mol%vabsmoa )
 
                 !$OMP CRITICAL
                 !: set critical for sum so we dont have multiple threads
@@ -552,7 +552,7 @@ contains
                 call add_opdm_average( opdm_avg_abs, scratch, opdm_avg_N, .false., .true. )
 
                 !call generate_natural_orbitals( scratch, U_NO, natorb_occ )
-                !call NO_rate_sanity( scratch, U_NO, natorb_occ, vabsmoa, cmo_a)
+                !call NO_rate_sanity( scratch, U_NO, natorb_occ, Mol%vabsmoa, Mol%cmo_a)
                 !flush(iout)    
                 !call dgemm_sanity 
 
@@ -632,7 +632,7 @@ contains
 
                 If(trim(jobtype).eq.flag_cis .and. (.not. Qwrite_ion_coeff) ) then
                   call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    psi_det0,psi1,norm,vabsmoa,vabsmob,unrestricted, &
+                    psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
                     rate,Zion_coeff,ion_coeff,scratch)
                   call get_proj_ion(iout,noa+nob,ip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
 !:                  write(iout,*) " ip_states",ip_states
@@ -653,7 +653,7 @@ contains
                 end If
                 If(trim(jobtype).eq.flag_ip .and. (.not. Qwrite_ion_coeff) ) then
                   call get_ion_coeff_ip(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    ip_states,state_ip_index,psi_det0,psi1,norm,vabsmoa,vabsmob, &
+                    ip_states,state_ip_index,psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob, &
                     rate,Zion_coeff,ion_coeff,scratch)
                   call get_proj_ion(iout,ip_states,ip_vec,Zion_coeff(ip_states+1),Zproj_ion)
 !:                  write(iout,*) " ip_states",ip_states
@@ -808,12 +808,12 @@ contains
                           nva95MO_sort, nva99MO_sort, nva95MO_sort,nva99NO_sort, &
                           nva95max_debug, nva99max_debug, rate_debug, &
                           !nva95max_density, nva99max_density, rate_density, &
-                          opdm_avg, U_NO_input, vabsmoa, .True. )
+                          opdm_avg, U_NO_input, Mol%vabsmoa, .True. )
     end if
 
     call generate_natural_orbitals( opdm_avg, U_NO, natorb_occ, .false. )
     call generate_natural_orbitals( opdm_avg_abs, U_NO_abs, natorb_occ_abs, .false. )
-    call NO_rate_sanity2( opdm_avg, U_NO, natorb_occ, opdm_avg_abs, U_NO_abs, natorb_occ_abs, vabsmoa, cmo_a)
+    call NO_rate_sanity2( opdm_avg, U_NO, natorb_occ, opdm_avg_abs, U_NO_abs, natorb_occ_abs, Mol%vabsmoa, Mol%cmo_a)
 
     !call io_bin_test
     call write_dbin(U_NO, (noa+nva)*(noa+nva), "U_NO_out.bin")
@@ -1028,14 +1028,14 @@ contains
     !$OMP nva95max, nva99max, nva95maxMO, nva99maxMO, nva95max_debug, nva99max_debug, &
     !$OMP nva95MO_sort, nva99MO_sort, nva95NO_sort, nva99NO_sort, &
     !$OMP nva95max_direct, nva99max_direct, rate_density, rate_direct, rate_debug ),  &
-    !$OMP SHARED( jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
+    !$OMP SHARED( Mol, jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
     !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
     !$OMP abp, cis_vec, exp_abp, exphel, fvect1, fvect2, psi0, tdciresults, tdx, tdy, tdz, &
-    !$OMP vabsmoa, vabsmob, noa, nob, nva, nvb, norb, hole_index, part_index, &
+    !$OMP noa, nob, nva, nvb, norb, hole_index, part_index, &
     !$OMP state_ip_index, ip_states, read_states, ip_vec, Zproj_ion, Qread_ion_coeff, Qwrite_ion_coeff, &
     !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
     !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save, &
-    !$OMP opdm_avg, opdm_avg_abs, opdm_avg_N, U_NO, U_NO_abs, natorb_occ, natorb_occ_abs, cmo_a, &
+    !$OMP opdm_avg, opdm_avg_abs, opdm_avg_N, U_NO, U_NO_abs, natorb_occ, natorb_occ_abs, &
     !$OMP U_NO_input, flag_ReadU_NO, nva95maxmax, nva99maxmax, nva95maxmaxMO, nva99maxmaxMO, &
     !$OMP nva95maxMO_sort, nva99maxMO_sort, nva95maxNO_sort, nva99maxNO_sort, &
     !$OMP nva95maxmax_direct, nva99maxmax_direct, ratemax_density,ratemax_direct )
@@ -1317,7 +1317,7 @@ contains
                 call get_psid( nstuse, nstates, cis_vec, norm, psi, psi_det0 )
                 ii = (itime-1)*(noa+nob)*(noa+nob+1)
                 call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                  psi_det0,psi1,norm,vabsmoa,vabsmob,unrestricted, &
+                  psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
                   rate, Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),ion_coeff,scratch)
 !:                  write(iout,"('W0',i5,i7,16f12.8)") itime,ii,rate,scratch(1:noa+nob)
                   do i = 1,noa+nob
@@ -1340,12 +1340,12 @@ contains
                   call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
-                    psi_det0,psi1,normV,vabsmoa,vabsmob,scratch,au2fs,rate_direct)
+                    psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,scratch,au2fs,rate_direct)
                 else
                   call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
-                    vabsmoa,vabsmob,unrestricted,scratch,au2fs,rate_direct)
+                    Mol%vabsmoa,Mol%vabsmob,unrestricted,scratch,au2fs,rate_direct)
                 end if
                 !: 1-RDM should be stored in scratch now.
                 !: Why does scratch have size (nstuse,nstuse) while density in
@@ -1359,7 +1359,7 @@ contains
                         nva95maxMO_sort, nva99maxMO_sort, nva95maxMO_sort,nva99maxMO_sort, &
                         nva95max_debug, nva99max_debug,rate_debug, &
                         !nva95max_density, nva99max_density, rate_density, &
-                        opdm_avg, U_NO_input, vabsmoa )
+                        opdm_avg, U_NO_input, Mol%vabsmoa )
 
                 !$OMP CRITICAL
                 !: set critical for sum so we dont have multiple threads
@@ -1371,7 +1371,7 @@ contains
                 call add_opdm_average( opdm_avg_abs, scratch, opdm_avg_N, .false., .true. )
 
                 !call generate_natural_orbitals( scratch, U_NO, natorb_occ )
-                !call NO_rate_sanity( scratch, U_NO, natorb_occ, vabsmoa, cmo_a)
+                !call NO_rate_sanity( scratch, U_NO, natorb_occ, Mol%vabsmoa, Mol%cmo_a)
                 !flush(iout)    
                 !call dgemm_sanity 
 
@@ -1464,7 +1464,7 @@ contains
 
                 If(trim(jobtype).eq.flag_cis .and. (.not. Qwrite_ion_coeff) ) then
                   call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    psi_det0,psi1,norm,vabsmoa,vabsmob,unrestricted, &
+                    psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
                     rate,Zion_coeff,ion_coeff,scratch)
                   call get_proj_ion(iout,noa+nob,ip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
 !:                  write(iout,*) " ip_states",ip_states
@@ -1485,7 +1485,7 @@ contains
                 end If
                 If(trim(jobtype).eq.flag_ip .and. (.not. Qwrite_ion_coeff) ) then
                   call get_ion_coeff_ip(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    ip_states,state_ip_index,psi_det0,psi1,norm,vabsmoa,vabsmob, &
+                    ip_states,state_ip_index,psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob, &
                     rate,Zion_coeff,ion_coeff,scratch)
                   call get_proj_ion(iout,ip_states,ip_vec,Zion_coeff(ip_states+1),Zproj_ion)
 !:                  write(iout,*) " ip_states",ip_states
@@ -1610,12 +1610,12 @@ contains
                           nva95maxMO_sort, nva99maxMO_sort, nva95maxMO_sort,nva99maxNO_sort, &
                           nva95max_debug, nva99max_debug, rate_debug, &
                           !nva95max_density, nva99max_density, rate_density, &
-                          opdm_avg, U_NO_input, vabsmoa, .True. )
+                          opdm_avg, U_NO_input, Mol%vabsmoa, .True. )
     end if
 
     call generate_natural_orbitals( opdm_avg, U_NO, natorb_occ, .false. )
     call generate_natural_orbitals( opdm_avg_abs, U_NO_abs, natorb_occ_abs, .false. )
-    call NO_rate_sanity2( opdm_avg, U_NO, natorb_occ, opdm_avg_abs, U_NO_abs, natorb_occ_abs, vabsmoa, cmo_a)
+    call NO_rate_sanity2( opdm_avg, U_NO, natorb_occ, opdm_avg_abs, U_NO_abs, natorb_occ_abs, Mol%vabsmoa, Mol%cmo_a)
 
     !call io_bin_test
     call write_dbin(U_NO, (noa+nva)*(noa+nva), "U_NO_out.bin")

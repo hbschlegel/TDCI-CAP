@@ -37,7 +37,7 @@ contains
     
     !: set ionization to Koopman's value, determine number of
     if ( ionization.lt.0.d0 ) then       
-       ionization = min( orben(noa),orben(nob) )
+       ionization = min( Mol%orben(noa),Mol%orben(nob) )
        ionization = abs(ionization)
        write(iout,'(A)') ' ionization parameter < 0.  Setting value to HOMO MO energy'
     else
@@ -178,62 +178,62 @@ contains
    
     !: AD
     write(iout, *) "Eq 18 (Field Perturbed Orbitals) OmniDirectional:"
-    write(iout, *) norb, noa, nva, orben(1), dipxmoa(2), dipymoa(2), dipzmoa(2), vabsmoa(1)
+    write(iout, *) norb, noa, nva, Mol%orben(1), Mol%dipxmoa(2), Mol%dipymoa(2), Mol%dipzmoa(2), Mol%vabsmoa(1)
 
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.030d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.035d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.040d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.045d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.050d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.055d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.060d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.065d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.070d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.075d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.080d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.090d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.030d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.035d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.040d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.045d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.050d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.055d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.060d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.065d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.070d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.075d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.080d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.090d0, 1.d0, 1.d0, 1.d0)
     write(iout, *) " "
     write(iout, *) "Eq 18 (Field Perturbed Orbitals) Directional:"
     write(iout, *) "Emax = 0.050 au"
     write(iout, *) "Theta=0"
-    call generate_field_perturbed_orbitals( norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, 0.050d0, 1.d0, 0.d0, 0.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.050d0, 1.d0, 0.d0, 0.d0)
     write(iout, *) " "
     write(iout, *) "Theta=45"
     call generate_field_perturbed_orbitals( &
-      norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
+      norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, &
       0.050d0, 1.d0/sqrt(2.d0), 1.d0/sqrt(2.d0), 0.d0)
     write(iout, *) " "
     write(iout, *) "Theta=90"
     call generate_field_perturbed_orbitals( &
-      norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
+      norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, &
       0.050d0, 0.d0, 1.d0, 0.d0)
     write(iout, *) "Theta=135"
     call generate_field_perturbed_orbitals( &
-      norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
+      norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, &
       0.050d0, -1.d0/sqrt(2.d0), 1.d0/sqrt(2.d0), 0.d0)
     write(iout, *) " "
     write(iout, *) "Theta=180"
     call generate_field_perturbed_orbitals( &
-      norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
+      norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, &
       0.050d0, -1.d0, 1.d0/sqrt(2.d0), 0.d0)
 
     write(iout, *) " "
     write(iout, *) "Emax = 0.035"
     write(iout, *) "Field directon (0, 1/sqrt(2), 1/sqrt(2))"
     call generate_field_perturbed_orbitals( &
-      norb, noa, nva, orben, dipxmoa, dipymoa, dipzmoa, vabsmoa, &
+      norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, &
       0.0350d0, 0.d0, 1.d0/sqrt(2.d0), 1.d0/sqrt(2.d0))
     write(iout, *) " "
     write(iout, *) "Diagonalize EFock::"
-    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.002d0 )
-    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.005d0 )
-    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.010d0 )
-    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.030d0 )
-    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.035d0 )
-    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.040d0 )
-    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.070d0 )
-    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.080d0 )
-    call diag_EFock( dipxmoa, dipymoa, dipzmoa, vabsmoa,  orben, 0.090d0 )
+    call diag_EFock( Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa,  Mol%orben, 0.002d0 )
+    call diag_EFock( Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa,  Mol%orben, 0.005d0 )
+    call diag_EFock( Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa,  Mol%orben, 0.010d0 )
+    call diag_EFock( Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa,  Mol%orben, 0.030d0 )
+    call diag_EFock( Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa,  Mol%orben, 0.035d0 )
+    call diag_EFock( Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa,  Mol%orben, 0.040d0 )
+    call diag_EFock( Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa,  Mol%orben, 0.070d0 )
+    call diag_EFock( Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa,  Mol%orben, 0.080d0 )
+    call diag_EFock( Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa,  Mol%orben, 0.090d0 )
 
     call write_header( 'get_1eham','getham','leave' )
     call cpu_time(finish1)
@@ -256,8 +256,8 @@ contains
     real(8),              intent(in) :: vabs_a(noa+nva, noa+nva)
     real(8),              intent(in) :: Emax
     real(8),              intent(in) :: xscale, yscale, zscale
-    !: Should I be multiplying C_out with cmo_a ? 
-    !real,              intent(in) :: cmo_a(nbasis, noa+nva) !: AO -> MO 
+    !: Should I be multiplying C_out with Mol%cmo_a ? 
+    !real,              intent(in) :: Mol%cmo_a(nbasis, noa+nva) !: AO -> MO 
 
     !: function result
     !: local variables
@@ -568,27 +568,27 @@ contains
     call cpu_time(start)
  
     select case( trim(myoption) )
-    case( 'vabs' )  ; call ao2mo(nbasis,nrorb,vabsao,vabsmoa,cmo_a)
-    case( 'dipx' )  ; call ao2mo(nbasis,nrorb,dipxao,dipxmoa,cmo_a)
-    case( 'dipy' )  ; call ao2mo(nbasis,nrorb,dipyao,dipymoa,cmo_a)
-    case( 'dipz' )  ; call ao2mo(nbasis,nrorb,dipzao,dipzmoa,cmo_a)
+    case( 'vabs' )  ; call ao2mo(nbasis,nrorb,Mol%vabsao,Mol%vabsmoa,Mol%cmo_a)
+    case( 'dipx' )  ; call ao2mo(nbasis,nrorb,Mol%dipxao,Mol%dipxmoa,Mol%cmo_a)
+    case( 'dipy' )  ; call ao2mo(nbasis,nrorb,Mol%dipyao,Mol%dipymoa,Mol%cmo_a)
+    case( 'dipz' )  ; call ao2mo(nbasis,nrorb,Mol%dipzao,Mol%dipzmoa,Mol%cmo_a)
     end select
     
     if (unrestricted ) then    
        select case ( trim(myoption) )
-       case( 'vabs' )  ; call ao2mo(nbasis,nrorb,vabsao,vabsmob,cmo_b) 
-       case( 'dipx' )  ; call ao2mo(nbasis,nrorb,dipxao,dipxmob,cmo_b)       
-       case( 'dipy' )  ; call ao2mo(nbasis,nrorb,dipyao,dipymob,cmo_b)
-       case( 'dipz' )  ; call ao2mo(nbasis,nrorb,dipzao,dipzmob,cmo_b)
+       case( 'vabs' )  ; call ao2mo(nbasis,nrorb,Mol%vabsao,Mol%vabsmob,Mol%cmo_b) 
+       case( 'dipx' )  ; call ao2mo(nbasis,nrorb,Mol%dipxao,Mol%dipxmob,Mol%cmo_b)       
+       case( 'dipy' )  ; call ao2mo(nbasis,nrorb,Mol%dipyao,Mol%dipymob,Mol%cmo_b)
+       case( 'dipz' )  ; call ao2mo(nbasis,nrorb,Mol%dipzao,Mol%dipzmob,Mol%cmo_b)
        end select
     end if
 
     !: < 0 | V | 0 > element
     if( unrestricted ) then
-       call det00(noa,nva,vabsmoa,vabs00,nob,nvb,vabsmob) 
+       call det00(noa,nva,Mol%vabsmoa,Mol%vabs00,nob,nvb,Mol%vabsmob) 
     else
-       call det00(noa,nva,vabsmoa,vabs00)  
-       vabs00 = 2.d0 * vabs00
+       call det00(noa,nva,Mol%vabsmoa,Mol%vabs00)  
+       Mol%vabs00 = 2.d0 * Mol%vabs00
     end if
 
     call cpu_time(finish)
@@ -633,68 +633,68 @@ contains
 !    ntt = nbasis*(nbasis+1)/2
 !
 !    !: convert to au units
-!    socxao(:) = constant * socxao(:)
-!    socyao(:) = constant * socyao(:)
-!    soczao(:) = constant * soczao(:)
+!    Mol%socxao(:) = constant * Mol%socxao(:)
+!    Mol%socyao(:) = constant * Mol%socyao(:)
+!    Mol%soczao(:) = constant * Mol%soczao(:)
 !    
 !
 !    allocate( scratch1(nbasis,nbasis) )
 !    scratch1 = 0.d0    
 !    
-!    !: socmoAA
+!    !: Mol%socmoAA
 !    do i=1, nbasis
 !       do j=1, i
 !          ij = i*(i-1)/2 + j
-!          scratch1(i,j) = dcmplx( 0.d0,-soczao(ij) )
+!          scratch1(i,j) = dcmplx( 0.d0,-Mol%soczao(ij) )
 !          scratch1(j,i) = dconjg( scratch1(i,j) )
 !       end do
 !    end do
-!    call ao2mo_complex(nbasis, nrorb, scratch1, socmoAA, cmo_a, cmo_a )
+!    call ao2mo_complex(nbasis, nrorb, scratch1, Mol%socmoAA, Mol%cmo_a, Mol%cmo_a )
 !
 !    open( unit=100,file='VZA.OUT' )
 !    do i=1, nrorb
 !       do j=1, nrorb
-!          write(100,"(f15.10,f15.10)") socmoAA(j,i)
+!          write(100,"(f15.10,f15.10)") Mol%socmoAA(j,i)
 !       end do
 !    end do
 !    close(100)
 !    
 !    
-!    !: socmoBB
+!    !: Mol%socmoBB
 !    scratch1 = dcmplx( 0.d0, 0.d0 )
 !    do i=1, nbasis
 !       do j=1, i
 !          ij = i*(i-1)/2 + j
-!          scratch1(i,j) = dcmplx( 0.d0,soczao(ij) )
+!          scratch1(i,j) = dcmplx( 0.d0,Mol%soczao(ij) )
 !          scratch1(j,i) = dconjg( scratch1(i,j) )
 !       end do
 !    end do
-!    call ao2mo_complex(nbasis, nrorb, scratch1, socmoBB, cmo_b, cmo_b )
+!    call ao2mo_complex(nbasis, nrorb, scratch1, Mol%socmoBB, Mol%cmo_b, Mol%cmo_b )
 !
 !    open( unit=100,file='VZB.OUT' )
 !    do i=1, nrorb
 !       do j=1, nrorb
-!          write(100,"(f15.10,f15.10)") socmoBB(j,i)
+!          write(100,"(f15.10,f15.10)") Mol%socmoBB(j,i)
 !       end do
 !    end do
 !    close(100)    
 !
 !
-!    !: socmoAB
+!    !: Mol%socmoAB
 !    do i=1, nbasis
 !       do j=1, i
 !          ij = i*(i-1)/2 + j 
-!          scratch1(i,j) = dcmplx( -socyao(ij), -socxao(ij) )
-!          scratch1(j,i) = dcmplx( socyao(ij), socxao(ij) )
+!          scratch1(i,j) = dcmplx( -Mol%socyao(ij), -Mol%socxao(ij) )
+!          scratch1(j,i) = dcmplx( Mol%socyao(ij), Mol%socxao(ij) )
 !       end do
 !    end do
-!    call ao2mo_complex(nbasis, nrorb, scratch1, socmoAB, cmo_a, cmo_b )
+!    call ao2mo_complex(nbasis, nrorb, scratch1, Mol%socmoAB, Mol%cmo_a, Mol%cmo_b )
 !
 !
 !    open( unit=100,file='VPM.OUT' )
 !    do i=1, nrorb
 !       do j=1, nrorb
-!          write(100,"(f15.10,f15.10)") socmoAB(j,i)
+!          write(100,"(f15.10,f15.10)") Mol%socmoAB(j,i)
 !       end do
 !    end do
 !    close(100)    
@@ -727,46 +727,46 @@ contains
     case( flag_cis )     
        if ( unrestricted ) then
           select case ( trim(myoption) )
-          case( 'vabs' ) ; call form1det(noa,nva,nstates,abp,vabsmoa,vabs00,hole_index(:,1),part_index(:,1),nob,nvb,vabsmob)
-          case( 'dipx' ) ; call form1det(noa,nva,nstates,tdx,dipxmoa,dipx00,hole_index(:,1),part_index(:,1),nob,nvb,dipxmob)
-          case( 'dipy' ) ; call form1det(noa,nva,nstates,tdy,dipymoa,dipy00,hole_index(:,1),part_index(:,1),nob,nvb,dipymob)
-          case( 'dipz' ) ; call form1det(noa,nva,nstates,tdz,dipzmoa,dipz00,hole_index(:,1),part_index(:,1),nob,nvb,dipzmob)
+          case( 'vabs' ) ; call form1det(noa,nva,nstates,abp,Mol%vabsmoa,Mol%vabs00,hole_index(:,1),part_index(:,1),nob,nvb,Mol%vabsmob)
+          case( 'dipx' ) ; call form1det(noa,nva,nstates,tdx,Mol%dipxmoa,Mol%dipx00,hole_index(:,1),part_index(:,1),nob,nvb,Mol%dipxmob)
+          case( 'dipy' ) ; call form1det(noa,nva,nstates,tdy,Mol%dipymoa,Mol%dipy00,hole_index(:,1),part_index(:,1),nob,nvb,Mol%dipymob)
+          case( 'dipz' ) ; call form1det(noa,nva,nstates,tdz,Mol%dipzmoa,Mol%dipz00,hole_index(:,1),part_index(:,1),nob,nvb,Mol%dipzmob)
           end select
        else
           select case ( trim(myoption) )
-          case( 'vabs' ) ; call form1det(noa,nva,nstates,abp,vabsmoa,vabs00,hole_index(:,1),part_index(:,1))
-          case( 'dipx' ) ; call form1det(noa,nva,nstates,tdx,dipxmoa,dipx00,hole_index(:,1),part_index(:,1))
-          case( 'dipy' ) ; call form1det(noa,nva,nstates,tdy,dipymoa,dipy00,hole_index(:,1),part_index(:,1))
-          case( 'dipz' ) ; call form1det(noa,nva,nstates,tdz,dipzmoa,dipz00,hole_index(:,1),part_index(:,1))
+          case( 'vabs' ) ; call form1det(noa,nva,nstates,abp,Mol%vabsmoa,Mol%vabs00,hole_index(:,1),part_index(:,1))
+          case( 'dipx' ) ; call form1det(noa,nva,nstates,tdx,Mol%dipxmoa,Mol%dipx00,hole_index(:,1),part_index(:,1))
+          case( 'dipy' ) ; call form1det(noa,nva,nstates,tdy,Mol%dipymoa,Mol%dipy00,hole_index(:,1),part_index(:,1))
+          case( 'dipz' ) ; call form1det(noa,nva,nstates,tdz,Mol%dipzmoa,Mol%dipz00,hole_index(:,1),part_index(:,1))
           end select
        end if
     case( flag_soc ) 
        select case( trim(myoption) )
-       case( 'vabs' ) ; call Zform1det(noa,nva,nstates,Zabp,vabsmoa,vabs00,hole_index(:,1),part_index(:,1),nob,nvb,vabsmob)
-       case( 'dipx' ) ; call Zform1det(noa,nva,nstates,Ztdx,dipxmoa,dipx00,hole_index(:,1),part_index(:,1),nob,nvb,dipxmob)
-       case( 'dipy' ) ; call Zform1det(noa,nva,nstates,Ztdy,dipymoa,dipy00,hole_index(:,1),part_index(:,1),nob,nvb,dipymob)
-       case( 'dipz' ) ; call Zform1det(noa,nva,nstates,Ztdz,dipzmoa,dipz00,hole_index(:,1),part_index(:,1),nob,nvb,dipzmob)
+       case( 'vabs' ) ; call Zform1det(noa,nva,nstates,Zabp,Mol%vabsmoa,Mol%vabs00,hole_index(:,1),part_index(:,1),nob,nvb,Mol%vabsmob)
+       case( 'dipx' ) ; call Zform1det(noa,nva,nstates,Ztdx,Mol%dipxmoa,Mol%dipx00,hole_index(:,1),part_index(:,1),nob,nvb,Mol%dipxmob)
+       case( 'dipy' ) ; call Zform1det(noa,nva,nstates,Ztdy,Mol%dipymoa,Mol%dipy00,hole_index(:,1),part_index(:,1),nob,nvb,Mol%dipymob)
+       case( 'dipz' ) ; call Zform1det(noa,nva,nstates,Ztdz,Mol%dipzmoa,Mol%dipz00,hole_index(:,1),part_index(:,1),nob,nvb,Mol%dipzmob)
        end select
     case( flag_tda )
        select case ( trim(myoption) )
-       case( 'vabs' ) ; call form1det(noa,nva,nstates,abp,vabsmoa,vabs00,hole_index(:,1),part_index(:,1),nob,nvb,vabsmob)
-       case( 'dipx' ) ; call form1det(noa,nva,nstates,tdx,dipxmoa,dipx00,hole_index(:,1),part_index(:,1),nob,nvb,dipxmob)
-       case( 'dipy' ) ; call form1det(noa,nva,nstates,tdy,dipymoa,dipy00,hole_index(:,1),part_index(:,1),nob,nvb,dipymob)
-       case( 'dipz' ) ; call form1det(noa,nva,nstates,tdz,dipzmoa,dipz00,hole_index(:,1),part_index(:,1),nob,nvb,dipzmob)
+       case( 'vabs' ) ; call form1det(noa,nva,nstates,abp,Mol%vabsmoa,Mol%vabs00,hole_index(:,1),part_index(:,1),nob,nvb,Mol%vabsmob)
+       case( 'dipx' ) ; call form1det(noa,nva,nstates,tdx,Mol%dipxmoa,Mol%dipx00,hole_index(:,1),part_index(:,1),nob,nvb,Mol%dipxmob)
+       case( 'dipy' ) ; call form1det(noa,nva,nstates,tdy,Mol%dipymoa,Mol%dipy00,hole_index(:,1),part_index(:,1),nob,nvb,Mol%dipymob)
+       case( 'dipz' ) ; call form1det(noa,nva,nstates,tdz,Mol%dipzmoa,Mol%dipz00,hole_index(:,1),part_index(:,1),nob,nvb,Mol%dipzmob)
        end select
     case( flag_ip ) 
        select case ( trim(myoption) )
-       case( 'vabs' ) ; call form1det_ip(noa,nva,nstates,abp,vabsmoa,vabs00,hole_index,part_index(:,1),nob,nvb,vabsmob)
-       case( 'dipx' ) ; call form1det_ip(noa,nva,nstates,tdx,dipxmoa,dipx00,hole_index,part_index(:,1),nob,nvb,dipxmob)
-       case( 'dipy' ) ; call form1det_ip(noa,nva,nstates,tdy,dipymoa,dipy00,hole_index,part_index(:,1),nob,nvb,dipymob)
-       case( 'dipz' ) ; call form1det_ip(noa,nva,nstates,tdz,dipzmoa,dipz00,hole_index,part_index(:,1),nob,nvb,dipzmob)
+       case( 'vabs' ) ; call form1det_ip(noa,nva,nstates,abp,Mol%vabsmoa,Mol%vabs00,hole_index,part_index(:,1),nob,nvb,Mol%vabsmob)
+       case( 'dipx' ) ; call form1det_ip(noa,nva,nstates,tdx,Mol%dipxmoa,Mol%dipx00,hole_index,part_index(:,1),nob,nvb,Mol%dipxmob)
+       case( 'dipy' ) ; call form1det_ip(noa,nva,nstates,tdy,Mol%dipymoa,Mol%dipy00,hole_index,part_index(:,1),nob,nvb,Mol%dipymob)
+       case( 'dipz' ) ; call form1det_ip(noa,nva,nstates,tdz,Mol%dipzmoa,Mol%dipz00,hole_index,part_index(:,1),nob,nvb,Mol%dipzmob)
        end select
     case( flag_socip ) 
        select case( trim(myoption) )
-       case( 'vabs' ) ; call Zform1det_ip(noa,nva,nstates,Zabp,vabsmoa,vabs00,hole_index,part_index(:,1),nob,nvb,vabsmob)
-       case( 'dipx' ) ; call Zform1det_ip(noa,nva,nstates,Ztdx,dipxmoa,dipx00,hole_index,part_index(:,1),nob,nvb,dipxmob)
-       case( 'dipy' ) ; call Zform1det_ip(noa,nva,nstates,Ztdy,dipymoa,dipy00,hole_index,part_index(:,1),nob,nvb,dipymob)
-       case( 'dipz' ) ; call Zform1det_ip(noa,nva,nstates,Ztdz,dipzmoa,dipz00,hole_index,part_index(:,1),nob,nvb,dipzmob)
+       case( 'vabs' ) ; call Zform1det_ip(noa,nva,nstates,Zabp,Mol%vabsmoa,Mol%vabs00,hole_index,part_index(:,1),nob,nvb,Mol%vabsmob)
+       case( 'dipx' ) ; call Zform1det_ip(noa,nva,nstates,Ztdx,Mol%dipxmoa,Mol%dipx00,hole_index,part_index(:,1),nob,nvb,Mol%dipxmob)
+       case( 'dipy' ) ; call Zform1det_ip(noa,nva,nstates,Ztdy,Mol%dipymoa,Mol%dipy00,hole_index,part_index(:,1),nob,nvb,Mol%dipymob)
+       case( 'dipz' ) ; call Zform1det_ip(noa,nva,nstates,Ztdz,Mol%dipzmoa,Mol%dipz00,hole_index,part_index(:,1),nob,nvb,Mol%dipzmob)
        end select
     end select
     
@@ -826,21 +826,21 @@ contains
       open( unit=50, file=trim(outputfile)//'_RESTART_MO.bin', form='unformatted' )
 
       read(50) i,i,i,i 
-      read(50) ( vabsmoa(:,i), i=1, nrorb )
-!:      write(42,*) ( vabsmoa(:,i), i=1, nrorb )
-      read(50) ( dipxmoa(:,i), i=1, nrorb )
-      read(50) ( dipymoa(:,i), i=1, nrorb )
-      read(50) ( dipzmoa(:,i), i=1, nrorb )
+      read(50) ( Mol%vabsmoa(:,i), i=1, nrorb )
+!:      write(42,*) ( Mol%vabsmoa(:,i), i=1, nrorb )
+      read(50) ( Mol%dipxmoa(:,i), i=1, nrorb )
+      read(50) ( Mol%dipymoa(:,i), i=1, nrorb )
+      read(50) ( Mol%dipzmoa(:,i), i=1, nrorb )
       if ( unrestricted ) then
-        read(50) ( vabsmob(:,i), i=1, nrorb )
-        read(50) ( dipxmob(:,i), i=1, nrorb )
-        read(50) ( dipymob(:,i), i=1, nrorb )
-        read(50) ( dipzmob(:,i), i=1, nrorb )
+        read(50) ( Mol%vabsmob(:,i), i=1, nrorb )
+        read(50) ( Mol%dipxmob(:,i), i=1, nrorb )
+        read(50) ( Mol%dipymob(:,i), i=1, nrorb )
+        read(50) ( Mol%dipzmob(:,i), i=1, nrorb )
       end if
       if ( trim(jobtype).eq.flag_soc .or. trim(jobtype).eq.flag_socip ) then
-        read(50) ( socmoAA(:,i), i=1, nrorb )
-        read(50) ( socmoBB(:,i), i=1, nrorb )
-        read(50) ( socmoAB(:,i), i=1, nrorb )
+        read(50) ( Mol%socmoAA(:,i), i=1, nrorb )
+        read(50) ( Mol%socmoBB(:,i), i=1, nrorb )
+        read(50) ( Mol%socmoAB(:,i), i=1, nrorb )
       end if
     end if
     close(50)

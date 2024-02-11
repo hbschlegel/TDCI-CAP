@@ -33,25 +33,25 @@ contains
     
 
     !: job title taken from TDCI.dat
-    write(iout,'(A)') ' JOB TITLE: '//trim(job_title)
+    write(iout,'(A)') ' JOB TITLE: '//trim(Mol%job_title)
 
     !: molecule info
-    write(iout,"(5x,'charge = ',i0,'  multiplicity = ',i0,'  natoms = ',i0)") ICharg, Multip, natoms
+    write(iout,"(5x,'charge = ',i0,'  multiplicity = ',i0,'  natoms = ',i0)") Mol%ICharg, Mol%Multip, Mol%natoms
     write(iout,"(5x,'coordinates in Angstroms')")
 
-    do iatom=1, natoms
+    do i=1, Mol%natoms
        write(iout,"(5x,a4,2x,3(f17.11,2x))") &
-            myatom(iatom),          &
-            xcoord(iatom)*bohr2ang, &
-            ycoord(iatom)*bohr2ang, &
-            zcoord(iatom)*bohr2ang
+            Mol%myatom(i),          &
+            Mol%xcoord(i)*bohr2ang, &
+            Mol%ycoord(i)*bohr2ang, &
+            Mol%zcoord(i)*bohr2ang
     end do
     
     write(iout,'(A)') '     ground state dipole in au:'
-    write(iout,"(5x,'xdip = ',f10.4,'  ydip = ',f10.4,'  zdip = ',f10.4)") dipx00, dipy00, dipz00
+    write(iout,"(5x,'xdip = ',f10.4,'  ydip = ',f10.4,'  zdip = ',f10.4)") Mol%dipx00, Mol%dipy00, Mol%dipz00
     write(iout,'(A)') '     ground state dipole in Debye:'
     write(iout,"(5x,'xdip = ',f10.4,'  ydip = ',f10.4,'  zdip = ',f10.4)") &
-         dipx00*audip2debye, dipy00*audip2debye, dipz00*audip2debye
+         Mol%dipx00*audip2debye, Mol%dipy00*audip2debye, Mol%dipz00*audip2debye
 
     !: jobtype info
     if( unrestricted )      write(iout,"(A)") ' unrestricted'
@@ -468,7 +468,7 @@ contains
        write(100,"(' HOMO =', i0, 5x, ' LUMO =', i0)") noa, noa+1
        write(100,"(a10,a20,1x,a20)") ' # MO' , 'restricted (au)' , 'restricted (eV)'
        do i=1, nrorb
-          write(100,"(i10,2(f20.10,1x))") i, orben(i), orben(i)*au2eV
+          write(100,"(i10,2(f20.10,1x))") i, Mol%orben(i), Mol%orben(i)*au2eV
        end do
        
     !: unrestricted MOs
@@ -477,7 +477,7 @@ contains
        write(100,"(' beta  HOMO = ', i0, 5x, ' beta  LUMO = ', i0)") nob, nob+1
        write(100,"(a10,4(a20,1x))") ' # MO','alpha (au)','alpha (eV)','beta (au)','beta (eV)'
        do i=1, nrorb
-          write(100,"(i10,4(f20.10,1x))") i, orben(i), orben(i)*au2eV, orben(i+nrorb), orben(i+nrorb)*au2eV
+          write(100,"(i10,4(f20.10,1x))") i, Mol%orben(i), Mol%orben(i)*au2eV, Mol%orben(i+nrorb), Mol%orben(i+nrorb)*au2eV
        end do
     end if
 
@@ -525,7 +525,7 @@ contains
     rdum=sqrt(rdum)
        write(100,"( a10,a10,a10,a20,a20,a20 )") 'step#','time(au)','time(fs)','envelope','E1(t)','E2(t)'
        do istp=1, nstep
-          write(100,100) istp, dble(istp)*dt, dble(istp)*dt*autime2s*s2fs, env(istp), &
+          write(100,100) istp, dble(istp)*dt, dble(istp)*dt*autime2s*s2fs, Mol%field_env(istp), &
                fvect2(istp)/rdum, fvect1(istp)/rdum
        end do
 
@@ -537,7 +537,7 @@ contains
 
        write(100,"( a10,a10,a10,a20,a20 )") 'step#','time(au)','time(fs)','envelope','E1(t)'       
        do istp=1, nstep
-          write(100,200) istp, dble(istp)*dt, dble(istp)*dt*autime2s*s2fs, env(istp), fvect1(istp)
+          write(100,200) istp, dble(istp)*dt, dble(istp)*dt*autime2s*s2fs, Mol%field_env(istp), fvect1(istp)
        end do
 
        close(100)
@@ -793,7 +793,7 @@ contains
        ov1 = 'v' ; if ( i.le.noa ) ov1 = 'o'
        do j=i, (noa+nva)
           ov2 = 'v' ; if ( j.le.noa ) ov2 = 'o'
-          write(100,100) i, ov1, j, ov2, dipxmoa(j,i), dipymoa(j,i), dipzmoa(j,i), vabsmoa(j,i) 
+          write(100,100) i, ov1, j, ov2, Mol%dipxmoa(j,i), Mol%dipymoa(j,i), Mol%dipzmoa(j,i), Mol%vabsmoa(j,i) 
        end do
     end do
     close(100)
@@ -807,7 +807,7 @@ contains
           ov1 = 'v' ; if ( i.le.nob ) ov1 = 'o'
           do j=i, (nob+nvb) 
              ov2 = 'v' ; if ( j.le.nob ) ov2 = 'o'
-             write(200,100) i, ov1, j, ov2, dipxmob(j,i), dipymob(j,i), dipzmob(j,i), vabsmob(j,i)
+             write(200,100) i, ov1, j, ov2, Mol%dipxmob(j,i), Mol%dipymob(j,i), Mol%dipzmob(j,i), Mol%vabsmob(j,i)
           end do
        end do
        close(200)
@@ -848,7 +848,7 @@ contains
        ov1 = 'v' ; if ( i.le.noa ) ov1 = 'o'
        do j=1, (noa+nva)
           ov2 = 'v' ; if ( j.le.noa ) ov2 = 'o'
-          write(100,100) i, ov1, j, ov2, socmoAA(j,i)
+          write(100,100) i, ov1, j, ov2, Mol%socmoAA(j,i)
        end do
     end do
     close(100)
@@ -863,7 +863,7 @@ contains
        ov1 = 'v' ; if ( i.le.noa ) ov1 = 'o'
        do j=1, (nob+nvb)
           ov2 = 'v' ; if ( j.le.nob ) ov2 = 'o'
-          write(100,100) i, ov1, j, ov2, socmoBB(j,i)
+          write(100,100) i, ov1, j, ov2, Mol%socmoBB(j,i)
        end do
     end do
     close(100)
@@ -878,7 +878,7 @@ contains
        ov1 = 'v' ; if ( i.le.noa ) ov1 = 'o'
        do j=1, (nob+nvb)
           ov2 = 'v' ; if ( j.le.nob ) ov2 = 'o'
-          write(100,100) i, ov1, j, ov2, socmoAB(j,i)
+          write(100,100) i, ov1, j, ov2, Mol%socmoAB(j,i)
        end do
     end do
     close(100)
@@ -953,31 +953,31 @@ contains
 
     if( unrestricted ) write(50) noa, nva, nob, nvb
     if( .not.unrestricted ) write(50) noa, nva, zero, zero
-    write(50) ( vabsmoa(:,i), i=1, nrorb )
-    write(50) ( dipxmoa(:,i), i=1, nrorb )
-    write(50) ( dipymoa(:,i), i=1, nrorb )
-    write(50) ( dipzmoa(:,i), i=1, nrorb )
+    write(50) ( Mol%vabsmoa(:,i), i=1, nrorb )
+    write(50) ( Mol%dipxmoa(:,i), i=1, nrorb )
+    write(50) ( Mol%dipymoa(:,i), i=1, nrorb )
+    write(50) ( Mol%dipzmoa(:,i), i=1, nrorb )
     if ( unrestricted ) then
-       write(50) ( vabsmob(:,i), i=1, nrorb )
-       write(50) ( dipxmob(:,i), i=1, nrorb )
-       write(50) ( dipymob(:,i), i=1, nrorb )
-       write(50) ( dipzmob(:,i), i=1, nrorb )
+       write(50) ( Mol%vabsmob(:,i), i=1, nrorb )
+       write(50) ( Mol%dipxmob(:,i), i=1, nrorb )
+       write(50) ( Mol%dipymob(:,i), i=1, nrorb )
+       write(50) ( Mol%dipzmob(:,i), i=1, nrorb )
     end if
     if ( trim(jobtype).eq.flag_soc .or. trim(jobtype).eq.flag_socip ) then
-       write(50) ( socmoAA(:,i), i=1, nrorb )
-       write(50) ( socmoBB(:,i), i=1, nrorb )
-       write(50) ( socmoAB(:,i), i=1, nrorb )
+       write(50) ( Mol%socmoAA(:,i), i=1, nrorb )
+       write(50) ( Mol%socmoBB(:,i), i=1, nrorb )
+       write(50) ( Mol%socmoAB(:,i), i=1, nrorb )
     end if
     
     close(50)
     write( iout,'(A)' ) ' restart binary file written out to file '//"'"//trim(myout)//"'"
     write( iout,'(A)' ) ' to read binary file '
     write( iout,"(5x,'noa, nva, nob, nvb (nob=nvb=0 for restricted)' )" ) 
-    write( iout,"(5x,'vabsmoa, dipxmoa, dipymoa, dipzmoa')")
+    write( iout,"(5x,'Mol%vabsmoa, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa')")
     if ( unrestricted ) &
-      write( iout,"(5x,'vabsmob, dipxmob, dipymob, dipzmob')")
+      write( iout,"(5x,'Mol%vabsmob, Mol%dipxmob, Mol%dipymob, Mol%dipzmob')")
     if ( trim(jobtype).eq.flag_soc .or. trim(jobtype).eq.flag_socip ) &
-      write( iout,"(5x,'socmoAA, socmoBB, socmoAB')")
+      write( iout,"(5x,'Mol%socmoAA, Mol%socmoBB, Mol%socmoAB')")
     
     call write_header( 'save_restart_bin','write_info','leave' )
 

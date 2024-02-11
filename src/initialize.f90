@@ -215,6 +215,7 @@ contains
     
     logical        :: iamhere
     character(100) :: cskip
+    integer(4)     :: i
   
   
     call write_header( 'read_tdcihead','initialize','enter' )
@@ -226,23 +227,23 @@ contains
     
     !: read TDCI.dat
     open( unit=10, file=trim(tdcidatfile) )    
-    read(10,*)     nbasis, nrorb, noa, nva, nob, nvb, unrstedflag, vabsflag
-    read(10,'(A)') job_title
-    read(10,*)     Icharg, Multip, natoms    
+    read(10,*)     nbasis, nrorb, noa, nva, nob, nvb, Mol%unrstedflag, Mol%vabsflag
+    read(10,'(A)') Mol%job_title
+    read(10,*)     Mol%ICharg, MoL%Multip, Mol%natoms    
    
     if(nactive.gt.noa) nactive = noa
     if(nvirtual.gt.nva) nvirtual = nva 
 
     !: allocate coordinate arrays
-    allocate( xcoord(natoms), &
-         ycoord(natoms), &
-         zcoord(natoms), &
-         myatom(natoms) )    
-    read(10,*) ( (myatom(iatom), &
-         xcoord(iatom), &
-         ycoord(iatom), &
-         zcoord(iatom)) , iatom=1, natoms )
-    read(10,*) cskip, cskip, dipx00, dipy00, dipz00
+    allocate( Mol%xcoord(Mol%natoms), &
+         Mol%ycoord(Mol%natoms), &
+         Mol%zcoord(Mol%natoms), &
+         Mol%myatom(Mol%natoms) )    
+    read(10,*) ( (Mol%myatom(i), &
+         Mol%xcoord(i), &
+         Mol%ycoord(i), &
+         Mol%zcoord(i)) , i=1, Mol%natoms )
+    read(10,*) cskip, cskip, Mol%dipx00, Mol%dipy00, Mol%dipz00
     
     if( restart ) then
        close(10) 
@@ -389,7 +390,7 @@ contains
     !: DATA FROM TDCI.DAT    
 
     if( trim(jobtype) .eq. flag_ip ) Qalloc_indices = .True.
-    if( vabsflag .eq. 0 ) Qalloc_vabs = .False.
+    if( Mol%vabsflag .eq. 0 ) Qalloc_vabs = .False.
     if( trim(jobtype) .eq. flag_soc .or.  trim(jobtype) .eq. flag_socip ) then
        Qalloc_Zcomplex = .True.
        Qalloc_socmo    = .True.
@@ -462,7 +463,7 @@ contains
     case( flag_cis )
        noanva = noa*nva
        nobnvb = nob*nvb
-       if(unrstedflag.ne.0) then
+       if(Mol%unrstedflag.ne.0) then
           unrestricted  = .True.
           norb          = noa + nva + nob + nvb
           nstates       = noa*nva1 + nob*nvb1 + 1
@@ -486,7 +487,7 @@ contains
     case( flag_tda )
        noanva = noa*nva
        nobnvb = nob*nvb
-       if(unrstedflag.ne.0) then
+       if(Mol%unrstedflag.ne.0) then
           unrestricted  = .True.
           norb          = noa + nva + nob + nvb
           nstates       = noa*nva1 + nob*nvb1 + 1
@@ -565,7 +566,7 @@ contains
        end if
 
     case( flag_cisd ) 
-       if(unrstedflag.ne.0) then
+       if(Mol%unrstedflag.ne.0) then
           unrestricted = .True.
           noanva       = noa*nva
           nobnvb       = nob*nvb
@@ -620,9 +621,9 @@ contains
        !: arrays for field 
        if( Qalloc_field ) then
           allocate( fvect1(nstep) )        ; fvect1 = 0.d0
-          allocate( env(nstep) )           ; env = 0.d0
+          allocate( Mol%field_env(nstep) )           ; Mol%field_env = 0.d0
           write(iout,100) 'fvect1', nstep  ; call track_mem( nstep )
-          write(iout,100) 'env',    nstep  ; call track_mem( nstep )
+          write(iout,100) 'Mol%field_env',    nstep  ; call track_mem( nstep )
           !: circular stuff
           if ( .not.linear ) then
              allocate( fvect2(nstep) )        ; fvect2 = 0.d0
@@ -766,39 +767,39 @@ contains
        
        !: Vabs MO elements
        if( Qalloc_vabsmo ) then
-          allocate( vabsmoa(nrorb,nrorb) )            ;  vabsmoa = 0.d0
+          allocate( Mol%vabsmoa(nrorb,nrorb) )            ;  Mol%vabsmoa = 0.d0
           write(iout,100) 'vabs_moa', nrorb*nrorb     ;  call track_mem( nrorb*nrorb )
           if( unrestricted ) then
-             allocate( vabsmob(nrorb,nrorb) )         ;  vabsmob = 0.d0
+             allocate( Mol%vabsmob(nrorb,nrorb) )         ;  Mol%vabsmob = 0.d0
              write(iout,100) 'vabs_mob', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
           end if
        end if
 
        !: dipx, dipy, dipz MO elements
        if( Qalloc_dipmo ) then
-          allocate( dipxmoa(nrorb,nrorb) )        ;  dipxmoa = 0.d0
-          allocate( dipymoa(nrorb,nrorb) )        ;  dipymoa = 0.d0
-          allocate( dipzmoa(nrorb,nrorb) )        ;  dipzmoa = 0.d0
-          write(iout,100) 'dipxmoa', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
-          write(iout,100) 'dipymoa', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
-          write(iout,100) 'dipzmoa', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
+          allocate( Mol%dipxmoa(nrorb,nrorb) )        ;  Mol%dipxmoa = 0.d0
+          allocate( Mol%dipymoa(nrorb,nrorb) )        ;  Mol%dipymoa = 0.d0
+          allocate( Mol%dipzmoa(nrorb,nrorb) )        ;  Mol%dipzmoa = 0.d0
+          write(iout,100) 'Mol%dipxmoa', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
+          write(iout,100) 'Mol%dipymoa', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
+          write(iout,100) 'Mol%dipzmoa', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
           if( unrestricted ) then
-             allocate( dipxmob(nrorb,nrorb) )        ;  dipxmob = 0.d0
-             allocate( dipymob(nrorb,nrorb) )        ;  dipymob = 0.d0
-             allocate( dipzmob(nrorb,nrorb) )        ;  dipzmob = 0.d0
-             write(iout,100) 'dipxmob', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
-             write(iout,100) 'dipymob', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
-             write(iout,100) 'dipzmob', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
+             allocate( Mol%dipxmob(nrorb,nrorb) )        ;  Mol%dipxmob = 0.d0
+             allocate( Mol%dipymob(nrorb,nrorb) )        ;  Mol%dipymob = 0.d0
+             allocate( Mol%dipzmob(nrorb,nrorb) )        ;  Mol%dipzmob = 0.d0
+             write(iout,100) 'Mol%dipxmob', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
+             write(iout,100) 'Mol%dipymob', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
+             write(iout,100) 'Mol%dipzmob', nrorb*nrorb  ;  call track_mem( nrorb*nrorb )
           end if
        end if
 
        if ( Qalloc_socmo ) then
-          allocate( socmoAA(nrorb,nrorb) )  ;  socmoAA = 0.d0
-          allocate( socmoBB(nrorb,nrorb) )  ;  socmoBB = 0.d0
-          allocate( socmoAB(nrorb,nrorb) )  ;  socmoAB = 0.d0
-          write(iout,100) 'socmoAA', nrorb*nrorb  ; call track_mem( nrorb*nrorb ) 
-          write(iout,100) 'socmoBB', nrorb*nrorb  ; call track_mem( nrorb*nrorb ) 
-          write(iout,100) 'socmoAB', nrorb*nrorb  ; call track_mem( nrorb*nrorb ) 
+          allocate( Mol%socmoAA(nrorb,nrorb) )  ;  Mol%socmoAA = 0.d0
+          allocate( Mol%socmoBB(nrorb,nrorb) )  ;  Mol%socmoBB = 0.d0
+          allocate( Mol%socmoAB(nrorb,nrorb) )  ;  Mol%socmoAB = 0.d0
+          write(iout,100) 'Mol%socmoAA', nrorb*nrorb  ; call track_mem( nrorb*nrorb ) 
+          write(iout,100) 'Mol%socmoBB', nrorb*nrorb  ; call track_mem( nrorb*nrorb ) 
+          write(iout,100) 'Mol%socmoAB', nrorb*nrorb  ; call track_mem( nrorb*nrorb ) 
        end if
 
     end select
@@ -825,158 +826,158 @@ contains
 
     select case( trim(option) )
     case( '2e_int' )
-       if( allocated(dabcdBB) ) then
-          deallocate( dabcdBB )
-          write(iout,"( deallocated dabcdBB )" )  ;  call track_mem( -nvb3*nvb3 )
+       if( allocated(Mol%dabcdBB) ) then
+          deallocate( Mol%dabcdBB )
+          write(iout,"( deallocated Mol%dabcdBB )" )  ;  call track_mem( -nvb3*nvb3 )
        end if
-       if( allocated(dabcdAB) ) then
-          deallocate( dabcdAB )
-          write(iout,"(' deallocated dabcdAB ')")  ;  call track_mem( -nva2*nvb2 )
+       if( allocated(Mol%dabcdAB) ) then
+          deallocate( Mol%dabcdAB )
+          write(iout,"(' deallocated Mol%dabcdAB ')")  ;  call track_mem( -nva2*nvb2 )
        end if
-       if( allocated(dabcdAA) ) then
-          deallocate( dabcdAA )  
-          write(iout,"(' deallocated dabcdAA ')")  ;  call track_mem( -nva3*nva3 )
+       if( allocated(Mol%dabcdAA) ) then
+          deallocate( Mol%dabcdAA )  
+          write(iout,"(' deallocated Mol%dabcdAA ')")  ;  call track_mem( -nva3*nva3 )
        end if
-       if( allocated(diabcBB) ) then
-          deallocate( diabcBB )
-          write(iout,"(' deallocated diabcBB ')")  ;  call track_mem( -nobnvb*nvb3 )
+       if( allocated(Mol%diabcBB) ) then
+          deallocate( Mol%diabcBB )
+          write(iout,"(' deallocated Mol%diabcBB ')")  ;  call track_mem( -nobnvb*nvb3 )
        end if
-       if( allocated(diabcBA) ) then
-          deallocate( diabcBA )
-          write(iout,"(' deallocated diabcBA ')")  ;  call track_mem( -nobnvb*nva2 )
+       if( allocated(Mol%diabcBA) ) then
+          deallocate( Mol%diabcBA )
+          write(iout,"(' deallocated Mol%diabcBA ')")  ;  call track_mem( -nobnvb*nva2 )
        end if
-       if( allocated(diabcAB) ) then
-          deallocate( diabcAB )
-          write(iout,"(' deallocated diabcAB ')")  ;  call track_mem( -noanva*nvb2 )
+       if( allocated(Mol%diabcAB) ) then
+          deallocate( Mol%diabcAB )
+          write(iout,"(' deallocated Mol%diabcAB ')")  ;  call track_mem( -noanva*nvb2 )
        end if
-       if( allocated(diabcAA) ) then
-          deallocate( diabcAA )
-          write(iout,"(' deallocated diabcAA ')")  ;  call track_mem( -noanva*nva3 )
+       if( allocated(Mol%diabcAA) ) then
+          deallocate( Mol%diabcAA )
+          write(iout,"(' deallocated Mol%diabcAA ')")  ;  call track_mem( -noanva*nva3 )
        end if
-       if( allocated(dijkaBB) ) then
-          deallocate( dijkaBB )
-          write(iout,"(' deallocated dijkaBB ')")  ;  call track_mem( -nob3*nobnvb )
+       if( allocated(Mol%dijkaBB) ) then
+          deallocate( Mol%dijkaBB )
+          write(iout,"(' deallocated Mol%dijkaBB ')")  ;  call track_mem( -nob3*nobnvb )
        end if
-       if( allocated(dijkaBA) ) then
-          deallocate( dijkaBA )
-          write(iout,"(' deallocated dijkaBA ')")  ;  call track_mem( -nob2*noanva )
+       if( allocated(Mol%dijkaBA) ) then
+          deallocate( Mol%dijkaBA )
+          write(iout,"(' deallocated Mol%dijkaBA ')")  ;  call track_mem( -nob2*noanva )
        end if
-       if( allocated(dijkaAB) ) then
-          deallocate( dijkaAB )
-          write(iout,"(' deallocated dijkaAB ')")  ;  call track_mem( -noa2*nobnvb )
+       if( allocated(Mol%dijkaAB) ) then
+          deallocate( Mol%dijkaAB )
+          write(iout,"(' deallocated Mol%dijkaAB ')")  ;  call track_mem( -noa2*nobnvb )
        end if
-       if( allocated(dijkaAA) ) then
-          deallocate( dijkaAA )
-          write(iout,"(' deallocated dijkaAA ')")  ;  call track_mem( -noa3*noanva )
+       if( allocated(Mol%dijkaAA) ) then
+          deallocate( Mol%dijkaAA )
+          write(iout,"(' deallocated Mol%dijkaAA ')")  ;  call track_mem( -noa3*noanva )
        end if
-       if( allocated(diajbBB) ) then
-          deallocate( diajbBB ) 
-          write(iout,"(' deallocated diajbBB ')")  ;  call track_mem( -nobnvb*nobnvb )
+       if( allocated(Mol%diajbBB) ) then
+          deallocate( Mol%diajbBB ) 
+          write(iout,"(' deallocated Mol%diajbBB ')")  ;  call track_mem( -nobnvb*nobnvb )
        end if
-       if ( allocated(dijklBB) ) then
-          deallocate( dijklBB )
-          write(iout,'(" deallocated dijklBB ")')  ;  call track_mem( -nob3*nob3 )
+       if ( allocated(Mol%dijklBB) ) then
+          deallocate( Mol%dijklBB )
+          write(iout,'(" deallocated Mol%dijklBB ")')  ;  call track_mem( -nob3*nob3 )
        end if
-       if( allocated(diajbBA) ) then
-          deallocate( diajbBA )
-          write(iout,'(" deallocated diajbBA ")')  ;  call track_mem( -nva2*nob2 )
+       if( allocated(Mol%diajbBA) ) then
+          deallocate( Mol%diajbBA )
+          write(iout,'(" deallocated Mol%diajbBA ")')  ;  call track_mem( -nva2*nob2 )
        end if
-       if( allocated(diajbAB) ) then
-          deallocate( diajbAB )
-          write(iout,'(" deallocated diajbAB ")')  ;  call track_mem( -nvb*noa2 )
+       if( allocated(Mol%diajbAB) ) then
+          deallocate( Mol%diajbAB )
+          write(iout,'(" deallocated Mol%diajbAB ")')  ;  call track_mem( -nvb*noa2 )
        end if
-       if( allocated(dijklAB) ) then
-          deallocate( dijklAB )
-          write(iout,'(" deallocated dijklAB ")')  ;  call track_mem( -nob2*noa2 )
+       if( allocated(Mol%dijklAB) ) then
+          deallocate( Mol%dijklAB )
+          write(iout,'(" deallocated Mol%dijklAB ")')  ;  call track_mem( -nob2*noa2 )
        end if
-       if( allocated(diajbAA) ) then
-          deallocate( diajbAA )
-          write(iout,'(" deallocated diajbAA ")')  ;  call track_mem( -noanva*noanva )
+       if( allocated(Mol%diajbAA) ) then
+          deallocate( Mol%diajbAA )
+          write(iout,'(" deallocated Mol%diajbAA ")')  ;  call track_mem( -noanva*noanva )
        end if
-       if( allocated(dijklAA) ) then
-          deallocate( dijklAA )
-          write(iout,'(" deallocated dijklAA ")')  ;  call track_mem( -noa3*noa3 )
+       if( allocated(Mol%dijklAA) ) then
+          deallocate( Mol%dijklAA )
+          write(iout,'(" deallocated Mol%dijklAA ")')  ;  call track_mem( -noa3*noa3 )
        end if
-       if( allocated(dijabBB) ) then
-          deallocate( dijabBB )
-          write(iout,'(" deallocated dijabBB ")')  ;  call track_mem( -nvb3*nob3 )
+       if( allocated(Mol%dijabBB) ) then
+          deallocate( Mol%dijabBB )
+          write(iout,'(" deallocated Mol%dijabBB ")')  ;  call track_mem( -nvb3*nob3 )
        end if
-       if( allocated(dijabAB) ) then
-          deallocate( dijabAB ) 
-          write(iout,'(" deallocated dijabAB ")')  ;  call track_mem( -nobnvb*noanva )
+       if( allocated(Mol%dijabAB) ) then
+          deallocate( Mol%dijabAB ) 
+          write(iout,'(" deallocated Mol%dijabAB ")')  ;  call track_mem( -nobnvb*noanva )
        end if
-       if( allocated(dijabAA) ) then
-          deallocate( dijabAA )
-          write(iout,'(" deallocated dijabAB ")')  ;  call track_mem( -nva3*noa3 )
+       if( allocated(Mol%dijabAA) ) then
+          deallocate( Mol%dijabAA )
+          write(iout,'(" deallocated Mol%dijabAB ")')  ;  call track_mem( -nva3*noa3 )
        end if
        
     case( '1e_int' )
     
        ntt = nbasis*(nbasis+1)/2
 
-       if( allocated(soczao)  ) then
-          deallocate(socxao, socyao, soczao)
-          write(iout,'(A)') ' deallocated soczao, socyao, socxao '  
+       if( allocated(Mol%soczao)  ) then
+          deallocate(Mol%socxao, Mol%socyao, Mol%soczao)
+          write(iout,'(A)') ' deallocated Mol%soczao, Mol%socyao, Mol%socxao '  
           call track_mem( -3*ntt )
        end if
-       if( allocated(cmo_b) ) then
-          deallocate(cmo_b)
-          write(iout,'(A)') ' deallocated cmo_b '  
+       if( allocated(Mol%cmo_b) ) then
+          deallocate(Mol%cmo_b)
+          write(iout,'(A)') ' deallocated Mol%cmo_b '  
           call track_mem( -nrorb*nbasis )
        end if
-       if( allocated(cmo_a) ) then
-          deallocate(cmo_a) 
-          write(iout,'(A)') ' deallocated cmo_a '
+       if( allocated(Mol%cmo_a) ) then
+          deallocate(Mol%cmo_a) 
+          write(iout,'(A)') ' deallocated Mol%cmo_a '
           call track_mem( -nrorb*nbasis )
        end if
-       if( allocated(orben) ) then
-          deallocate(orben)
-          write(iout,'(A)') ' deallocated orben '
+       if( allocated(Mol%orben) ) then
+          deallocate(Mol%orben)
+          write(iout,'(A)') ' deallocated Mol%orben '
           call track_mem( -norb )
        end if
-       if( allocated(dipzao)) then
-          deallocate(dipzao, dipyao, dipxao)
-          write(iout,'(A)') ' deallocated dipzao, dipyao, dipxao '
+       if( allocated(Mol%dipzao)) then
+          deallocate(Mol%dipzao, Mol%dipyao, Mol%dipxao)
+          write(iout,'(A)') ' deallocated Mol%dipzao, Mol%dipyao, Mol%dipxao '
           call track_mem( -3*ntt )
        end if
-       if( allocated(vabsao)) then
-          deallocate(vabsao)   
-          write(iout,'(A)') ' deallocated vabsao '
+       if( allocated(Mol%vabsao)) then
+          deallocate(Mol%vabsao)   
+          write(iout,'(A)') ' deallocated Mol%vabsao '
           call track_mem( -ntt )
        end if
-       if( allocated(dipzmob) ) then
-          deallocate(dipzmob, dipymob, dipxmob) 
-          write(iout,'(A)') ' deallocated dipzmob, dipymob, dipxmob '
+       if( allocated(Mol%dipzmob) ) then
+          deallocate(Mol%dipzmob, Mol%dipymob, Mol%dipxmob) 
+          write(iout,'(A)') ' deallocated Mol%dipzmob, Mol%dipymob, Mol%dipxmob '
           call track_mem( -3*nrorb*nrorb )
        end if
-       if( allocated(dipzmoa) ) then
-          write(iout,'(A)') ' DEALLOCATE dipzmoa, dipymoa, dipxmoa '
+       if( allocated(Mol%dipzmoa) ) then
+          write(iout,'(A)') ' DEALLOCATE Mol%dipzmoa, Mol%dipymoa, Mol%dipxmoa '
           flush(iout)
-          deallocate(dipzmoa,dipymoa,dipxmoa) 
-          write(iout,'(A)') ' deallocated dipzmoa, dipymoa, dipxmoa '
+          deallocate(Mol%dipzmoa,Mol%dipymoa,Mol%dipxmoa) 
+          write(iout,'(A)') ' deallocated Mol%dipzmoa, Mol%dipymoa, Mol%dipxmoa '
           flush(iout)
           call track_mem( -3*nrorb*nrorb )
        end if
-       if( allocated(vabsmob) ) then
-!:          deallocate(vabsmob)
-!:          write(iout,'(A)') ' deallocated vabsmob '
+       if( allocated(Mol%vabsmob) ) then
+!:          deallocate(Mol%vabsmob)
+!:          write(iout,'(A)') ' deallocated Mol%vabsmob '
 !:          call track_mem( -nrorb*nrorb )
        end if
-       if( allocated(vabsmoa) ) then
-!:          deallocate(vabsmoa)
-!:          write(iout,'(A)') ' deallocated vabsmoa '
+       if( allocated(Mol%vabsmoa) ) then
+!:          deallocate(Mol%vabsmoa)
+!:          write(iout,'(A)') ' deallocated Mol%vabsmoa '
 !:          call track_mem( -nrorb*nrorb )
        end if
-       if( allocated(socmoAB) ) then
-          write(iout,*) " deallocating socmoAB,socmoBB,socmoAAsocmoAB,socmoBB,socmoAA"
-          deallocate(socmoAB,socmoBB,socmoAA) 
-          write(iout,'(A)') ' deallocated socmoAB, socmoBB, socmoAA'
+       if( allocated(Mol%socmoAB) ) then
+          write(iout,*) " deallocating Mol%socmoAB,Mol%socmoBB,Mol%socmoAAMol%socmoAB,Mol%socmoBB,Mol%socmoAA"
+          deallocate(Mol%socmoAB,Mol%socmoBB,Mol%socmoAA) 
+          write(iout,'(A)') ' deallocated Mol%socmoAB, Mol%socmoBB, Mol%socmoAA'
           call track_mem( -3*nrorb*nrorb )
           flush(iout)
        end if
-       if( allocated(env) ) then  
-          deallocate(env)
-          write(iout,'(A)') ' deallocated env'
+       if( allocated(Mol%field_env) ) then  
+          deallocate(Mol%field_env)
+          write(iout,'(A)') ' deallocated Mol%field_env'
           flush(iout)
        end if
 
@@ -1219,7 +1220,7 @@ contains
           write(iout,'(A)') ' - Maya Angelous'
           write(iout,'(A)') divide
        case( 'date' )          
-          write(iout,'(A)') ' I WAS COMPILED ON Sun Feb 11 09:34:25 EST 2024 '
+          write(iout,'(A)') ' I WAS COMPILED ON Sun Feb 11 16:58:03 EST 2024 '
           write(iout,'(A)') ' I AM A REVISED CODE FOR CW PULSE GENERATION '
           write(iout,'(A)') ' RAMPING PARAMETER SET TO RAMP_STEP=16000, NOT NSTEP'
           call dnt(iout)          

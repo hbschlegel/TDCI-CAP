@@ -159,7 +159,7 @@ contains
           if ( II.gt.0 .and. jj.lt.0 .and. AA.gt.0 .and. bb.lt.0 ) &
                                    storeme = storeme + get_dijabAB(j,I,b,A)
 
-          if ( jb.eq.ia ) storeme = storeme - orben(iorb) + orben(aorb)
+          if ( jb.eq.ia ) storeme = storeme - Mol%orben(iorb) + Mol%orben(aorb)
           
           istate = (ia-1)*nstates + jb
 !:          write(42,"(6i5,4f16.10)") ii,aa,jj,bb,ia,jb,storeme,Zcis_vec(istate)
@@ -206,7 +206,7 @@ contains
     call get_cis_index 
     
     call get_soc_ao2mo
-    call Zform1det_soc(noa,nva,nstates,Zcis_vec,socmoAA,hole_index,part_index,nob,nvb,socmoBB,socmoAB)
+    call Zform1det_soc(noa,nva,nstates,Zcis_vec,Mol%socmoAA,hole_index,part_index,nob,nvb,Mol%socmoBB,Mol%socmoAB)
      
     ia : do ia=2, nstates
        
@@ -244,7 +244,7 @@ contains
           if ( II.gt.0 .and. jj.lt.0 .and. AA.gt.0 .and. bb.lt.0 ) &
                                    storeme = storeme + get_dijabAB(j,I,b,A)
 
-          if ( jb.eq.ia ) storeme = storeme - orben(iorb) + orben(aorb)
+          if ( jb.eq.ia ) storeme = storeme - Mol%orben(iorb) + Mol%orben(aorb)
           
           istate = (ia-1)*nstates + jb
 !:          write(42,"(6i5,4f16.10)") ii,aa,jj,bb,ia,jb,storeme,Zcis_vec(istate)
@@ -416,7 +416,7 @@ contains
           storeme = 0.d0
           
           SS : if( ii.eq.0 .and. jj.eq.0 ) then
-             if( xx.eq.yy ) storeme = -orben(xorb)
+             if( xx.eq.yy ) storeme = -Mol%orben(xorb)
              go to 78
           end if SS
           
@@ -533,7 +533,7 @@ contains
              
           end if DD
 
-          if ( jb.eq.ia ) storeme = storeme - orben(iorb) - orben(xorb) + orben(aorb)
+          if ( jb.eq.ia ) storeme = storeme - Mol%orben(iorb) - Mol%orben(xorb) + Mol%orben(aorb)
           
 78        continue
 
@@ -728,7 +728,7 @@ contains
     call get_socip_index 
     
     call get_soc_ao2mo
-    call Zform1det_socip(noa,nva,nstates,Zcis_vec,socmoAA,hole_index,part_index,nob,nvb,socmoBB,socmoAB)
+    call Zform1det_socip(noa,nva,nstates,Zcis_vec,Mol%socmoAA,hole_index,part_index,nob,nvb,Mol%socmoBB,Mol%socmoAB)
      
     ia : do ia=1, nstates
        
@@ -750,7 +750,7 @@ contains
           storeme = 0.d0
           
           SS : if( ii.eq.0 .and. jj.eq.0 ) then
-             if( xx.eq.yy ) storeme = -orben(xorb)
+             if( xx.eq.yy ) storeme = -Mol%orben(xorb)
              go to 78
           end if SS
           
@@ -892,7 +892,7 @@ contains
              
           end if DD
 
-          if ( jb.eq.ia ) storeme = storeme - orben(iorb) - orben(xorb) + orben(aorb)
+          if ( jb.eq.ia ) storeme = storeme - Mol%orben(iorb) - Mol%orben(xorb) + Mol%orben(aorb)
           
 78        continue
           
@@ -953,54 +953,54 @@ contains
     write(iout,'(A)') ' in subroutine get_soc_ao2mo in MODULE getham0 '
 
     !: convert to au units
-    socxao(:,:) = socfac * constant * socxao(:,:)
-    socyao(:,:) = socfac * constant * socyao(:,:)
-    soczao(:,:) = socfacz *  constant * soczao(:,:)
-!:    soczao(:,:) = socfacz * socfac * constant * soczao(:,:)
+    Mol%socxao(:,:) = socfac * constant * Mol%socxao(:,:)
+    Mol%socyao(:,:) = socfac * constant * Mol%socyao(:,:)
+    Mol%soczao(:,:) = socfacz *  constant * Mol%soczao(:,:)
+!:    Mol%soczao(:,:) = socfacz * socfac * constant * Mol%soczao(:,:)
 
     
     allocate( scratch1(nbasis,nbasis) )
     scratch1 = 0.d0
     
-    !: socmoAA
-    scratch1(:,:) = - soczao(:,:)
-    call ao2mo_complex(nbasis, nrorb, scratch1, socmoAA, cmo_a, cmo_a )
+    !: Mol%socmoAA
+    scratch1(:,:) = - Mol%soczao(:,:)
+    call ao2mo_complex(nbasis, nrorb, scratch1, Mol%socmoAA, Mol%cmo_a, Mol%cmo_a )
 
     open( unit=100,file='VZA.OUT' )
     do i=1, nrorb
        do j=1, nrorb
-          write(100,"(f15.10,f15.10)") socmoAA(j,i)
+          write(100,"(f15.10,f15.10)") Mol%socmoAA(j,i)
        end do
     end do
     close(100)
 
     
-    !: socmoBB
-    scratch1(:,:) = soczao(:,:)
-    call ao2mo_complex(nbasis, nrorb, scratch1, socmoBB, cmo_b, cmo_b )
+    !: Mol%socmoBB
+    scratch1(:,:) = Mol%soczao(:,:)
+    call ao2mo_complex(nbasis, nrorb, scratch1, Mol%socmoBB, Mol%cmo_b, Mol%cmo_b )
 
     open( unit=100,file='VZB.OUT' )
     do i=1, nrorb
        do j=1, nrorb
-          write(100,"(f15.10,f15.10)") socmoBB(j,i)
+          write(100,"(f15.10,f15.10)") Mol%socmoBB(j,i)
        end do
     end do
     close(100)
     
     
-    !: socmoAB
+    !: Mol%socmoAB
     do i=1, nbasis
        do j=1, nbasis
-          scratch1(j,i) =  - ( socxao(j,i) - eye * socyao(j,i) )
+          scratch1(j,i) =  - ( Mol%socxao(j,i) - eye * Mol%socyao(j,i) )
        end do
     end do
-    call ao2mo_complex(nbasis, nrorb, scratch1, socmoAB, cmo_a, cmo_b )
+    call ao2mo_complex(nbasis, nrorb, scratch1, Mol%socmoAB, Mol%cmo_a, Mol%cmo_b )
     
     
     open( unit=100,file='VPM.OUT' )
     do i=1, nrorb
        do j=1, nrorb
-          write(100,"(f15.10,f15.10)") socmoAB(j,i)
+          write(100,"(f15.10,f15.10)") Mol%socmoAB(j,i)
        end do
     end do
     close(100)
@@ -1008,7 +1008,7 @@ contains
 
     deallocate( scratch1 )
 
-    write(iout,'(A)') ' finished assigning socmoAA, socmoBB, socmoAB ' 
+    write(iout,'(A)') ' finished assigning Mol%socmoAA, Mol%socmoBB, Mol%socmoAB ' 
     write(iout,'(A)') ' leaving subroutine get_soc_ao2mo'
     
 
@@ -1070,8 +1070,8 @@ contains
        xx = hole_ip_index(ia,1) 
        xorb = -xx
        if( xx.gt.0 ) xorb = nrorb + xx
-       ip_vec(ii) = -orben(xorb)
-!:       write(iout,"(4i5,f12.6)") ia,ii,xx,xorb,orben(xorb)
+       ip_vec(ii) = -Mol%orben(xorb)
+!:       write(iout,"(4i5,f12.6)") ia,ii,xx,xorb,Mol%orben(xorb)
     end do
 !:    write(iout,"(8f12.6)") ip_vec
 
@@ -1167,15 +1167,15 @@ contains
 !: 123  format(4i5)
 
     Zip_vec = dcmplx(0.d0,0.d0)
-    call Zform1det_socip(noa,nva,ip_states,Zip_vec,socmoAA, &
-      hole_ip_index,part_ip_index,nob,nvb,socmoBB,socmoAB)
+    call Zform1det_socip(noa,nva,ip_states,Zip_vec,Mol%socmoAA, &
+      hole_ip_index,part_ip_index,nob,nvb,Mol%socmoBB,Mol%socmoAB)
 
     do ia=1, ip_states
        ii = ia + ip_states*(ia-1)
        xx = hole_ip_index(ia,1) 
        xorb = -xx
        if( xx.gt.0 ) xorb = nrorb + xx
-       Zip_vec(ii) = dcmplx(-orben(xorb),0.d0)
+       Zip_vec(ii) = dcmplx(-Mol%orben(xorb),0.d0)
     end do
 
     info = 10
@@ -1333,7 +1333,7 @@ contains
                    if ( II.gt.0 .and. JJ.gt.0 ) storeme = storeme + get_dijklBB(J,Y,I,X)
                 end if
  
-          if ( jb.eq.ia ) storeme = storeme - orben(iorb) - orben(xorb)
+          if ( jb.eq.ia ) storeme = storeme - Mol%orben(iorb) - Mol%orben(xorb)
           ip_vec((ia-1)*ip_states+jb) = ip_vec((ia-1)*ip_states+jb) + storeme
           if( ia.ne.jb) ip_vec((jb-1)*ip_states+ia) = ip_vec((jb-1)*ip_states+ia) + storeme
 
@@ -1465,8 +1465,8 @@ contains
 !: 123  format(5i5)
     
     Zip_vec = dcmplx(0.d0,0.d0)
-    call Zform1det_socip(noa,nva,ip_states,Zip_vec,socmoAA, &
-       hole_ip_index,part_ip_index,nob,nvb,socmoBB,socmoAB)
+    call Zform1det_socip(noa,nva,ip_states,Zip_vec,Mol%socmoAA, &
+       hole_ip_index,part_ip_index,nob,nvb,Mol%socmoBB,Mol%socmoAB)
 
     ia : do ia=1, ip_states
        xx = hole_ip_index(ia,1) ; x = abs(xx)
@@ -1495,7 +1495,7 @@ contains
                    if ( II.gt.0 .and. JJ.gt.0 ) storeme = storeme + get_dijklBB(J,Y,I,X)
                 end if
  
-          if ( jb.eq.ia ) storeme = storeme - orben(iorb) - orben(xorb)
+          if ( jb.eq.ia ) storeme = storeme - Mol%orben(iorb) - Mol%orben(xorb)
           Zip_vec((ia-1)*ip_states+jb) = Zip_vec((ia-1)*ip_states+jb) + dcmplx(storeme,0.d0)
           if( ia.ne.jb) Zip_vec((jb-1)*ip_states+ia) = Zip_vec((jb-1)*ip_states+ia) + dcmplx(storeme,0.d0)
 

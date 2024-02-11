@@ -161,10 +161,10 @@ contains
     !$OMP norm, norm0, normV, mux, muy, muz, rate, efieldx, efieldy, efieldz, &
     !$OMP pop1, ion, ion_coeff, rate_a, rate_b, rate_aa, rate_ab, rate_ba, rate_bb, psi_det0,  &
     !$OMP hp1, hp2, psi, psi1, scratch, rwork, iwork, tdvals1, tdvals2, Zion_coeff ),  &
-    !$OMP SHARED( jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
+    !$OMP SHARED( Mol, jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
     !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
     !$OMP Zabp, Zcis_vec, Zexp_abp, exphel, fvect1, fvect2, psi0, tdciresults, Ztdx, Ztdy, Ztdz, &
-    !$OMP vabsmoa, vabsmob, noa, nob, nva, nvb, norb, hole_index, part_index, &
+    !$OMP noa, nob, nva, nvb, norb, hole_index, part_index, &
     !$OMP state_ip_index, ip_states, read_states, Zip_vec, Zproj_ion, Qread_ion_coeff, Qwrite_ion_coeff, &
     !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
     !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save)
@@ -499,7 +499,7 @@ contains
                 call get_Zpsid( nstuse, nstates, Zcis_vec, norm, psi, psi_det0 )
                 ii = (itime-1)*(noa+nob)*(noa+nob+1)
                 call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                  psi_det0,psi1,norm,vabsmoa,vabsmob,unrestricted, &
+                  psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
                   rate,Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),ion_coeff,rwork)
 !:                  write(iout,"('W0',i5,i7,16f12.8)") itime,ii,rate,rwork(1:noa+nob)
                   do i = 1,noa+nob
@@ -522,12 +522,12 @@ contains
                   call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
-                    psi_det0,psi1,normV,vabsmoa,vabsmob,rwork,au2fs)
+                    psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,rwork,au2fs)
                 else
                   call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
-                    vabsmoa,vabsmob,unrestricted,rwork,au2fs)
+                    Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork,au2fs)
                 end if
 
                 call get_norm( norm,nstuse, psi )                
@@ -595,7 +595,7 @@ contains
 
                 If(trim(jobtype).eq.flag_soc .and. (.not. Qwrite_ion_coeff) ) then
                   call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    psi_det0,psi1,norm,vabsmoa,vabsmob,unrestricted, &
+                    psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
                     rate,Zion_coeff,ion_coeff,rwork)
                   call get_Zproj_ion(iout,noa+nob,Zip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
 !:                  write(iout,*) " ip_states",ip_states
@@ -618,7 +618,7 @@ contains
 
                 If(trim(jobtype).eq.flag_socip .and. (.not. Qwrite_ion_coeff) ) then
                   call get_ion_coeff_ip(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    ip_states,state_ip_index,psi_det0,psi1,norm,vabsmoa,vabsmob, &
+                    ip_states,state_ip_index,psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob, &
                     rate,Zion_coeff,ion_coeff,rwork)
                   call get_Zproj_ion(iout,ip_states,Zip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
 !:                  write(iout,*) " ip_states",ip_states
@@ -804,7 +804,7 @@ contains
        call pop_ip( hole_index, noa,nob,norb,nstates,nva,nvb, part_index(:,1), pop0, psi_det0 )
     end select
 !:    write(iout,*) "pop0",norb,nrorb,pop0
-!:    write(iout,*) "Vabsmo=",( vabsmoa(:,i), i=1, nrorb )
+!:    write(iout,*) "Vabsmo=",( Mol%vabsmoa(:,i), i=1, nrorb )
 
     call writeme_propagate( 'trot_lin','pop0', pop0, norb )
     
@@ -828,10 +828,10 @@ contains
     !$OMP norm, norm0, normV, mux, muy, muz, rate, efieldx, efieldy, efieldz, &
     !$OMP pop1, ion, ion_coeff, rate_a, rate_b, rate_aa, rate_ab, rate_ba, rate_bb, psi_det0,  &
     !$OMP hp1, hp2, psi, psi1, scratch, rwork, iwork, tdvals1, tdvals2, Zion_coeff ),  &
-    !$OMP SHARED( jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
+    !$OMP SHARED( Mol, jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
     !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
     !$OMP Zabp, Zcis_vec, Zexp_abp, exphel, fvect1, fvect2, psi0, tdciresults, Ztdx, Ztdy, Ztdz, &
-    !$OMP vabsmoa, vabsmob, noa, nob, nva, nvb, norb, hole_index, part_index, &
+    !$OMP noa, nob, nva, nvb, norb, hole_index, part_index, &
     !$OMP state_ip_index, ip_states, read_states, Zip_vec, Zproj_ion, Qread_ion_coeff, Qwrite_ion_coeff, &
     !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
     !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save)
@@ -1117,7 +1117,7 @@ contains
                 call get_Zpsid( nstuse, nstates, Zcis_vec, norm, psi, psi_det0 )
                 ii = (itime-1)*(noa+nob)*(noa+nob+1)
                 call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                  psi_det0,psi1,norm,vabsmoa,vabsmob,unrestricted, &
+                  psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
                   rate,Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),ion_coeff,rwork)
 !:                  write(iout,"('W0',i5,i7,16f12.8)") itime,ii,rate,rwork(1:noa+nob)
                   do i = 1,noa+nob
@@ -1140,12 +1140,12 @@ contains
                   call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
-                    psi_det0,psi1,normV,vabsmoa,vabsmob,rwork,au2fs)
+                    psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,rwork,au2fs)
                 else
                   call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
-                    vabsmoa,vabsmob,unrestricted,rwork,au2fs)
+                    Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork,au2fs)
                 end if
         
                 call get_norm( norm,nstuse, psi )                
@@ -1212,7 +1212,7 @@ contains
 
                 If(trim(jobtype).eq.flag_soc .and. (.not. Qwrite_ion_coeff) ) then
                   call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    psi_det0,psi1,norm,vabsmoa,vabsmob,unrestricted, &
+                    psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
                     rate,Zion_coeff,ion_coeff,rwork)
                   call get_Zproj_ion(iout,noa+nob,Zip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
 !:                  write(iout,*) " ip_states",ip_states
@@ -1234,7 +1234,7 @@ contains
 
                 If(trim(jobtype).eq.flag_socip .and. (.not. Qwrite_ion_coeff) ) then
                   call get_ion_coeff_ip(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    ip_states,state_ip_index,psi_det0,psi1,norm,vabsmoa,vabsmob, &
+                    ip_states,state_ip_index,psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob, &
                     rate,Zion_coeff,ion_coeff,rwork)
                   call get_Zproj_ion(iout,ip_states,Zip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
 !:                  write(iout,*) " ip_states",ip_states
@@ -1704,7 +1704,7 @@ contains
                 call get_Zpsid( nstuse, nstates, Zcis_vec, norm, psi, psi_det0 )
                 ii = (itime-1)*(noa+nob)*(noa+nob+1)
                 call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                  psi_det0,psi1,norm,vabsmoa,vabsmob,unrestricted, &
+                  psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
                   rate,Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),ion_coeff,rwork)
 !:                  write(iout,"('W0',i5,i7,16f12.8)") itime,ii,rate,rwork(1:noa+nob)
                   do i = 1,noa+nob
@@ -1727,12 +1727,12 @@ contains
                   call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
-                    psi_det0,psi1,normV,vabsmoa,vabsmob,rwork,au2fs)
+                    psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,rwork,au2fs)
                 else
                   call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
-                    vabsmoa,vabsmob,unrestricted,rwork,au2fs)
+                    Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork,au2fs)
                 end if
 
                 call get_norm( norm,nstuse, psi )                
@@ -1799,7 +1799,7 @@ contains
 
                 If(trim(jobtype).eq.flag_soc .and. (.not. Qwrite_ion_coeff) ) then
                   call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    psi_det0,psi1,norm,vabsmoa,vabsmob,unrestricted, &
+                    psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
                     rate,Zion_coeff,ion_coeff,rwork)
                   call get_Zproj_ion(iout,noa+nob,Zip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
 !:                  write(iout,*) " ip_states",ip_states
@@ -1821,7 +1821,7 @@ contains
 
                 If(trim(jobtype).eq.flag_socip .and. (.not. Qwrite_ion_coeff) ) then
                   call get_ion_coeff_ip(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    ip_states,state_ip_index,psi_det0,psi1,norm,vabsmoa,vabsmob, &
+                    ip_states,state_ip_index,psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob, &
                     rate,Zion_coeff,ion_coeff,rwork)
                   call get_Zproj_ion(iout,ip_states,Zip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
 !:                  write(iout,*) " ip_states",ip_states
@@ -2000,7 +2000,7 @@ contains
        call pop_ip( hole_index, noa,nob,norb,nstates,nva,nvb, part_index(:,1), pop0, psi_det0 )
     end select
 !:    write(iout,*) "pop0",norb,nrorb,pop0
-!:    write(iout,*) "Vabsmo=",( vabsmoa(:,i), i=1, nrorb )
+!:    write(iout,*) "Vabsmo=",( Mol%vabsmoa(:,i), i=1, nrorb )
 
     call writeme_propagate( 'trot_lin','pop0', pop0, norb )
     
@@ -2258,7 +2258,7 @@ contains
                 call get_Zpsid( nstuse, nstates, Zcis_vec, norm, psi, psi_det0 )
                 ii = (itime-1)*(noa+nob)*(noa+nob+1)
                 call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                  psi_det0,psi1,norm,vabsmoa,vabsmob,unrestricted, &
+                  psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
                   rate,Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),ion_coeff,rwork)
 !:                  write(iout,"('W0',i5,i7,16f12.8)") itime,ii,rate,rwork(1:noa+nob)
                   do i = 1,noa+nob
@@ -2281,12 +2281,12 @@ contains
                   call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
-                    psi_det0,psi1,normV,vabsmoa,vabsmob,rwork,au2fs)
+                    psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,rwork,au2fs)
                 else
                   call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
-                    vabsmoa,vabsmob,unrestricted,rwork,au2fs)
+                    Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork,au2fs)
                 end if
         
                 call get_norm( norm,nstuse, psi )                
@@ -2353,7 +2353,7 @@ contains
 
                 If(trim(jobtype).eq.flag_soc .and. (.not. Qwrite_ion_coeff) ) then
                   call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    psi_det0,psi1,norm,vabsmoa,vabsmob,unrestricted, &
+                    psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
                     rate,Zion_coeff,ion_coeff,rwork)
                   call get_Zproj_ion(iout,noa+nob,Zip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
 !:                  write(iout,*) " ip_states",ip_states
@@ -2375,7 +2375,7 @@ contains
 
                 If(trim(jobtype).eq.flag_socip .and. (.not. Qwrite_ion_coeff) ) then
                   call get_ion_coeff_ip(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    ip_states,state_ip_index,psi_det0,psi1,norm,vabsmoa,vabsmob, &
+                    ip_states,state_ip_index,psi_det0,psi1,norm,Mol%vabsmoa,Mol%vabsmob, &
                     rate,Zion_coeff,ion_coeff,rwork)
                   call get_Zproj_ion(iout,ip_states,Zip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
 !:                  write(iout,*) " ip_states",ip_states

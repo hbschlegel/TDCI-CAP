@@ -28,6 +28,8 @@ program main
   !: output opened in read_input with iout=42   
   call cpu_time(masterstart)
   
+  !: Allocate MolInfo class instance
+  allocate(Mol)
   
   !: read and set input parameters (module initialize) 
   if( Qread_input       ) call read_input  

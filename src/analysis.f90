@@ -435,7 +435,8 @@ contains
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! SUBROUTINE GET_DYSON
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
-  subroutine get_dyson( noa,nva,norb,torbitals,nstuse,nstates,nbasis,cis_vec,cmo_a,psi,psi0,dirstr,emaxstr,nob,nvb,cmo_b )
+  subroutine get_dyson( noa,nva,norb,torbitals,nstuse,nstates,nbasis,cis_vec, &
+                        cmo_a,psi,psi0,dirstr,emaxstr,nob,nvb,cmo_b )
     
     ! <C> use at your risk.  need to be double-checked
 
@@ -842,7 +843,7 @@ contains
     real(8), intent(inout), optional :: nva_rate
 
     integer(8) :: i, i1, j, j1, a, a1, b, b1, ia, jb, ii, jj, aa, bb, istate, ndim, k
-    real(8)    :: const, const2, psi2, vabs00, rdum, rate
+    real(8)    :: const, const2, psi2, vabs00_, rdum, rate
     real(8)    :: tmprate(80000), tmpsum, tmp2, tmprate_direct
     integer(8) :: nva95_direct, nva99_direct, nva95_density, nva99_density
     complex(8) :: psi0, psi_ia
@@ -874,13 +875,13 @@ contains
 
      !: ground state
 !:     write(iout,*) " starting pop_rate"
-     vabs00 = 0.d0
+     vabs00_ = 0.d0
      do i=1, noa
        pop(i) = const2
        ion(i) = const2
        density(i+(i-1)*ndim) = const2
        rate_a(i) = rate_a(i) + const2 * vabs_a(i,i)
-       vabs00 = vabs00 + const2 * vabs_a(i,i)
+       vabs00_ = vabs00_ + const2 * vabs_a(i,i)
      end do
      if ( unrestricted ) then
        do i=1, nob
@@ -892,17 +893,17 @@ contains
            density(i+noa+nva+(i+noa+nva-1)*ndim) = const2
          end if
          rate_b(i) = rate_b(i) + const2 * vabs_b(i,i)
-         vabs00 = vabs00 + const2 * vabs_b(i,i)
+         vabs00_ = vabs00_ + const2 * vabs_b(i,i)
        end do
      end if
-!:     write(iout,*)  " VAbs00",vabs00
+!:     write(iout,*)  " VAbs00",vabs00_
 !:     write(iout,*) rate_a
 !:     write(iout,*) rate_b
      
      psi0 = psi_det(1)
      psiV = dcmplx(0.d0,0.d0)
-     rate = dconjg(psi_det(1))*psi_det(1)*vabs00
-     psiV(1) = psi_det(1) * vabs00
+     rate = dconjg(psi_det(1))*psi_det(1)*vabs00_
+     psiV(1) = psi_det(1) * vabs00_
               
      do ia=2, nstates
 !:     write(iout,"(' pop ',i5,6f10.5)")ia,(density(i+(i-1)*ndim),i=1,noa+1)
@@ -1014,7 +1015,7 @@ contains
          end if
 
          if( ia.eq.jb ) then
-           rdum = vabs00
+           rdum = vabs00_
            rate = rate + psi2 * rdum
            psiV(ia) = psiV(ia) + psi_det(jb) * rdum
          end if
@@ -1149,7 +1150,7 @@ contains
     real(8), intent(inout), optional :: nva_rate
 
     integer(8) :: i,i1,j,j1,a,a1,b,b1,ia,jb,ii,jj,x,x1,y,y1,aa,bb,xx,yy,istate,ndim
-    real(8)    :: psi2, vabs00, rate, rdum
+    real(8)    :: psi2, vabs00_, rate, rdum
     real(8)    :: tmprate(1000), tmpsum, tmprate_direct
     integer(8) :: nva95_direct, nva99_direct, nva95_density, nva99_density
     complex(8) :: psi_ia
@@ -1173,12 +1174,12 @@ contains
   
      !: unrestricted ground state
  
-     vabs00 = 0.d0
+     vabs00_ = 0.d0
      do i=1, noa
        pop(i) = 1.d0
        ion(i) = 1.d0
        density(i+(i-1)*ndim) = 1.d0
-       vabs00 = vabs00 + vabs_a(i,i)
+       vabs00_ = vabs00_ + vabs_a(i,i)
      end do
      do i=1, nob
        pop(noa+nva+i) = 1.d0
@@ -1188,7 +1189,7 @@ contains
        else
          density(i+noa+nva+(i+noa+nva-1)*ndim) = 1.d0
        end if
-       vabs00 = vabs00 + vabs_b(i,i)
+       vabs00_ = vabs00_ + vabs_b(i,i)
      end do
 
      psiV = 0.d0
@@ -1372,7 +1373,7 @@ contains
           
 78        continue
  
-          if( ia.eq.jb ) rdum = rdum + vabs00
+          if( ia.eq.jb ) rdum = rdum + vabs00_
           psiV(ia) = psiV(ia) + rdum * psi_det(jb)
 
 995       format(i5,4e20.8)
@@ -1549,7 +1550,7 @@ contains
     complex(8),intent(inout):: psiv(nstates),Zion_coeff(ip_states*(ip_states+1)),work(2*ip_states*(nva+nvb))
 
     integer(8) :: i,i1,ix,j,j1,ij,a,a1,b,b1,ia,jb,ii,jj,x,x1,y,y1,aa,bb,xx,yy,istate,ndim,info
-    real(8)    :: psi2, vabs00, normV, rdum
+    real(8)    :: psi2, vabs00_, normV, rdum
 !:    real(8)    :: rate_aa(noa,noa),rate_ab(noa,nob),rate_ba(nob,noa),rate_bb(nob,nob), &
 !:                  pop(noa+nva+nob+nvb), ion(noa+nva+nob+nvb)
 
@@ -1572,16 +1573,16 @@ contains
   
      !: unrestricted ground state
  
-     vabs00 = 0.d0
+     vabs00_ = 0.d0
      do i=1, noa
 !:       pop(i) = 1.d0
 !:       ion(i) = 1.d0
-       vabs00 = vabs00 + vabs_a(i,i)
+       vabs00_ = vabs00_ + vabs_a(i,i)
      end do
      do i=1, nob
 !:       pop(noa+nva+i) = 1.d0
 !:       ion(noa+nva+i) = 1.d0
-       vabs00 = vabs00 + vabs_b(i,i)
+       vabs00_ = vabs00_ + vabs_b(i,i)
      end do
 
      psiV = 0.d0
@@ -1742,7 +1743,7 @@ contains
           
 78        continue
  
-          if( ia.eq.jb ) rdum = rdum + vabs00
+          if( ia.eq.jb ) rdum = rdum + vabs00_
           psiV(ia) = psiV(ia) + rdum * psi_det(jb)
 
 !:          write(iout,"(8i4,f20.14)") ia,jb,ii,xx,aa,jj,yy,bb,rdum
@@ -1893,7 +1894,7 @@ contains
 
     integer(8) :: i, j, a, b, ia, jb, ii, jj, aa, bb, info, noab, nvab
     integer(8) :: index(50)
-    real(8)    :: const, const2, psi2, vabs00, rdum, rdum1, norm1
+    real(8)    :: const, const2, psi2, vabs00_, rdum, rdum1, norm1
     complex(8) :: psi_ia, u(2), vt(2)
     
 !    get_psid produces psi_det that is normalized 
@@ -1920,14 +1921,14 @@ contains
        const2 = 1.d0
      end if
      !: ground state
-     vabs00 = 0.d0
+     vabs00_ = 0.d0
      do i=1, noa
-       vabs00 = vabs00 + const2 * vabs_a(i,i)
+       vabs00_ = vabs00_ + const2 * vabs_a(i,i)
        s(i) = s(i) +  vabs_a(i,i)
      end do
      do i=1, nob
        if ( unrestricted ) then
-         vabs00 = vabs00 + const2 * vabs_b(i,i)
+         vabs00_ = vabs00_ + const2 * vabs_b(i,i)
          s(i+noa) = s(i+noa) + vabs_b(i,i)
        else
          s(i+noa) = s(i+noa) + vabs_a(i,i)
@@ -1936,14 +1937,14 @@ contains
  
      psiV = dcmplx(0.d0,0.d0)
      psi2 = dreal(dconjg(psi_det(1))*psi_det(1))
-     rate = psi2 * vabs00
-     psiV(1) = psi_det(1) * vabs00
+     rate = psi2 * vabs00_
+     psiV(1) = psi_det(1) * vabs00_
      rdum=0.d0
      do i=1,noa+nob
        rdum=rdum+s(i)
        s(i) = psi2 * s(i)
      end do
-!:     write(iout,*) " vabs00",vabs00,rdum
+!:     write(iout,*) " vabs00_",vabs00_,rdum
               
      do ia=2, nstates
           
@@ -2007,12 +2008,12 @@ contains
          end if
          if( ia.eq.jb ) then
            if ( ii.lt.0 ) then
-              s(i) = s(i) + psi2 * vabs00
+              s(i) = s(i) + psi2 * vabs00_
            else
-              s(i+noa) = s(i+noa) + psi2 * vabs00
+              s(i+noa) = s(i+noa) + psi2 * vabs00_
            end if
-           rate = rate + psi2 * vabs00
-           psiV(ia) = psiV(ia) + psi_det(jb) * vabs00
+           rate = rate + psi2 * vabs00_
+           psiV(ia) = psiV(ia) + psi_det(jb) * vabs00_
          end if
        end do
      end do
