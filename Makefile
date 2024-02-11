@@ -107,6 +107,7 @@ $(OBJ)/io_binary.o : $(SRC)/io_binary.f90
 update : 
 	mkdir -p $(BIN)
 	mkdir -p $(OBJ)
+	mkdir -p $(MOD)
 	./CHANGE_DATE
 
 $(OBJ)/qcmatrixio.o : $(SRC)/qcmatrixio.F

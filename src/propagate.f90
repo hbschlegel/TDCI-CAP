@@ -342,10 +342,10 @@ contains
                dirx1, diry1, dirz1,  0.d0,0.d0,0.d0,  0.d0,0.d0,0.d0
 
           if( trim(jobtype).eq.flag_ip) then
-            write( funit2,"(a5,7(a10,1x),2(1x,a15),10(1x,a15) )" ) '#','time(fs)','nva99NO nva99MO ','field1','field2','fieldx','fieldy','fieldz', &
+            write( funit2,"(a5,7(a10,1x),2(1x,a15),10(1x,a15) )" ) '#','time(fs)','NO99 MO99 ','field1','field2','fieldx','fieldy','fieldz', &
               'norm2','rate(fs-1)', 'mu_x(au)','mu_y(au)','mu_z(au)','6 x |psi(i)|**2'
           else
-            write( funit2,"(a5,7(a10,1x),2(1x,a15),10(1x,a15) )" ) '#','time(fs)','nva99NO nva99MO ','field1','field2','fieldx','fieldy','fieldz', &
+            write( funit2,"(a5,7(a10,1x),2(1x,a15),10(1x,a15) )" ) '#','time(fs)','NO99 MO99 ','field1','field2','fieldx','fieldy','fieldz', &
               'norm2','rate(fs-1)', 'mu_x(au)','mu_y(au)','mu_z(au)'
           end if
 
@@ -1129,10 +1129,10 @@ contains
                dirx1, diry1, dirz1,  dirx2, diry2, dirz2
  
           if( trim(jobtype).eq.flag_ip) then
-            write( funit2,"(a5,7(a10,1x),2(1x,a15),10(1x,a15) )" ) '#','time(fs)','nav95/99 ','field1','field2','fieldx','fieldy','fieldz', &
+            write( funit2,"(a5,7(a10,1x),2(1x,a15),10(1x,a15) )" ) '#','time(fs)','NO99 MO99 ','field1','field2','fieldx','fieldy','fieldz', &
               'norm2','rate(fs-1)', 'mu_x(au)','mu_y(au)','mu_z(au)','6 x |psi(i)|**2'
           else
-            write( funit2,"(a5,7(a10,1x),2(1x,a15),10(1x,a15) )" ) '#','time(fs)','nva95/99 ','field1','field2','fieldx','fieldy','fieldz', &
+            write( funit2,"(a5,7(a10,1x),2(1x,a15),10(1x,a15) )" ) '#','time(fs)','NO99 MO99 ','field1','field2','fieldx','fieldy','fieldz', &
               'norm2','rate(fs-1)', 'mu_x(au)','mu_y(au)','mu_z(au)'
           end if
 
@@ -1352,16 +1352,14 @@ contains
                 !:  pop_rate has size (norb,norb)?
 
                 !: Check max nva for input NOs at this step.
-                if (flag_ReadU_NO) then
-                  nva95max_direct = jj
-                  nva99max_direct = kk
-                  ratemax_direct = rate_direct
-                  call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, &
-                          nva95maxMO_sort, nva99maxMO_sort, nva95maxMO_sort,nva99maxMO_sort, &
-                          nva95max_debug, nva99max_debug,rate_debug, &
-                          !nva95max_density, nva99max_density, rate_density, &
-                          opdm_avg, U_NO_input, vabsmoa )
-                end if
+                nva95max_direct = jj
+                nva99max_direct = kk
+                ratemax_direct = rate_direct
+                call update_maxnva( nva95maxMO, nva99maxMO, nva95max, nva99max, &
+                        nva95maxMO_sort, nva99maxMO_sort, nva95maxMO_sort,nva99maxMO_sort, &
+                        nva95max_debug, nva99max_debug,rate_debug, &
+                        !nva95max_density, nva99max_density, rate_density, &
+                        opdm_avg, U_NO_input, vabsmoa )
 
                 !$OMP CRITICAL
                 !: set critical for sum so we dont have multiple threads
@@ -1410,7 +1408,7 @@ contains
                 if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
                     if(norm.ne.0) then
                       write( funit2,"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
-                      idata, dble(itime)*dt*au2fs,jj,kk,efield1,0.d0,efieldx,efieldy,efieldz, &
+                      idata, dble(itime)*dt*au2fs,nva99max,kk,efield1,0.d0,efieldx,efieldy,efieldz, &
                       norm**2, rate/au2fs, mux, muy, muz, &
                       dble(dconjg(psi(1))*psi(1))/norm**2,dble(dconjg(psi(2))*psi(2))/norm**2, &
                       dble(dconjg(psi(3))*psi(3))/norm**2,dble(dconjg(psi(4))*psi(4))/norm**2, &
@@ -1418,12 +1416,12 @@ contains
                       dble(dconjg(psi(7))*psi(7))/norm**2,dble(dconjg(psi(8))*psi(8))/norm**2
                    else
                       write( funit2,"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
-                      idata, dble(itime)*dt*au2fs,jj,kk,efield1,0.d0,efieldx,efieldy,efieldz, &
+                      idata, dble(itime)*dt*au2fs,nva99max,kk,efield1,0.d0,efieldx,efieldy,efieldz, &
                       norm**2, rate/au2fs, mux, muy, muz, 0.d0,0.d0,0.d0,0.d0,0.d0,0.d0
                    end if
                 else
                     write( funit2,"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
-                      idata, dble(itime)*dt*au2fs,jj,kk,efield1,efield2,efieldx,efieldy,efieldz, &
+                      idata, dble(itime)*dt*au2fs,nva99max,kk,efield1,efield2,efieldx,efieldy,efieldz, &
                       norm**2, rate/au2fs, mux, muy, muz
                 end if
                 flush(funit2)
