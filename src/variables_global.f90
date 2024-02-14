@@ -11,6 +11,8 @@ module variables_global
   
   implicit none
 
+
+
   !: default file parameters
   integer(8),   parameter :: iout = 42            !: unit number for outfile 'tdci.log'
   character(5), parameter :: inputfile  = 'input' !: see make_input
