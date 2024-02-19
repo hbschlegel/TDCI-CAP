@@ -18,19 +18,20 @@ module propagate
 
     !: results and psi stuff
     real(8)    :: norm, normV, rate, mux, muy, muz
-    complex(8) :: psi_j, psi_k
+    !complex(8) :: psi_j, psi_k
     !complex(8) :: psi(nstuse), psi1(nstates)
-    complex(8), allocatable :: psi(:), psi1(:)
+    real(8),allocatable :: rate_a(:),rate_b(:),rate_aa(:),rate_ab(:),rate_ba(:),rate_bb(:)
 
     !: file stuff
     integer(8)   :: funit(6) !: Output data file units
     character(4) :: dirstr, emaxstr
     character(100) :: cifile, datafile
     !: lapack stuff and misc
-    integer(8) :: info1, info2, info3, lscratch, liwork
+    integer(8) :: info2, info3
     real(8)    :: start1, start2, finish1, finish2
-    integer(8), allocatable :: iwork(:)
-    real(8), allocatable    :: scratch(:)
+    !integer(8) :: info1, lscratch, liwork
+    !integer(8), allocatable :: iwork(:)
+    !real(8), allocatable    :: scratch(:)
 
     integer(8) :: &
       nva95max, nva99max, nva95maxMO, nva99maxMO, nva95max_debug, &
@@ -85,6 +86,10 @@ contains
 
     class(PropagationPrivate), intent(inout) :: this
 
+
+    allocate( this%rate_aa(noa*noa), this%rate_ab(noa*nob), this%rate_ba(nob*noa), this%rate_bb(nob*nob) )
+    allocate( this%rate_a(noa), this%rate_b(nob) )
+
     this%nva95max = 0 ; this%nva99max = 0 ; this%nva95maxMO = 0 ; this%nva99maxMO = 0
     this%nva95max_direct = 0 ; this%nva99max_direct = 0
     this%nva95max_debug = 0 ; this%nva99max_debug = 0
@@ -95,16 +100,16 @@ contains
     this%rate_debug = 0.d0
 
 
-    If( QeigenDC ) then
-      allocate( this%iwork(3+5*nstuse) )
-      allocate( this%scratch(1+8*nstuse+2*nstuse*nstuse) )
-    else
-      allocate( this%iwork(2) )
-      allocate( this%scratch(nstuse*nstuse) )
-    end if
+    !if( QeigenDC ) then
+    !  allocate( this%iwork(3+5*nstuse) )
+    !  allocate( this%scratch(1+8*nstuse+2*nstuse*nstuse) )
+    !else
+    !  allocate( this%iwork(2) )
+    !  allocate( this%scratch(nstuse*nstuse) )
+    !end if
 
-    allocate( this%psi(nstuse) )
-    allocate( this%psi1(nstates) )
+    !allocate( this%psi(nstuse) )
+    !allocate( this%psi1(nstates) )
 
 
   end subroutine initialize_PropPriv
@@ -217,6 +222,164 @@ contains
 
   end subroutine PropWriteDataHeaders
 
+
+  subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scratch, &
+                           itime, idata, pop1, ion)
+    implicit none
+
+    class(PropagationPrivate), intent(inout) :: Priv
+    
+    complex(8), intent(inout) :: psi(nstuse), psi1(nstates), psi_det0(:)
+    complex(8), intent(inout) :: Zion_coeff(:), ion_coeff(:)
+    real(8), intent(inout) :: scratch(:)
+
+    integer(8), intent(inout) :: itime, idata
+    real(8), intent(inout) :: pop1(:), ion(:)
+
+    integer(8) :: i, j, kk
+    
+
+    if( Qci_save) then
+      write(Priv%funit(1)) dble(itime)*dt*au2fs, Priv%efield1, 0.d0, &
+       Priv%dirx1, Priv%diry1, Priv%dirz1, 0.d0, 0.d0, 0.d0, Priv%norm**2
+      write(Priv%funit(1)) real( psi )
+      write(Priv%funit(1)) aimag( psi )
+      flush(Priv%funit(1))
+    end if
+
+
+    if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
+      if(Priv%norm.ne.0) then
+        write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
+               idata, dble(itime)*dt*au2fs,Priv%nva99max,kk,Priv%efield1,0.d0,&
+               Priv%efieldx,Priv%efieldy,Priv%efieldz, &
+               Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz, &
+               dble(dconjg(psi(1))*psi(1))/Priv%norm**2, &
+               dble(dconjg(psi(2))*psi(2))/Priv%norm**2, &
+               dble(dconjg(psi(3))*psi(3))/Priv%norm**2, &
+               dble(dconjg(psi(4))*psi(4))/Priv%norm**2, &
+               dble(dconjg(psi(5))*psi(5))/Priv%norm**2, &
+               dble(dconjg(psi(6))*psi(6))/Priv%norm**2, &
+               dble(dconjg(psi(7))*psi(7))/Priv%norm**2, &
+               dble(dconjg(psi(8))*psi(8))/Priv%norm**2
+      else
+        write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
+               idata, dble(itime)*dt*au2fs,Priv%nva99max,kk,Priv%efield1,0.d0,&
+               Priv%efieldx,Priv%efieldy,Priv%efieldz, &
+               Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz,&
+               0.d0,0.d0,0.d0,0.d0,0.d0,0.d0
+      end if
+    else
+      write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
+             idata, dble(itime)*dt*au2fs,Priv%nva99max,kk,Priv%efield1,0.d0,&
+             Priv%efieldx,Priv%efieldy,Priv%efieldz, &
+             Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz
+    end if
+    flush(Priv%funit(2))
+
+
+
+    if( trim(jobtype).eq.flag_ip) then
+      write( Priv%funit(3),"( i5,f10.4,500(1x,f15.10))") &
+             idata, dble(itime)*dt*au2fs, Priv%norm**2, &
+             (pop1(i),i=1,noa),(pop1(noa+nva+i),i=1,nob),Priv%rate/au2fs,&
+             (Priv%rate_aa(i),i=1,noa*noa),&
+             (Priv%rate_ab(i),i=1,noa*nob),(Priv%rate_ba(i),i=1,nob*noa),(Priv%rate_bb(i),i=1,nob*nob)
+    else
+      write( Priv%funit(3),"( i5,f10.4,500(1x,f15.10))") &
+             idata, dble(itime)*dt*au2fs, Priv%norm**2, &
+             (pop1(i),i=1,noa),(pop1(noa+nva+i),i=1,nob), &
+             (Priv%rate_a(i),i=1,noa),(Priv%rate_b(i),i=1,nob)
+    end if
+    flush(Priv%funit(3))
+
+    write( Priv%funit(4),"( i5,f10.4,500(1x,f15.10))") &
+           idata, dble(itime)*dt*au2fs, Priv%rate/Priv%norm**2, Priv%normV, &
+           (ion(i),i=1,noa),(ion(noa+nva+i),i=1,nob)
+    flush(Priv%funit(4))
+                
+    if( Qmo_dens) then
+      write(Priv%funit(6),"(f13.9,f16.10)") dble(itime)*dt*au2fs,Priv%rate
+      do i=1, noa+nva
+        if ( abs(scratch(i+(i-1)*(noa+nva))).gt.1.d-6 ) then
+          !write(Priv%funit(6),"(i5,i5,1x,f13.10,',')",advance='no')
+          write(Priv%funit(6),"(i5,i5,1x,f13.10)") &
+                i, i, scratch(i+(i-1)*(noa+nva))
+        end if
+        do j=(i+1), noa+nva
+          if ( abs(scratch(i+(j-1)*(noa+nva))).gt.1.d-6 ) then 
+            !write(Priv%funit(6),"(i5,i5,1x,f13.10,',')",advance='no') 
+            write(Priv%funit(6),"(i5,i5,1x,f13.10)") &
+                  i, j, 2.d0*scratch(i+(j-1)*(noa+nva))
+          end if
+        end do
+      end do
+      write(Priv%funit(6),"(i5,i5,1x,f13.10)") 0,0,0.d0
+    end if
+
+
+
+    if(trim(jobtype).eq.flag_cis .and. (.not. Qwrite_ion_coeff) ) then
+      call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
+                         psi_det0,psi1,Priv%norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
+                         Priv%rate,Zion_coeff,ion_coeff,scratch)
+      call get_proj_ion(iout,noa+nob,ip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
+      !write(iout,*) " ip_states",ip_states
+      !do i=1,noa+nob
+      !  write(iout,"('SVD s',i8,16f13.7)") idata,scratch(i)
+      !  write(iout,"('coeff',i3,16f13.7)") i,(Zion_coeff(j+i*(noa+nob)),j=1,noa+nob)
+      !  write(iout,"('ipvec',i3,16f13.7)") i,(ip_vec(j+(i-1)*(noa+nob)),j=1,noa+nob)
+      !  write(iout,"('proj ',i3,16f13.7)") i,(Zproj_ion(j+(i-1)*(noa+nob)),j=1,noa+nob)
+      !end do
+      write( Priv%funit(5),"(i5,f10.4,50(1x,f15.10))") &
+             idata, dble(itime)*dt*au2fs, Priv%rate,(scratch(i),i=1,noa+nob)
+      do i = 1,noa+nob
+        write( Priv%funit(5),"(50(1x,f15.10))") (Zproj_ion(j+(i-1)*(noa+nob)),j=1,noa+nob)
+      end do
+      do i = 1,noa+nob
+        write( Priv%funit(5),"(50(1x,f15.10))") (Zion_coeff(j+i*(noa+nob)),j=1,noa+nob)
+      end do
+    end if
+
+
+
+
+    if(trim(jobtype).eq.flag_ip .and. (.not. Qwrite_ion_coeff) ) then
+      call get_ion_coeff_ip(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
+                  ip_states,state_ip_index,psi_det0,psi1,Priv%norm,Mol%vabsmoa,Mol%vabsmob, &
+                  Priv%rate,Zion_coeff,ion_coeff,scratch)
+      call get_proj_ion(iout,ip_states,ip_vec,Zion_coeff(ip_states+1),Zproj_ion)
+      !write(iout,*) " ip_states",ip_states
+      !write(iout,"('s    ',14f13.7/5x,14f13.7/5x,14f13.7/5x,14f13.7)") &
+      !            (scratch(j),j=1,ip_states)
+      !write(iout,"('rates',14f13.7/5x,14f13.7/5x,14f13.7/5x,14f13.7)") &
+      !            (abs(Zion_coeff(j)),j=1,ip_states)
+      !flush(iout)
+      !do i=1,ip_states
+      !write(iout,"('SVD s',i8,16f13.7)") idata,scratch(i)
+      !write(iout,"('coeff',i3,16f13.7/8x,16f13.7/8x,16f13.7/8x,16f13.7)") &
+      !            i,(Zion_coeff(j+i*(ip_states)),j=1,ip_states)
+      !write(iout,"('ipvec',i3,16f13.7/8x,16f13.7/8x,16f13.7/8x,16f13.7)") &
+      !            i,(ip_vec(j+(i-1)*(ip_states)),j=1,ip_states)
+      !write(iout,"('proj ',i3,16f13.7/8x,16f13.7/8x,16f13.7/8x,16f13.7)") &
+      !            i,(Zproj_ion(j+(i-1)*(ip_states)),j=1,ip_states)
+      !end do
+      !flush(iout)
+      write( Priv%funit(5),"(i5,f10.4,50(1x,f15.10))") &
+             idata, dble(itime)*dt*au2fs, Priv%rate,(scratch(i),i=1,ip_states)
+      do i = 1,ip_states
+        write( Priv%funit(5),"(60(1x,f15.10))") (Zproj_ion(j+(i-1)*ip_states),j=1,ip_states)
+      end do
+      do i = 1,ip_states
+        write( Priv%funit(5),"(60(1x,f15.10))") (Zion_coeff(j+i*ip_states),j=1,ip_states)
+      end do
+      flush(Priv%funit(5))
+    end if
+
+
+  end subroutine PropWriteData
+
+
   !==================================================================!
   !  PropagationPrivate subroutines end
   !==================================================================!
@@ -323,11 +486,11 @@ contains
 
     !: private variables
     class(PropagationPrivate), allocatable :: Priv    
+    !: Psi arrays must be not allocatable for performance
+    complex(8) :: psi_j, psi_k, psi(nstuse), psi1(nstates)
 
-    !: temporary arrays to be deallocated
     real(8) :: norm0
     real(8),allocatable :: pop0(:),pop1(:),ion(:)
-    real(8),allocatable :: rate_a(:),rate_b(:),rate_aa(:),rate_ab(:),rate_ba(:),rate_bb(:)
     complex(8), allocatable :: psi_det0(:),ion_coeff(:),Zion_coeff(:)
 
     integer(8) :: i, j, ii, jj, k, kk
@@ -335,6 +498,13 @@ contains
     integer(8) :: ithread, idata
     complex(8) :: cdum
 
+    real(8) :: start1, finish1, start3, finish3
+    real(8) :: times(100)
+
+    !: lapack stuff
+    integer(8) :: info1, lscratch, liwork
+    integer(8), allocatable :: iwork(:)
+    real(8), allocatable    :: scratch(:)
 
 
 
@@ -364,10 +534,9 @@ contains
     allocate(Prop)
     call Prop%initialize(ndim)
 
+
     !: get initial population
     allocate( pop0(norb), pop1(norb), ion(norb), psi_det0(nstates) )    
-    allocate( rate_a(noa), rate_b(nob) )
-    allocate( rate_aa(noa*noa), rate_ab(noa*nob), rate_ba(nob*noa), rate_bb(nob*nob) )
     i = max(2*ip_states*(nva+nvb),ip_states*ip_states)
     allocate(ion_coeff(i))
     If( Qwrite_ion_coeff .or. Qread_ion_coeff ) then
@@ -411,8 +580,9 @@ contains
 
     !$OMP PARALLEL DEFAULT(NONE),&
     !$OMP PRIVATE(Priv, i, idata, idir, iemax, ii, itime, j, jj, k, kk, ithread, &
-    !$OMP norm0, &
-    !$OMP pop1, ion, ion_coeff, rate_a, rate_b, rate_aa, rate_ab, rate_ba, rate_bb, psi_det0,  &
+    !$OMP norm0, lscratch, liwork, scratch, iwork, info1, start1, finish1, &
+    !$OMP psi_j, psi_k, psi, psi1, start3, finish3, times, &
+    !$OMP pop1, ion, ion_coeff, psi_det0,  &
     !$OMP hp1, hp2, tdvals1, tdvals2, Zion_coeff ),  &
     !$OMP SHARED( Mol, Prop, jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
     !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
@@ -428,44 +598,56 @@ contains
     dir_loop : do idir=1, ndir
        
        ithread = omp_get_thread_num()
-       call cpu_time( Priv%start1 )
+
+       call cpu_time( start1 )
 
        allocate(Priv)
        call Priv%initialize()
+       psi = 0 ; psi1 = 0
 
+       if( QeigenDC ) then
+         allocate( iwork(3+5*nstuse) )
+         allocate( scratch(1+8*nstuse+2*nstuse*nstuse) )
+       else
+         allocate( iwork(2) )
+         allocate( scratch(nstuse*nstuse) )
+       end if
 
        !: get directions stored in TDCItdciresults
        Priv%dirx1 = tdciresults(idir)%x0  
        Priv%diry1 = tdciresults(idir)%y0  
        Priv%dirz1 = tdciresults(idir)%z0  
 
+
+
        !: get mu dot e-vector matrix elements in CIS basis.  diagonalize
        hp1(:) = Priv%dirx1*tdx(1:nstuse2) &
               + Priv%diry1*tdy(1:nstuse2) + Priv%dirz1*tdz(1:nstuse2)
-       
+
        !: diagonalize mu dot E
-       Priv%info1 = 10  
+       info1 = 10  
        If( QeigenDC ) then
-         Priv%lscratch = 1+6*nstuse+2*nstuse*nstuse
-         Priv%liwork = 3+5*nstuse
+         lscratch = 1+6*nstuse+2*nstuse*nstuse
+         liwork = 3+5*nstuse
          call dsyevd('v','u',nstuse, hp1, nstuse, tdvals1, &
-           Priv%scratch, Priv%lscratch, Priv%iwork, Priv%liwork, Priv%info1)
+           scratch, lscratch, iwork, liwork, info1)
        else
-         Priv%lscratch = nstuse*nstuse
+         lscratch = nstuse*nstuse
          call dsyev('v','u',nstuse, hp1, nstuse, tdvals1, &
-           Priv%scratch, Priv%lscratch, Priv%info1)
+           scratch, lscratch, info1)
        end if
-       
+
        !: hp = W * exp(-Vabs dt/2)
        call dgemm('t','n',nstuse,nstuse,nstuse,1.d0,hp1,nstuse, & 
-         exp_abp,nstuse,0.d0, Priv%scratch,nstuse)
-       hp1 = Priv%scratch(1:nstuse*nstuse)
-       
-       call cpu_time(Priv%finish1)
+         exp_abp,nstuse,0.d0, scratch,nstuse)
+       hp1 = scratch(1:nstuse*nstuse)
+
+       call cpu_time(finish1)
        
        !: loop over intensities
        emax_loop : do iemax=1, nemax
 
+          call cpu_time(start1)
           !: get emax
           Priv%emax1 = tdciresults(1+(iemax-1)*ndir)%fstrength0
 
@@ -473,37 +655,42 @@ contains
 
           !$OMP CRITICAL
           !: all thread execute the code, but only one at a time
-          if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") Priv%finish1 - Priv%start1
+          if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
           write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
           flush( iout )
           !$OMP END CRITICAL
                     
           !: initialize psi
-          Priv%psi = psi0
+          call cpu_time(start3)
+          psi = psi0
           if( read_state1(iemax).ne.0 ) then
-            Priv%psi = dcmplx(0.d0,0.d0)
+            psi = dcmplx(0.d0,0.d0)
             write(iout,"(' *** Reset initial wavefunction ***')")
             if( read_state1(iemax).ne.0 ) then
               i = read_state1(iemax)
-              Priv%psi(i) = read_coeff1(iemax)
-              write(iout,"(' Initial coefficient for state',i4,' is ',2f12.8)") i,Priv%psi(i)
+              psi(i) = read_coeff1(iemax)
+              write(iout,"(' Initial coefficient for state',i4,' is ',2f12.8)") i,psi(i)
             end if
             if( read_state2(iemax).ne.0 ) then
               i = read_state2(iemax)
-              Priv%psi(i) = read_coeff2(iemax)
-              write(iout,"(' Initial coefficient for state',i4,' is ',2f12.8)") i,Priv%psi(i)
+              psi(i) = read_coeff2(iemax)
+              write(iout,"(' Initial coefficient for state',i4,' is ',2f12.8)") i,psi(i)
             end if
-            call get_norm( norm0, nstuse, Priv%psi )
-            Priv%psi = Priv%psi / norm0 
-            psi0 = Priv%psi
+            call get_norm( norm0, nstuse, psi )
+            psi = psi / norm0 
+            psi0 = psi
           end if
-          If( Qread_ion_coeff ) Priv%psi = dcmplx(0.d0,0.d0)
+          If( Qread_ion_coeff ) psi = dcmplx(0.d0,0.d0)
+
+          call cpu_time(finish3)
+          times(1) = start3 - finish3
 
           !: begin Looping over time
           call cpu_time( Priv%start2 )
           timestep_loop : do itime=1, nstep-1
 !:             call get_norm( norm0, nstuse, psi )
 !:             write(iout,"(i5,16F10.6)") itime,norm0
+             call cpu_time(start3)
              
              !: modified midpoint 
              Priv%efield1 = 0.5d0 * Priv%emax1 * ( fvect1(itime) + fvect1(itime+1) )
@@ -521,7 +708,7 @@ contains
              Priv%efieldy = Priv%diry1 * Priv%efield1
              Priv%efieldz = Priv%dirz1 * Priv%efield1
              
-             If( itime.lt.ion_sample_start(iemax) ) Priv%psi = dcmplx(0.d0,0.d0)
+             If( itime.lt.ion_sample_start(iemax) ) psi = dcmplx(0.d0,0.d0)
              If( Qread_ion_coeff ) then
                If( itime.ge.ion_sample_start(iemax) .and. &
                  itime.le.ion_sample_start(iemax)+ion_sample_width(iemax) ) then
@@ -529,83 +716,101 @@ contains
                  !: tranform ion_coeff to CI basis and add to psi
 !:                  write(iout,"('R0',i5,i3,16F10.6)") itime,ion_sample_state(iemax)
                  call get_ion_psi1(iout,nstates,nstuse,noa+nob,ion_sample_state(iemax), &
-                      dt,cis_vec,Priv%psi,Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),psi_det0)
+                      dt,cis_vec,psi,Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),psi_det0)
                end If
              else
-               If( itime.eq.ion_sample_start(iemax) ) Priv%psi = psi0
+               If( itime.eq.ion_sample_start(iemax) ) psi = psi0
              end If
-             
+             call cpu_time(finish3)
+             times(2) = finish3 - start3
+
+
+             call cpu_time(start3)
              !: exp(-iHel dt/2 ) * psi
              do i=1, nstuse
-                Priv%psi(i) = exphel(i) * Priv%psi(i)
+                psi(i) = exphel(i) * psi(i)
              end do
+             call cpu_time(finish3)
+             times(3) = finish3 - start3
 
              
+             call cpu_time(start3)
              !: W * exp(-Vabs dt/2) * psi
-             Priv%psi1 = dcmplx(0.d0,0.d0)
+             psi1 = dcmplx(0.d0,0.d0)
              do j = 1, nstuse
                 jj = ( j-1) * nstuse  
-                Priv%psi_j = Priv%psi(j)
+                psi_j = psi(j)
                 do k=1, nstuse
-                   Priv%psi1(k) = Priv%psi1(k) + hp1( jj+k ) * Priv%psi_j
+                   psi1(k) = psi1(k) + hp1( jj+k ) * psi_j
                 end do
              end do
+             call cpu_time(finish3)
+             times(4) = finish3 - start3
 
              
+             call cpu_time(start3)
              !: exp(-E(t+dt/2)*mu*dt) * psi
              do j = 1, nstuse
                 Priv%temp = dt * Priv%efield1 * tdvals1(j)
-                Priv%psi1(j) = dcmplx( dcos(Priv%temp),dsin(Priv%temp) ) * Priv%psi1(j)
+                psi1(j) = dcmplx( dcos(Priv%temp),dsin(Priv%temp) ) * psi1(j)
              end do
+             call cpu_time(finish3)
+             times(5) = finish3 - start3
 
              
+             call cpu_time(start3)
              !: exp(-iHel dt/2) * exp(-Vabs dt/2) * W * psi
              do j = 1, nstuse
                 jj = nstuse * ( j-1 )
-                Priv%psi_j = dcmplx( 0.d0, 0.d0 )
+                psi_j = dcmplx( 0.d0, 0.d0 )
                 do k=1, nstuse
-                   Priv%psi_j  = Priv%psi_j + hp1( jj+k ) * Priv%psi1(k)
+                   psi_j  = psi_j + hp1( jj+k ) * psi1(k)
                 end do
-                Priv%psi(j) = exphel(j) * Priv%psi_j
+                psi(j) = exphel(j) * psi_j
              end do
+             call cpu_time(finish3)
+             times(6) = finish3 - start3
              
+             call cpu_time(start3)
              If( Qwrite_ion_coeff ) then
-                call get_norm( Priv%norm, nstuse, Priv%psi )
-                call get_psid( nstuse, nstates, cis_vec, Priv%norm, Priv%psi, psi_det0 )
+                call get_norm( Priv%norm, nstuse, psi )
+                call get_psid( nstuse, nstates, cis_vec, Priv%norm, psi, psi_det0 )
                 ii = (itime-1)*(noa+nob)*(noa+nob+1)
                 call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                  psi_det0,Priv%psi1,Priv%norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
-                  Priv%rate, Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),ion_coeff,Priv%scratch)
-!:                  write(iout,"('W0',i5,i7,16f12.8)") itime,ii,rate,Priv%scratch(1:noa+nob)
+                  psi_det0,psi1,Priv%norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
+                  Priv%rate, Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),ion_coeff,scratch)
+!:                  write(iout,"('W0',i5,i7,16f12.8)") itime,ii,rate,scratch(1:noa+nob)
                   do i = 1,noa+nob
                      do j =1,noa+nob
                        Zion_coeff(ii+i*(noa+nob)+j) =  &
-                         dsqrt(Priv%rate) * Priv%scratch(i) * Zion_coeff(ii+i*(noa+nob)+j)
+                         dsqrt(Priv%rate) * scratch(i) * Zion_coeff(ii+i*(noa+nob)+j)
                      end do
                   end do
 !:                  if ( mod(itime,outstep).eq.0 )  write(iout,"(i5,' SVD ',10(5F12.8/))") &
-!:                                                  itime,norm,(Priv%scratch(i),i=1,noa+nob)               
+!:                                                  itime,norm,(scratch(i),i=1,noa+nob)               
              end If
-             
+             call cpu_time(finish3)
+             times(7) = finish3 - start3
+
              analysis : if ( mod(itime,outstep).eq.0 ) then                
                 
                 idata = int( itime/outstep)  
                 
-                call get_norm( Priv%norm, nstuse, Priv%psi )
-                call get_psid( nstuse, nstates, cis_vec, Priv%norm, Priv%psi, psi_det0 )
+                call get_norm( Priv%norm, nstuse, psi )
+                call get_psid( nstuse, nstates, cis_vec, Priv%norm, psi, psi_det0 )
 
                 if ( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip ) then
                   call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
-                    pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
-                    psi_det0,Priv%psi1,Priv%normV,Mol%vabsmoa,Mol%vabsmob,Priv%scratch,au2fs,Priv%rate_direct)
+                    pop1,ion,ion_coeff,Priv%rate_aa,Priv%rate_ab,Priv%rate_ba,Priv%rate_bb, &
+                    psi_det0,psi1,Priv%normV,Mol%vabsmoa,Mol%vabsmob,scratch,au2fs,Priv%rate_direct)
                 else
                   call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
-                    pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,Priv%psi1,Priv%normV, &
-                    Mol%vabsmoa,Mol%vabsmob,unrestricted,Priv%scratch,au2fs,Priv%rate_direct)
+                    pop1,ion,ion_coeff,Priv%rate_a,Priv%rate_b,psi_det0,psi1,Priv%normV, &
+                    Mol%vabsmoa,Mol%vabsmob,unrestricted,scratch,au2fs,Priv%rate_direct)
                 end if 
-                !: 1-RDM (opdm) should be stored in Priv%scratch now.
+                !: 1-RDM (opdm) should be stored in scratch now.
 
                 !: Check max nva for input NOs at this step.
                 Priv%nva95max_direct = jj
@@ -619,145 +824,32 @@ contains
                         Prop%opdm_avg, Prop%U_NO_input, Mol%vabsmoa )
 
                 !$OMP CRITICAL
-                !: set critical for sum so we dont have multiple threads
-                !:   modifying opdm_avg at a time... is this going to destroy
-                !:   performance?
                 !: Add 1-RDM (opdm) to 1-RDM average for Natural Orbital generation.
                 
-                call add_opdm_average( Prop%opdm_avg, Priv%scratch, Prop%opdm_avg_N )
-                call add_opdm_average( Prop%opdm_avg_abs, Priv%scratch, &
+                call add_opdm_average( Prop%opdm_avg, scratch, Prop%opdm_avg_N )
+                call add_opdm_average( Prop%opdm_avg_abs, scratch, &
                                        Prop%opdm_avg_N, .false., .true. )
 
-                !call generate_natural_orbitals( Priv%scratch, U_NO, natorb_occ )
-                !call NO_rate_sanity( Priv%scratch, U_NO, natorb_occ, Mol%vabsmoa, Mol%cmo_a)
+                !call generate_natural_orbitals( scratch, U_NO, natorb_occ )
+                !call NO_rate_sanity( scratch, U_NO, natorb_occ, Mol%vabsmoa, Mol%cmo_a)
                 !flush(iout)    
                 !call dgemm_sanity 
 
                 !$OMP END CRITICAL
  
-                call get_norm( Priv%norm,nstuse, Priv%psi )
-                call get_expectation( nstuse, Priv%norm, Priv%psi, abp, Priv%rate) !: rate expectation value
-                call get_expectation( nstuse, Priv%norm, Priv%psi, tdx, Priv%mux ) !: mux  expectation value
-                call get_expectation( nstuse, Priv%norm, Priv%psi, tdy, Priv%muy ) !: muy  expectation value
-                call get_expectation( nstuse, Priv%norm, Priv%psi, tdz, Priv%muz ) !: muz  expectation value
+                call get_norm( Priv%norm,nstuse, psi )
+                call get_expectation( nstuse, Priv%norm, psi, abp, Priv%rate) !: rate expectation value
+                call get_expectation( nstuse, Priv%norm, psi, tdx, Priv%mux ) !: mux  expectation value
+                call get_expectation( nstuse, Priv%norm, psi, tdy, Priv%muy ) !: muy  expectation value
+                call get_expectation( nstuse, Priv%norm, psi, tdz, Priv%muz ) !: muz  expectation value
                 !write(iout,*) " expectation Priv%rate", itime,Priv%norm,Priv%rate
                 Priv%rate = -2.d0 * Priv%rate * Priv%norm**2
 
-                if( Qci_save) then
-                  write(Priv%funit(1)) dble(itime)*dt*au2fs, Priv%efield1, 0.d0, &
-                   Priv%dirx1, Priv%diry1, Priv%dirz1, 0.d0, 0.d0, 0.d0, Priv%norm**2
-                  write(Priv%funit(1)) real( Priv%psi )
-                  write(Priv%funit(1)) aimag( Priv%psi )
-                  flush(Priv%funit(1))
-                end if
-                
-                if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
-                    if(Priv%norm.ne.0) then
-                      write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
-                      idata, dble(itime)*dt*au2fs,Priv%nva99max,kk,Priv%efield1,0.d0,Priv%efieldx,Priv%efieldy,Priv%efieldz, &
-                      Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz, &
-                      dble(dconjg(Priv%psi(1))*Priv%psi(1))/Priv%norm**2, &
-                      dble(dconjg(Priv%psi(2))*Priv%psi(2))/Priv%norm**2, &
-                      dble(dconjg(Priv%psi(3))*Priv%psi(3))/Priv%norm**2, &
-                      dble(dconjg(Priv%psi(4))*Priv%psi(4))/Priv%norm**2, &
-                      dble(dconjg(Priv%psi(5))*Priv%psi(5))/Priv%norm**2, &
-                      dble(dconjg(Priv%psi(6))*Priv%psi(6))/Priv%norm**2, &
-                      dble(dconjg(Priv%psi(7))*Priv%psi(7))/Priv%norm**2, &
-                      dble(dconjg(Priv%psi(8))*Priv%psi(8))/Priv%norm**2
-                   else
-                      write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
-                      idata, dble(itime)*dt*au2fs,Priv%nva99max,kk,Priv%efield1,0.d0,Priv%efieldx,Priv%efieldy,Priv%efieldz, &
-                      Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz, 0.d0,0.d0,0.d0,0.d0,0.d0,0.d0
-                   end if
-                else
-                    write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
-                      idata, dble(itime)*dt*au2fs,Priv%nva99max,kk,Priv%efield1,0.d0,Priv%efieldx,Priv%efieldy,Priv%efieldz, &
-                      Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz
-                end if
-                flush(Priv%funit(2))
 
-                if( trim(jobtype).eq.flag_ip) then
-                    write( Priv%funit(3),"( i5,f10.4,500(1x,f15.10))") &
-                      idata, dble(itime)*dt*au2fs, Priv%norm**2, &
-                      (pop1(i),i=1,noa),(pop1(noa+nva+i),i=1,nob),Priv%rate/au2fs,(rate_aa(i),i=1,noa*noa),&
-                      (rate_ab(i),i=1,noa*nob),(rate_ba(i),i=1,nob*noa),(rate_bb(i),i=1,nob*nob)
-                else
-                    write( Priv%funit(3),"( i5,f10.4,500(1x,f15.10))") &
-                      idata, dble(itime)*dt*au2fs, Priv%norm**2, &
-                      (pop1(i),i=1,noa),(pop1(noa+nva+i),i=1,nob), &
-                      (rate_a(i),i=1,noa),(rate_b(i),i=1,nob)
-                end if
-                flush(Priv%funit(3))
+                call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
+                                   scratch, itime, idata, pop1, ion)
 
-                write( Priv%funit(4),"( i5,f10.4,500(1x,f15.10))") &
-                  idata, dble(itime)*dt*au2fs, Priv%rate/Priv%norm**2, Priv%normV, &
-                  (ion(i),i=1,noa),(ion(noa+nva+i),i=1,nob)
-                flush(Priv%funit(4))
-                
-                if( Qmo_dens) then
-                  write(Priv%funit(6),"(f13.9,f16.10)") dble(itime)*dt*au2fs,Priv%rate
-                  do i=1, noa+nva
-                    if ( abs(Priv%scratch(i+(i-1)*(noa+nva))).gt.1.d-6 ) &
-!:                      write(Priv%funit(6),"(i5,i5,1x,f13.10,',')",advance='no') &
-                      write(Priv%funit(6),"(i5,i5,1x,f13.10)") &
-                        i, i, Priv%scratch(i+(i-1)*(noa+nva))
-                    do j=(i+1), noa+nva
-                      if ( abs(Priv%scratch(i+(j-1)*(noa+nva))).gt.1.d-6 ) &
-!:                        write(Priv%funit(6),"(i5,i5,1x,f13.10,',')",advance='no') &
-                        write(Priv%funit(6),"(i5,i5,1x,f13.10)") &
-                          i, j, 2.d0*Priv%scratch(i+(j-1)*(noa+nva))
-                      end do
-                    end do
-                    write(Priv%funit(6),"(i5,i5,1x,f13.10)") 0,0,0.d0
-                end if
 
-                If(trim(jobtype).eq.flag_cis .and. (.not. Qwrite_ion_coeff) ) then
-                  call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    psi_det0,Priv%psi1,Priv%norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
-                    Priv%rate,Zion_coeff,ion_coeff,Priv%scratch)
-                  call get_proj_ion(iout,noa+nob,ip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
-!:                  write(iout,*) " ip_states",ip_states
-!:                  do i=1,noa+nob
-!:                    write(iout,"('SVD s',i8,16f13.7)") idata,Priv%scratch(i)
-!:                    write(iout,"('coeff',i3,16f13.7)") i,(Zion_coeff(j+i*(noa+nob)),j=1,noa+nob)
-!:                    write(iout,"('ipvec',i3,16f13.7)") i,(ip_vec(j+(i-1)*(noa+nob)),j=1,noa+nob)
-!:                    write(iout,"('proj ',i3,16f13.7)") i,(Zproj_ion(j+(i-1)*(noa+nob)),j=1,noa+nob)
-!:                  end do
-                  write( Priv%funit(5),"(i5,f10.4,50(1x,f15.10))") &
-                    idata, dble(itime)*dt*au2fs, Priv%rate,(Priv%scratch(i),i=1,noa+nob)
-                  do i = 1,noa+nob
-                    write( Priv%funit(5),"(50(1x,f15.10))") (Zproj_ion(j+(i-1)*(noa+nob)),j=1,noa+nob)
-                  end do
-                  do i = 1,noa+nob
-                    write( Priv%funit(5),"(50(1x,f15.10))") (Zion_coeff(j+i*(noa+nob)),j=1,noa+nob)
-                  end do
-                end If
-                If(trim(jobtype).eq.flag_ip .and. (.not. Qwrite_ion_coeff) ) then
-                  call get_ion_coeff_ip(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                    ip_states,state_ip_index,psi_det0,Priv%psi1,Priv%norm,Mol%vabsmoa,Mol%vabsmob, &
-                    Priv%rate,Zion_coeff,ion_coeff,Priv%scratch)
-                  call get_proj_ion(iout,ip_states,ip_vec,Zion_coeff(ip_states+1),Zproj_ion)
-!:                  write(iout,*) " ip_states",ip_states
-!:                  write(iout,"('s    ',14f13.7/5x,14f13.7/5x,14f13.7/5x,14f13.7)") (Priv%scratch(j),j=1,ip_states)
-!:                  write(iout,"('rates',14f13.7/5x,14f13.7/5x,14f13.7/5x,14f13.7)") (abs(Zion_coeff(j)),j=1,ip_states)
-!:                  flush(iout)
-!:                  do i=1,ip_states
-!:                    write(iout,"('SVD s',i8,16f13.7)") idata,Priv%scratch(i)
-!:                    write(iout,"('coeff',i3,16f13.7/8x,16f13.7/8x,16f13.7/8x,16f13.7)") i,(Zion_coeff(j+i*(ip_states)),j=1,ip_states)
-!:                    write(iout,"('ipvec',i3,16f13.7/8x,16f13.7/8x,16f13.7/8x,16f13.7)") i,(ip_vec(j+(i-1)*(ip_states)),j=1,ip_states)
-!:                    write(iout,"('proj ',i3,16f13.7/8x,16f13.7/8x,16f13.7/8x,16f13.7)") i,(Zproj_ion(j+(i-1)*(ip_states)),j=1,ip_states)
-!:                  end do
-!:                  flush(iout)
-                  write( Priv%funit(5),"(i5,f10.4,50(1x,f15.10))") &
-                    idata, dble(itime)*dt*au2fs, Priv%rate,(Priv%scratch(i),i=1,ip_states)
-                  do i = 1,ip_states
-                    write( Priv%funit(5),"(60(1x,f15.10))") (Zproj_ion(j+(i-1)*ip_states),j=1,ip_states)
-                  end do
-                  do i = 1,ip_states
-                    write( Priv%funit(5),"(60(1x,f15.10))") (Zion_coeff(j+i*ip_states),j=1,ip_states)
-                  end do
-                  flush(Priv%funit(5))
-                end If
 
              end if analysis
              
@@ -774,7 +866,7 @@ contains
  
           If( Qmo_dens ) close(Priv%funit(6))
 
-!:          Priv%scratch(1:3*(noa+nob)) = 0.d0
+!:          scratch(1:3*(noa+nob)) = 0.d0
 !:          psi(1:(noa+nob)**2) = dcmplx(0.d0,0.d0)
 !:          Priv%normV = 0.d0
 !:          Zion_coeff = Zion_coeff*dt
@@ -785,27 +877,27 @@ contains
 !:             psi(1+noa+nob:2*(noa+nob)) = psi(1+noa+nob:2*(noa+nob)) &
 !:                 + Zion_coeff(ii+1+noa+nob:ii+2*(noa+nob))
 !:             write(iout,"('psi2  ',16f10.6)") 1.d+2*psi(1+noa+nob:2*(noa+nob))
-!:             Priv%scratch(1:2*(noa+nob)) = 0.d0
+!:             scratch(1:2*(noa+nob)) = 0.d0
 !:             do j = 1,noa+nob
 !:               jj = ii + (j-1)*(noa+nob) 
-!:               call get_Priv%norm( Priv%scratch(j),noa+nob,Zion_coeff(jj+1:jj+(noa+nob)) )
-!:               call get_Priv%norm( Priv%scratch(j+noa+nob),noa+nob,psi((j-1)*(noa+nob)+1:j*(noa+nob)) )
-!:               Priv%scratch(j+2*(noa+nob)) = Priv%scratch(j+2*(noa+nob))+ Priv%scratch(j)
+!:               call get_norm( scratch(j),noa+nob,Zion_coeff(jj+1:jj+(noa+nob)) )
+!:               call get_norm( scratch(j+noa+nob),noa+nob,psi((j-1)*(noa+nob)+1:j*(noa+nob)) )
+!:               scratch(j+2*(noa+nob)) = scratch(j+2*(noa+nob))+ scratch(j)
 !:             end do
 !:             Priv%norm = 0.d0
 !:             do j = 1,noa+nob
-!:               Priv%norm = Priv%norm + Priv%scratch(j)**2
+!:               Priv%norm = Priv%norm + scratch(j)**2
 !:             end do
 !:             Priv%norm = sqrt(Priv%norm)
 !:             Priv%normV = Priv%normV + Priv%norm
-!:             write(iout,"(i5,9f12.8)")itime,Priv%norm,(Priv%scratch(j),j=1,noa+nob)
-!:             write(iout,"(' ion ',9f12.8)") Priv%normV,(Priv%scratch(j+2*(noa+nob)),j=1,noa+nob)
+!:             write(iout,"(i5,9f12.8)")itime,Priv%norm,(scratch(j),j=1,noa+nob)
+!:             write(iout,"(' ion ',9f12.8)") Priv%normV,(scratch(j+2*(noa+nob)),j=1,noa+nob)
 !:             Priv%norm = 0.d0
 !:             do j = 1,noa+nob
-!:               Priv%norm = Priv%norm + Priv%scratch(j+noa+nob)**2
+!:               Priv%norm = Priv%norm + scratch(j+noa+nob)**2
 !:             end do
 !:             Priv%norm = sqrt(Priv%norm)
-!:             write(iout,"(' psi ',9f12.8)") Priv%norm,(Priv%scratch(j+(noa+nob)),j=1,noa+nob)
+!:             write(iout,"(' psi ',9f12.8)") Priv%norm,(scratch(j+(noa+nob)),j=1,noa+nob)
 !:          end do
  
           !$OMP CRITICAL                    
@@ -819,6 +911,10 @@ contains
           write(iout,"(12x,'dir = (',f8.5,',',f8.5,',',f8.5,')    emax = ',f8.5,' au')")           Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%emax1
           write(iout,"(12x,'propagation time:',f12.4,' s')") Priv%finish2 - Priv%start2  
           write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
+          !: debug times
+          do i=1,7
+            write(iout, "('time ',i5,': ',f14.6,' s')") i, times(i) 
+          end do
 
 
           write(iout,"(12x,'For input NOs, nva95max=',i5,', nva99max=',i5)") Priv%nva95max, Priv%nva99max
