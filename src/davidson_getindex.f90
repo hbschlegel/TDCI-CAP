@@ -381,7 +381,7 @@ contains
     if ( ii.lt.0 ) iorb = -ii       ; if ( ii.gt.0 ) iorb = nrorb + ii
     if ( aa.lt.0 ) aorb = -aa + noa ; if ( aa.gt.0 ) aorb = nrorb + nob + aa
 
-    jb : do jb=1, nstates
+    do jb=1, nstates
        
        yy = hole_index(jb,1) ; y = abs(yy)
        jj = hole_index(jb,2) ; j = abs(jj)
@@ -449,7 +449,7 @@ contains
        
        hcol(jb) = storeme
        
-    end do jb
+    end do !jb
     
 
   end subroutine get_h_column

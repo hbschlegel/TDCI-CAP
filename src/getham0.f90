@@ -129,7 +129,7 @@ contains
     
     cis_vec = 0.d0
   
-    ia : do ia=2, nstates
+    do ia=2, nstates
        
        ii = hole_index(ia,1) ; i = abs(ii)
        aa = part_index(ia,1) ; a = abs(aa)
@@ -138,7 +138,7 @@ contains
        if ( ii.lt.0 ) iorb = -ii       ; if ( ii.gt.0 ) iorb = nrorb + ii
        if ( aa.lt.0 ) aorb = -aa + noa ; if ( aa.gt.0 ) aorb = nrorb + nob + aa
        
-       jb : do jb=ia, nstates
+       do jb=ia, nstates
           
           jj = hole_index(jb,1) ; j = abs(jj)
           bb = part_index(jb,1) ; b = abs(bb)
@@ -168,8 +168,8 @@ contains
           istate = (jb-1)*nstates + ia
           if(ia.ne.jb) cis_vec(istate) = cis_vec(istate) + storeme
          
-       end do jb
-    end do ia
+       end do !jb
+    end do !ia
 !:     Dump Hamiltonian for analysis with Mathematica
 !:     call math_ham
    
@@ -208,7 +208,7 @@ contains
     call get_soc_ao2mo
     call Zform1det_soc(noa,nva,nstates,Zcis_vec,Mol%socmoAA,hole_index,part_index,nob,nvb,Mol%socmoBB,Mol%socmoAB)
      
-    ia : do ia=2, nstates
+    do ia=2, nstates
        
        ii = hole_index(ia,1) ; i = abs(ii)
        aa = part_index(ia,1) ; a = abs(aa)
@@ -217,7 +217,7 @@ contains
        if ( ii.lt.0 ) iorb = -ii       ; if ( ii.gt.0 ) iorb = nrorb + ii
        if ( aa.lt.0 ) aorb = -aa + noa ; if ( aa.gt.0 ) aorb = nrorb + nob + aa
        
-       jb : do jb=ia, nstates
+       do jb=ia, nstates
           
           jj = hole_index(jb,1) ; j = abs(jj)
           bb = part_index(jb,1) ; b = abs(bb)
@@ -253,8 +253,8 @@ contains
           istate = (jb-1)*nstates + ia
           if(ia.ne.jb) Zcis_vec(istate) = Zcis_vec(istate) + dcmplx(storeme,0.d0)
          
-       end do jb
-    end do ia
+       end do !jb
+    end do !ia
 !:     Dump Hamiltonian for analysis with Mathematica
 !:     call math_ham
    
@@ -396,7 +396,7 @@ contains
     call writeme_ham0( 'ip', 'form' ) 
     call get_ip_index 
     
-    ia : do ia=1, nstates
+    do ia=1, nstates
        
        xx = hole_index(ia,1) ; x = abs(xx)
        ii = hole_index(ia,2) ; i = abs(ii)
@@ -407,7 +407,7 @@ contains
        if ( ii.lt.0 ) iorb = -ii       ; if ( ii.gt.0 ) iorb = nrorb + ii
        if ( aa.lt.0 ) aorb = -aa + noa ; if ( aa.gt.0 ) aorb = nrorb + nob + aa
        
-       jb : do jb=ia, nstates
+       do jb=ia, nstates
           
           yy = hole_index(jb,1) ; y = abs(yy)
           jj = hole_index(jb,2) ; j = abs(jj)
@@ -543,8 +543,8 @@ contains
           istate = (jb-1)*nstates + ia
           cis_vec(istate) = storeme
           
-       end do jb
-    end do ia
+       end do !jb
+    end do !ia
    
     call cpu_time(finish)
     write(iout,"(' Hamiltonian generation time:',f12.4,' seconds')") finish-start    
@@ -730,7 +730,7 @@ contains
     call get_soc_ao2mo
     call Zform1det_socip(noa,nva,nstates,Zcis_vec,Mol%socmoAA,hole_index,part_index,nob,nvb,Mol%socmoBB,Mol%socmoAB)
      
-    ia : do ia=1, nstates
+    do ia=1, nstates
        
        xx = hole_index(ia,1) ; x = abs(xx)
        ii = hole_index(ia,2) ; i = abs(ii)
@@ -741,7 +741,7 @@ contains
        if ( ii.lt.0 ) iorb = -ii       ; if ( ii.gt.0 ) iorb = nrorb + ii
        if ( aa.lt.0 ) aorb = -aa + noa ; if ( aa.gt.0 ) aorb = nrorb + nob + aa
        
-       jb : do jb=ia, nstates
+       do jb=ia, nstates
           
           yy = hole_index(jb,1) ; y = abs(yy)
           jj = hole_index(jb,2) ; j = abs(jj)
@@ -904,8 +904,8 @@ contains
           istate = (jb-1)*nstates + ia
           if(ia.ne.jb) Zcis_vec(istate) = Zcis_vec(istate) + dcmplx(storeme,0.d0)
          
-       end do jb
-    end do ia
+       end do !jb
+    end do !ia
 !:     Dump Hamiltonian for analysis with Mathematica
 !:     call math_ham
    
@@ -1306,14 +1306,14 @@ contains
     
     ip_vec = 0.d0
 
-    ia : do ia=1, ip_states
+    do ia=1, ip_states
        xx = hole_ip_index(ia,1) ; x = abs(xx)
        ii = hole_ip_index(ia,2) ; i = abs(ii)
        !: orbital indices
        if ( xx.lt.0 ) xorb = -xx       ; if ( xx.gt.0 ) xorb = nrorb + xx
        if ( ii.lt.0 ) iorb = -ii       ; if ( ii.gt.0 ) iorb = nrorb + ii
 
-       jb : do jb=ia, ip_states
+       do jb=ia, ip_states
           yy = hole_ip_index(jb,1) ; y = abs(yy)
           jj = hole_ip_index(jb,2) ; j = abs(jj)
 
@@ -1337,8 +1337,8 @@ contains
           ip_vec((ia-1)*ip_states+jb) = ip_vec((ia-1)*ip_states+jb) + storeme
           if( ia.ne.jb) ip_vec((jb-1)*ip_states+ia) = ip_vec((jb-1)*ip_states+ia) + storeme
 
-       end do jb
-    end do ia
+       end do !jb
+    end do !ia
  
     info = 10
     lwork = ip_states**2
@@ -1468,14 +1468,14 @@ contains
     call Zform1det_socip(noa,nva,ip_states,Zip_vec,Mol%socmoAA, &
        hole_ip_index,part_ip_index,nob,nvb,Mol%socmoBB,Mol%socmoAB)
 
-    ia : do ia=1, ip_states
+    do ia=1, ip_states
        xx = hole_ip_index(ia,1) ; x = abs(xx)
        ii = hole_ip_index(ia,2) ; i = abs(ii)
        !: orbital indices
        if ( xx.lt.0 ) xorb = -xx       ; if ( xx.gt.0 ) xorb = nrorb + xx
        if ( ii.lt.0 ) iorb = -ii       ; if ( ii.gt.0 ) iorb = nrorb + ii
 
-       jb : do jb=ia, ip_states
+       do jb=ia, ip_states
           yy = hole_ip_index(jb,1) ; y = abs(yy)
           jj = hole_ip_index(jb,2) ; j = abs(jj)
 
@@ -1499,8 +1499,8 @@ contains
           Zip_vec((ia-1)*ip_states+jb) = Zip_vec((ia-1)*ip_states+jb) + dcmplx(storeme,0.d0)
           if( ia.ne.jb) Zip_vec((jb-1)*ip_states+ia) = Zip_vec((jb-1)*ip_states+ia) + dcmplx(storeme,0.d0)
 
-       end do jb
-    end do ia
+       end do !jb
+    end do !ia
  
     call testherm(ip_states,Zip_vec,'Zip_vec DIP')
     info = 10

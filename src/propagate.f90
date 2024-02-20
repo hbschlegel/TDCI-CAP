@@ -36,7 +36,7 @@ module propagate
     integer(8) :: &
       nva95max, nva99max, nva95maxMO, nva99maxMO, nva95max_debug, &
       nva99max_debug, nva95MO_sort, nva99MO_sort, nva95NO_sort, nva99NO_sort, &
-      nva95max_direct, nva99max_direct
+      nva95max_direct, nva99max_direct, MO99, NO99
 
     real(8) :: rate_density, rate_direct, rate_debug
 
@@ -251,7 +251,7 @@ contains
     if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
       if(Priv%norm.ne.0) then
         write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
-               idata, dble(itime)*dt*au2fs,Priv%nva99max,kk,Priv%efield1,0.d0,&
+               idata, dble(itime)*dt*au2fs,Priv%nva99max,Priv%nva99max_direct,Priv%efield1,0.d0,&
                Priv%efieldx,Priv%efieldy,Priv%efieldz, &
                Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz, &
                dble(dconjg(psi(1))*psi(1))/Priv%norm**2, &
@@ -264,14 +264,14 @@ contains
                dble(dconjg(psi(8))*psi(8))/Priv%norm**2
       else
         write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
-               idata, dble(itime)*dt*au2fs,Priv%nva99max,kk,Priv%efield1,0.d0,&
+               idata, dble(itime)*dt*au2fs,Priv%nva99max,Priv%nva99max_direct,Priv%efield1,0.d0,&
                Priv%efieldx,Priv%efieldy,Priv%efieldz, &
                Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz,&
                0.d0,0.d0,0.d0,0.d0,0.d0,0.d0
       end if
     else
       write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
-             idata, dble(itime)*dt*au2fs,Priv%nva99max,kk,Priv%efield1,0.d0,&
+             idata, dble(itime)*dt*au2fs,Priv%nva99max,Priv%nva99max_direct,Priv%efield1,0.d0,&
              Priv%efieldx,Priv%efieldy,Priv%efieldz, &
              Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz
     end if
