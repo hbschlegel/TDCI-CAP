@@ -1264,6 +1264,10 @@ contains
     integer(8), intent(in) :: i, j, k, l
     integer(8) :: jl, ik
 
+    if (.not.allocated(Mol%dijklAB)) then
+      write(iout,*) "Mol%dijklAB is NOT allocated" ; flush(iout)
+    end if
+
     !: <iJ||kL> DijklAB( J<=L,i<=k )
 
     jl = get_index( j, l, nob, 'le' )
@@ -1312,6 +1316,10 @@ contains
     integer(8), intent(in) :: i, j, k, l
     integer(8) :: kl, ij
     real(8) :: sign
+
+    if (.not.allocated(Mol%dijklBB)) then
+      write(iout,*) "Mol%dijklBB is NOT allocated" ; flush(iout)
+    end if
 
     !: <IJ||KL> DijklBB( K<L,I<J )
 

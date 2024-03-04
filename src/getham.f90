@@ -1,5 +1,6 @@
 module getham
     
+  use readintegrals
   use variables_global
   use getham0
   use getham0_cisd
@@ -178,25 +179,19 @@ contains
    
     !: AD
     write(iout, *) "Eq 18 (Field Perturbed Orbitals) OmniDirectional:"
-    write(iout, *) norb, noa, nva, Mol%orben(1), Mol%dipxmoa(2), Mol%dipymoa(2), Mol%dipzmoa(2), Mol%vabsmoa(1)
+    !write(iout, *) norb, noa, nva, Mol%orben(1), Mol%dipxmoa(2), Mol%dipymoa(2), Mol%dipzmoa(2), Mol%vabsmoa(1)
 
     call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.030d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.035d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.040d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.045d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.050d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.055d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.060d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.065d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.070d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.075d0, 1.d0, 1.d0, 1.d0)
-    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.080d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.030d0, 1.d0, 1.d0, 1.d0)
+    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.090d0, 1.d0, 1.d0, 1.d0)
     call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.090d0, 1.d0, 1.d0, 1.d0)
     write(iout, *) " "
     write(iout, *) "Eq 18 (Field Perturbed Orbitals) Directional:"
     write(iout, *) "Emax = 0.050 au"
     write(iout, *) "Theta=0"
-    call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, 0.050d0, 1.d0, 0.d0, 0.d0)
+    call generate_field_perturbed_orbitals( &
+      norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, &
+      0.050d0, 1.d0, 0.d0, 0.d0)
     write(iout, *) " "
     write(iout, *) "Theta=45"
     call generate_field_perturbed_orbitals( &
@@ -215,7 +210,7 @@ contains
     write(iout, *) "Theta=180"
     call generate_field_perturbed_orbitals( &
       norb, noa, nva, Mol%orben, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, &
-      0.050d0, -1.d0, 1.d0/sqrt(2.d0), 0.d0)
+      0.050d0, -1.d0, 0.d0, 0.d0)
 
     write(iout, *) " "
     write(iout, *) "Emax = 0.035"
@@ -256,8 +251,6 @@ contains
     real(8),              intent(in) :: vabs_a(noa+nva, noa+nva)
     real(8),              intent(in) :: Emax
     real(8),              intent(in) :: xscale, yscale, zscale
-    !: Should I be multiplying C_out with Mol%cmo_a ? 
-    !real,              intent(in) :: Mol%cmo_a(nbasis, noa+nva) !: AO -> MO 
 
     !: function result
     !: local variables
@@ -270,30 +263,55 @@ contains
     real(8)    :: mo_rate(noa+nva)
     real(8)    :: mo_rate_sorted(noa+nva)
     integer(8) :: sort_key(noa+nva)
+    real(8) :: orben_diff = 0.d0
 
-    !: Make sure array is zero'd
-    C_out = 0.d0
-    mo_rate = 0.d0
-    mo_rate_sorted = 0.d0
-    nva95 = 0
-    nva99 = 0
-
-    write(iout, *) "(noa, nva): ", noa, nva
+    !: Initialization
+    C_out = 0.d0 ; mo_rate = 0.d0 ; mo_rate_sorted = 0.d0
+    nva95 = 0 ; nva99 = 0
 
     do i=1,(noa+nva) !: c_ij = delta_ij, c_ab = delta_ab. 
       C_out(i,i) = 1.d0
     end do
 
     !: off-diagonals
-    do i=1,noa
-      do a=noa+1,noa+nva
-        dipole_norm = sqrt( (xscale*dipxmoa(a,i))**2 &
-                          + (yscale*dipymoa(a,i))**2 + (zscale*dipzmoa(a,i))**2  )
-        tmpval = Emax*dipole_norm/( orben(a)-orben(i) )
-        C_out(a,i) = tmpval
-        C_out(i,a) = tmpval
+    !: for IP, assume the IP orbital s Beta HOMO
+    if ((trim(jobtype).eq.flag_ip) .or. (trim(jobtype).eq.flag_socip)) then
+      do i=1, noa !: Alpha 
+        do a=noa+1, noa+nva
+          dipole_norm = sqrt( (xscale*dipxmoa(a,i))**2 &
+                            + (yscale*dipymoa(a,i))**2 + (zscale*dipzmoa(a,i))**2  )
+          orben_diff = orben(a)-orben(i) 
+          call get_orben_cisd_ip( noa, -i, -(a-noa), orben_diff)
+          tmpval = Emax*dipole_norm/( orben_diff )
+          C_out(a,i) = tmpval
+          C_out(i,a) = tmpval
+        end do
       end do
-    end do
+
+      do i=1, noa-1 !: Beta -- exclude IP orbital
+        do a=noa+1, noa+nva
+          dipole_norm = sqrt( (xscale*dipxmoa(a,i))**2 &
+                            + (yscale*dipymoa(a,i))**2 + (zscale*dipzmoa(a,i))**2  )
+          orben_diff = orben(a)-orben(i) 
+          call get_orben_cisd_ip( noa, i, a-noa, orben_diff)
+          tmpval = Emax*dipole_norm/( orben_diff )
+          C_out(a,i) = C_out(a,i) + tmpval
+          C_out(i,a) = C_out(i,a) + tmpval
+        end do
+      end do
+
+    else ! Normal CIS version
+      do i=1,noa
+        do a=noa+1,noa+nva
+          dipole_norm = sqrt( (xscale*dipxmoa(a,i))**2 &
+                            + (yscale*dipymoa(a,i))**2 + (zscale*dipzmoa(a,i))**2  )
+          orben_diff = orben(a)-orben(i)
+          tmpval = Emax*dipole_norm/( orben_diff )
+          C_out(a,i) = 2*tmpval
+          C_out(i,a) = 2*tmpval
+        end do
+      end do
+    end if ! End off-diagonals
 
     do a=1,nva
       !: Calculate ionization rate for orbital a
@@ -304,7 +322,7 @@ contains
           !write(iout, '(A, I4, A, I4, A, I4,)') '(a,i,p) = ', a, ", ", i, ", ", p
           !write(iout, '(F10.7, A, F10.7, A, F10.7, A, F10.7)') mo_rate(a), ", ", C_out(p,i), &
           !  ", ",C_out(a,i), ", ",vabs_a(p,a)
-          mo_rate(a) = mo_rate(a) + abs(C_out(p,i)*C_out(a,i)*vabs_a(p,a))
+          mo_rate(a) = mo_rate(a) + abs(C_out(p,i)*C_out(a+noa,i)*vabs_a(p,a+noa))
         end do
       end do
     end do
@@ -357,7 +375,7 @@ contains
   end subroutine generate_field_perturbed_orbitals
 
   !: Fock is diagonal in HF MO basis, so just use orbital energies.
-  subroutine diag_EFock( dipxmoa, dipymoa, dipzmoa,  Vabs, orb_eng, Emax )
+  subroutine diag_EFock( dipxmoa, dipymoa, dipzmoa,  Vabs, orb_eng, Emax)
     implicit none
 
     real(8), intent(in) :: dipxmoa(noa+nva, noa+nva)
@@ -925,4 +943,44 @@ contains
   end subroutine errors_modgetham
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
+
+  subroutine get_orben_cisd_ip(xx, ii, aa, orben_diff)
+
+  !: corrections to orbital energy difference for CISD_IP
+  !: input:   orben_diff = orben_a - orben_i
+  !: output:  orben_diff = orben_diff - (a,x||a,x) + (i,x||i,x)
+  !: indices .lt. 0 correspond to alpha; indices .gt. 0 correspond to beta
+
+    implicit none
+
+    integer(8), intent(in) :: xx, ii, aa
+    real(8), intent(inout) :: orben_diff
+
+    integer(8)             :: x, i, a
+           
+
+       x = abs(xx); i = abs(ii); a = abs(aa)
+       
+       if ( xx.lt.0 ) then
+          if ( ii.lt.0 ) orben_diff = orben_diff + get_dijklAA(i,x,i,x)
+          if ( II.gt.0 ) orben_diff = orben_diff + get_dijklAB(x,I,x,I)
+       else if ( XX.gt.0 ) then
+          if ( ii.lt.0 ) then
+            orben_diff = orben_diff + get_dijklAB(i,X,i,X)
+          end if
+          if ( II.gt.0 ) then 
+            orben_diff = orben_diff + get_dijklBB(I,X,I,X)
+          end if
+       end if
+ 
+       if ( xx.lt.0 ) then
+          if ( aa.lt.0 ) orben_diff = orben_diff - get_diajbAA(x,a,x,a)
+          if ( AA.gt.0 ) orben_diff = orben_diff - get_diajbAB(x,A,x,A)
+       else if ( XX.gt.0 ) then
+          if ( aa.lt.0 ) orben_diff = orben_diff - get_diajbBA(X,a,X,a)
+          if ( AA.gt.0 ) orben_diff = orben_diff - get_diajbBB(X,A,X,A)
+       end if
+
+  end subroutine get_orben_cisd_ip
+
 end module getham

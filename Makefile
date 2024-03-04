@@ -25,7 +25,7 @@ $(info OBJECTS: $(OBJECTS))
 
 #FC = pgf95
 FC = nvfortran
-FFLAGS = -tp x64 -O3 
+FFLAGS = -tp px -O3 
 #LIBDIR = /wsu/el7/pgi/2018-187/linux86-64/18.7/lib/
 LIBDIR = /wsu/el7/nvhpc-cuda/24.1/Linux_x86_64/24.1/compilers/lib/
 LAPACK_LIBS = -L${LIBDIR} -llapack -lblas

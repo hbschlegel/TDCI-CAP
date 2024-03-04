@@ -6,6 +6,14 @@
 import sys, os, shutil, subprocess, time
 import importlib.util
 
+from optparse import OptionParser
+usage = "usage: python3 test.py [options]"
+parser=OptionParser(usage=usage)
+parser.add_option("-v", "--verify", action="store_true", default=False, dest="verifyonly", help="Verify existing tests without running tdci.")
+(options, arguments) = parser.parse_args()
+# options.verifyonly
+
+
 class Proctor:
   def __init__(self):
     self.testroot = os.path.dirname(os.path.realpath(__file__)) # Path of this script
@@ -16,7 +24,8 @@ class Proctor:
       if os.path.isdir(dp) and d.endswith(".ref"):
         self.refdirs.append(dp)
 
-    self.binpath = self.testroot+"/../bin/tdci"
+    #self.binpath = self.testroot+"/../bin/tdci"
+    self.binpath = "/wsu/home/gg/gg38/gg3895/tdci-test/TDCI-CAP_2/bin/tdci"
     print(self.refdirs)
 
   def RunTests(self):
@@ -25,9 +34,18 @@ class Proctor:
     for d in self.refdirs:
       print("Starting : "+d)
       testdir = d[:-4]
-      self.create_test(testdir)
-      self.ExecuteTDCI(testdir)
-      passed = self.ExecuteTest(d)
+      # Execute (or verify) test d
+      passed = False
+      if options.verifyonly: # Compare previously run tests
+        if os.path.exists(testdir):
+          passed = self.ExecuteTest(d)
+        else:
+          print(f"Missing test: {testdir}")
+      else: # Run new test and compare
+        self.create_test(testdir)
+        self.ExecuteTDCI(testdir)
+        passed = self.ExecuteTest(d)
+      # Results
       if passed:
         print(f"Test Passed : {testdir}")
       else:

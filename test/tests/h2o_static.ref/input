@@ -18,16 +18,14 @@
  euler    =  0.000
  /
 &FIELD_strengths 
- nemax =       1
+ nemax =       2
  read_emax(1) = 0.0500
+ read_emax(2) = 0.0600
  /
  &FIELD_directions 
- ndir = 5 
+ ndir = 2
  read_theta( 1) = 0.d0    ;  read_phi( 1) = 0.d0 
- read_theta( 2) = 60.d0   ;  read_phi( 2) = 0.d0 
- read_theta( 3) = 120.d0  ;  read_phi( 3) = 0.d0 
- read_theta( 4) = 150.d0  ;  read_phi( 4) = 180.d0 
- read_theta( 5) = 180.d0  ;  read_phi( 5) = 0.d0 
+ read_theta( 2) = 45.d0   ;  read_phi( 2) = 45.d0 
  / 
  &SYSTEM_units
  dt_units     = 'au' 

@@ -103,7 +103,8 @@ program main
         call diagonalize         
      end select
 
-     call deallocate_main( '2e_int' )     
+     ! We need the 2e integrals for IP version of eq18
+     !call deallocate_main( '2e_int' )     
      if( Qwrite_ham0 ) call write_ham0 
   end if
 
