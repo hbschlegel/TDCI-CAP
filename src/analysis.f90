@@ -835,7 +835,9 @@ contains
     integer(8), intent(in)    :: iout, noa, nob, norb, nstates, nva, nvb, ip_states
     integer(8), intent(in)    :: hole(nstates,2), part(nstates), state_ip_index(noa+nob,noa+nob)
     real(8), intent(in)       :: au2fs, vabs_a(noa+nva,noa+nva), vabs_b(nob+nvb,nob+nvb)
-    real(8), intent(inout)    :: pop(norb), ion(norb), rate_a(noa), rate_b(nob), normV, density(norb*norb)
+    real(8), intent(inout)    :: pop(norb), ion(norb)
+    real(8), allocatable, intent(inout) :: rate_a(:), rate_b(:)
+    real(8), intent(inout)    :: normV, density(norb*norb)
     complex(8),intent(inout)  :: psiv(nstates),ion_coeff(ip_states)
     complex(8), intent(in)    :: psi_det(nstates)
     logical, intent(in)       :: unrestricted
@@ -1888,7 +1890,7 @@ contains
                                  hole(nstates,2), part(nstates)
     real(8), intent(in)       :: vabs_a(noa+nva,noa+nva), vabs_b(nob+nvb,nob+nvb)
     real(8), intent(inout)    :: norm, rate, s(nstates*nstates)
-    complex(8), intent(in)    :: psi_det(nstates),work(nstates)
+    complex(8), intent(in)    :: psi_det(nstates),work(:)
     complex(8), intent(inout) :: psiv(nstates),Zion_coeff((noa+nob)*(nva+nvb+1))
     logical, intent(in)       :: unrestricted
 

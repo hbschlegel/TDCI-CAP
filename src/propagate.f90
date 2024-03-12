@@ -42,6 +42,7 @@ type PropagationPrivate
 
   contains
     procedure :: initialize => initialize_PropPriv
+    procedure :: deconstruct => deconstruct_PropPriv
     !procedure :: write_outdata => write_outdata_PropPriv
 
 
@@ -85,7 +86,7 @@ subroutine initialize_PropPriv(this)
 
   class(PropagationPrivate), intent(inout) :: this
 
-
+  !write(iout, *) "Allocating Priv!"
   allocate( this%rate_aa(noa*noa), this%rate_ab(noa*nob), this%rate_ba(nob*noa), this%rate_bb(nob*nob) )
   allocate( this%rate_a(noa), this%rate_b(nob) )
   this%rate_aa = 0.d0 ; this%rate_ab = 0.d0 ; this%rate_ba = 0.d0 ; this%rate_bb = 0.d0
@@ -121,6 +122,17 @@ subroutine initialize_PropPriv(this)
 
 
 end subroutine initialize_PropPriv
+
+subroutine deconstruct_PropPriv(this)
+  implicit none
+
+  class(PropagationPrivate), intent(inout) :: this
+
+  !write(iout, *) "Deallocating Priv!"
+  deallocate( this%rate_aa(noa*noa), this%rate_ab(noa*nob), this%rate_ba(nob*noa), this%rate_bb(nob*nob) )
+  deallocate( this%rate_a(noa), this%rate_b(nob) )
+
+end subroutine deconstruct_PropPriv
 
 !: Run once for each thread at start of propagation
 !: Sets up the funit values and writes headers to .dat files.
@@ -594,12 +606,20 @@ subroutine trotter_linear
 
   deallocate( pop0 )
   
+
+  if( QeigenDC ) then
+    allocate( iwork(3+5*nstuse) )
+    allocate( scratch(1+8*nstuse+2*nstuse*nstuse) )
+  else
+    allocate( iwork(2) )
+    allocate( scratch(nstuse*nstuse) )
+  end if
+
   !: exphel = exp(-iH*dt/2)
   do i=1, nstuse
      Priv%temp = -0.5d0 * cis_eig(i) * dt
      exphel(i) = dcmplx( dcos(Priv%temp) , dsin(Priv%temp) )
   end do
-
 
   !: Start loop over directions.  Counters need to be passed in as non-derived datatype
 
@@ -623,28 +643,19 @@ subroutine trotter_linear
   dir_loop : do idir=1, ndir
      
     ithread = omp_get_thread_num()
-
     call cpu_time( start1 )
 
-    allocate(Priv)
-    call Priv%initialize()
     psi = 0 ; psi1 = 0
     tdvals1 = 0.d0 ;
 
-    if( QeigenDC ) then
-      allocate( iwork(3+5*nstuse) )
-      allocate( scratch(1+8*nstuse+2*nstuse*nstuse) )
-    else
-      allocate( iwork(2) )
-      allocate( scratch(nstuse*nstuse) )
-    end if
+    !write(iout, '(A, I5, L1)') "Priv allocated at start of thread ", ithread , allocated(Priv)
+    allocate(Priv)
+    call Priv%initialize()
 
     !: get directions stored in TDCItdciresults
     Priv%dirx1 = tdciresults(idir)%x0  
     Priv%diry1 = tdciresults(idir)%y0  
     Priv%dirz1 = tdciresults(idir)%z0  
-
-
 
     !: get mu dot e-vector matrix elements in CIS basis.  diagonalize
     hp1(:) = Priv%dirx1*tdx(1:nstuse2) &
@@ -973,11 +984,20 @@ subroutine trotter_linear
 
         !$OMP END CRITICAL
      end do emax_loop
+
+    call Priv%deconstruct()
+    deallocate(Priv)
+    !write(iout, '(A, I5, L1)') "Priv Deallocated at end of thread ", ithread , allocated(Priv)
+
   end do dir_loop
 
   !$OMP END DO
   ithread = omp_get_thread_num()
   !$OMP END PARALLEL
+
+  !: We use Priv variables a couple times as placeholders so lets reallocate it
+  allocate(Priv)
+  call Priv%initialize()
 
   write(iout,*) "POST-PROPAGATION ANALYSIS:"
   flush(iout)
@@ -1135,6 +1155,17 @@ subroutine trotter_circular
 
   deallocate( pop0 )
  
+  allocate(Priv)
+  call Priv%initialize()
+
+  If( QeigenDC ) then
+    allocate( iwork(3+5*nstuse) )
+    allocate( scratch(1+8*nstuse+2*nstuse*nstuse) )
+  else
+    allocate( iwork(2) )
+    allocate( scratch(nstuse*nstuse) )
+  end if
+
   !: exphel = exp(-iH*dt/2)
   do i=1, nstuse
     Priv%temp = -0.5d0 * cis_eig(i) * dt
@@ -1168,18 +1199,12 @@ subroutine trotter_circular
     ithread = omp_get_thread_num()
     call cpu_time( start1 ) 
 
-    allocate(Priv)
-    call Priv%initialize()
     psi = 0 ; psi1 = 0
     tdvals1 = 0.d0 ; tdvals2 = 0.d0
 
-    If( QeigenDC ) then
-      allocate( iwork(3+5*nstuse) )
-      allocate( scratch(1+8*nstuse+2*nstuse*nstuse) )
-    else
-      allocate( iwork(2) )
-      allocate( scratch(nstuse*nstuse) )
-    end if
+    !write(iout, '(A, I5, L1)') "Priv allocated at start of thread ", ithread , allocated(Priv)
+    allocate(Priv)
+    call Priv%initialize()
 
     !: get directions stored in TDCItdciresults
     Priv%dirx1 = tdciresults(idir)%x1 ; Priv%dirx2 = tdciresults(idir)%x2
@@ -1617,6 +1642,11 @@ subroutine trotter_circular
         !$OMP END CRITICAL
 
      end do emax_loop
+
+    call Priv%deconstruct()
+    deallocate(Priv)
+    !write(iout, '(A, I5, L1)') "Priv Deallocated at end of thread ", ithread , allocated(Priv)
+
   end do dir_loop
 
   !$OMP END DO
