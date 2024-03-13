@@ -338,22 +338,24 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
   flush(Priv%funit(4))
               
   if( Qmo_dens) then
-    write(Priv%funit(6),"(f13.9,f16.10)") dble(itime)*dt*au2fs,Priv%rate
-    do i=1, noa+nva
-      if ( abs(scratch(i+(i-1)*(noa+nva))).gt.1.d-6 ) then
-        !write(Priv%funit(6),"(i5,i5,1x,f13.10,',')",advance='no')
-        write(Priv%funit(6),"(i5,i5,1x,f13.10)") &
-              i, i, scratch(i+(i-1)*(noa+nva))
-      end if
-      do j=(i+1), noa+nva
-        if ( abs(scratch(i+(j-1)*(noa+nva))).gt.1.d-6 ) then 
-          !write(Priv%funit(6),"(i5,i5,1x,f13.10,',')",advance='no') 
-          write(Priv%funit(6),"(i5,i5,1x,f13.10)") &
-                i, j, 2.d0*scratch(i+(j-1)*(noa+nva))
-        end if
-      end do
-    end do
-    write(Priv%funit(6),"(i5,i5,1x,f13.10)") 0,0,0.d0
+    call write_density_difference( Priv%funit(6), dble(itime)*dt*au2fs, &
+                                   Priv%rate, noa, nva, scratch )
+    !write(Priv%funit(6),"(f13.9,f16.10)") dble(itime)*dt*au2fs,Priv%rate
+    !do i=1, noa+nva
+    !  if ( abs(scratch(i+(i-1)*(noa+nva))).gt.1.d-6 ) then
+    !    !write(Priv%funit(6),"(i5,i5,1x,f13.10,',')",advance='no')
+    !    write(Priv%funit(6),"(i5,i5,1x,f13.10)") &
+    !          i, i, scratch(i+(i-1)*(noa+nva))
+    !  end if
+    !  do j=(i+1), noa+nva
+    !    if ( abs(scratch(i+(j-1)*(noa+nva))).gt.1.d-6 ) then 
+    !      !write(Priv%funit(6),"(i5,i5,1x,f13.10,',')",advance='no') 
+    !      write(Priv%funit(6),"(i5,i5,1x,f13.10)") &
+    !            i, j, 2.d0*scratch(i+(j-1)*(noa+nva))
+    !    end if
+    !  end do
+    !end do
+    !write(Priv%funit(6),"(i5,i5,1x,f13.10)") 0,0,0.d0
   end if
 
 
@@ -2713,6 +2715,45 @@ function matrix_is_symmetric(A, n) result(output)
     end do
   end do 
 end function matrix_is_symmetric
+
+subroutine write_density_difference(funit, time, rate, noa, nva, density)
+  integer(8), intent(in) :: funit
+  real(8), intent(in)    :: time, rate
+  integer(8), intent(in)    :: noa, nva
+  real(8), intent(in)    :: density(:)
+
+  integer :: i,j
+
+
+  write(funit,"(f13.9,f16.10)") time, rate
+  do i=1, noa+nva
+    if ( i.le.noa ) then
+      if ( abs(density(i+(i-1)*(noa+nva))-2).gt.1.d-6 ) then
+        write(funit,"(i5,i5,1x,f13.10)") &
+              i, i, density(i+(i-1)*(noa+nva))-2
+      end if
+    else if ( abs(density(i+(i-1)*(noa+nva))).gt.1.d-6 ) then
+      write(funit,"(i5,i5,1x,f13.10)") &
+            i, i, density(i+(i-1)*(noa+nva))
+    end if
+    do j=(i+1), noa+nva
+      if ( abs(density(i+(j-1)*(noa+nva))).gt.1.d-6 ) then 
+        write(funit,"(i5,i5,1x,f13.10)") &
+              i, j, 2.d0*density(i+(j-1)*(noa+nva))
+      end if
+    end do
+  end do
+  write(funit,"(i5,i5,1x,f13.10)") 0,0,0.d0
+
+end subroutine write_density_difference
+
+
+
+
+
+
+
+
 
 
 end module propagate

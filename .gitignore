@@ -5,3 +5,4 @@ errors_*
 output_*
 compile.job
 */__pycache__
+**/TDCI.dat
