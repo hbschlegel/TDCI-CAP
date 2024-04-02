@@ -339,7 +339,7 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
               
   if( Qmo_dens) then
     call write_density_difference( Priv%funit(6), dble(itime)*dt*au2fs, &
-                                   Priv%rate, noa, nva, scratch )
+                                   Priv%rate, noa, nva, scratch, Mol%vabsmoa )
     !write(Priv%funit(6),"(f13.9,f16.10)") dble(itime)*dt*au2fs,Priv%rate
     !do i=1, noa+nva
     !  if ( abs(scratch(i+(i-1)*(noa+nva))).gt.1.d-6 ) then
@@ -2716,30 +2716,56 @@ function matrix_is_symmetric(A, n) result(output)
   end do 
 end function matrix_is_symmetric
 
-subroutine write_density_difference(funit, time, rate, noa, nva, density)
+
+subroutine write_density_difference(funit, time, rate, noa, nva, density, vabs)
   integer(8), intent(in) :: funit
   real(8), intent(in)    :: time, rate
   integer(8), intent(in)    :: noa, nva
   real(8), intent(in)    :: density(:)
+  real(8), allocatable, intent(in)    :: vabs(:)
 
-  integer :: i,j
+  integer(8) :: i,j, idx, ndim, ndim2
+  real(8) :: temp_density( (noa+nva)*(noa+nva) )
+  real(8) :: temp, temptrace
+  logical :: isSymm
+
+  ndim = (noa+nva)
+  ndim2 = ndim*ndim
+  
+  !: Prepare weighted density difference
+  temp_density = density(:ndim2)
+  do i=1, noa !: Density difference from HF
+    temp_density(i+(i-1)*ndim) = temp_density(i+(i-1)*ndim) - 2.d0
+  end do
 
 
+  !: Weight density by vabs
+  !temp_density = temp_density * vabs(:ndim2)
+  temp_density = temp_density * vabs
+  !: Re-normalize density matrix
+  !temptrace =  sum([(temp_density(i+(i-1)*ndim), i=1,ndim)])
+  !temp_density = temp_density / temptrace
+
+  !: Scale so max value is 2.0
+  !temptrace = 0.5*maxval(abs(temp_density))
+  temptrace = 0.0020426 !: scaling in ch3br at end of 045 field
+  temp_density = temp_density/temptrace
+
+  !write(iout, "('density scaling factor: ', f16.10)") temptrace
+
+  !write(funit,"(f13.9,f16.10,f16.10, L1)") time, rate, temptrace, isSymm
   write(funit,"(f13.9,f16.10)") time, rate
-  do i=1, noa+nva
-    if ( i.le.noa ) then
-      if ( abs(density(i+(i-1)*(noa+nva))-2).gt.1.d-6 ) then
-        write(funit,"(i5,i5,1x,f13.10)") &
-              i, i, density(i+(i-1)*(noa+nva))-2
-      end if
-    else if ( abs(density(i+(i-1)*(noa+nva))).gt.1.d-6 ) then
+  do i=1, ndim !: Diagonal
+    idx = i+(i-1)*ndim
+    if ( abs(density(idx)).gt.1.d-9 ) then
       write(funit,"(i5,i5,1x,f13.10)") &
-            i, i, density(i+(i-1)*(noa+nva))
+            i, i, temp_density(idx)
     end if
-    do j=(i+1), noa+nva
-      if ( abs(density(i+(j-1)*(noa+nva))).gt.1.d-6 ) then 
+    do j =1, i-1 !: Off-Diagonals
+      idx = i+(j-1)*ndim
+      if ( abs(density(idx)).gt.1.d-9 ) then 
         write(funit,"(i5,i5,1x,f13.10)") &
-              i, j, 2.d0*density(i+(j-1)*(noa+nva))
+              i, j, temp_density(idx)
       end if
     end do
   end do
