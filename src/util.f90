@@ -1,7 +1,9 @@
 module util
 
-  
+  use io_binary
+
   implicit none
+
   
 
 contains
@@ -81,8 +83,47 @@ contains
     
     mo_mat = matmul( tmp,rotmat )
     
-    
   end subroutine ao2mo
+  ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
+  ! SUBROUTINE MO2AO_full
+  ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
+  subroutine mo2ao_full(nbasis,nrorb,mo_mat,ao_mat,rotmat)  !nrorbB,mo_matBB,rotmatBB)
+
+    ! This does not work for some reason!!
+
+    ! <C> Transform one electron matrix from MO (full) to AO (full) 
+    ! <C> ao_mat = [rotmat]^T [mo_mat] [rotmat]
+    ! rotmat should be Mol%cmo_a
+
+    implicit none
+    
+    integer(8), intent(in) :: nbasis, nrorb
+    real(8),    intent(in) :: mo_mat(nrorb*nrorb)
+    real(8), intent(inout) :: ao_mat(nbasis*nbasis)
+    !real(8),    intent(in) :: rotmat(nrorb,nbasis)
+    real(8),    intent(in) :: rotmat(nbasis*nrorb)
+
+    integer(8), parameter :: iout = 42
+    real(8), dimension(nbasis, nrorb) :: temp_mat
+
+    call write_dbin( mo_mat, nrorb*nrorb  , "matrices/mo_mat.dat"  )
+    call write_dbin( ao_mat, nbasis*nbasis, "matrices/ao_mat.dat"  )
+    call write_dbin( rotmat, nbasis*nrorb , "matrices/rotmat.dat"  )
+
+
+    ! First multiplication, result is stored in temp_mat
+    call dgemm('N', 'N', nbasis, nrorb, nrorb, 1.d0, rotmat, nbasis, mo_mat, nrorb, 0.d0, temp_mat, nbasis)
+
+    ! Second multiplication, result is stored in ao_mat
+    call dgemm('N', 'T', nbasis, nbasis, nrorb, 1.d0, temp_mat, nbasis, rotmat, nbasis, 0.d0, ao_mat, nbasis)
+
+
+    !ao_mat = matmul( matmul(rotmat, mo_mat) , transpose(rotmat) )
+    !ao_mat = matmul( matmul(transpose(rotmat), mo_mat) , rotmat )
+
+    
+  end subroutine mo2ao_full
+
   !: ---------------------------!
   !: SUBROUTINE AO2MO_COMPLEX   !
   !: ---------------------------!

@@ -1,5 +1,4 @@
 module getfield
-  
 
   use variables_global
   implicit none  
@@ -236,18 +235,11 @@ contains
   subroutine null_env
     
     !: envelope=0 : no pulse
-
     implicit none
     
-    
     write(iout,'(A)') ' in subroutine null_env for null pulse'
-    
-
     fvect1 = 0.d0
-
-    
     write(iout, '(A)') ' leaving subroutine null_env'
-    
     
   end subroutine null_env
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -255,12 +247,8 @@ contains
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   subroutine cos_env
     
-
     !: envelope=1 : generates *Cosine Envelope* pulse
-    
-
     implicit none
-    
     
     integer(8) :: istp
     real(8)    :: tau
@@ -370,36 +358,36 @@ contains
   ! SUBROUTINE CW_ENV
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   subroutine cw_env
-    
 
     !: envelope=4 : generates *Static* pulse
-
     
     implicit none    
-    
     
     real(8), parameter :: frac = 2.d0/3.d0
     integer(8), parameter :: ramp_step = 16000
     integer(8) :: istp
-
+    real(8) :: temp
     
     write(iout,'(A)') ' in subroutine cw_env for static pulse' 
-    
-    fvect1 = 0.d0 
     Mol%field_env = 0.d0
+    fvect1 = 0.d0 
 
     do istp = 1, nstep
-       if ( istp .le. int(frac*dble(ramp_step)*0.05d0/dt) ) then
-          fvect1(istp) = 1.d0 - ( 1.d0 - dble(istp)/(frac*dble(ramp_step)*0.05d0/dt) )**4
-       else
-          fvect1(istp) = 1.d0
-       end if
+      if ( istp .le. int(frac*dble(ramp_step)*0.05d0/dt) ) then
+        !: Suddently the nvidia compiler hates this line???
+        !: NVFORTRAN-F-0000-Internal compiler error. Could not locate uplevel
+        !:   instance for stblock 1214
+        !fvect1(istp) = 1.d0 - ( 1.d0 - dble(istp)/(frac*dble(ramp_step)*0.05d0/dt) )**4
+        temp = frac*dble(ramp_step)*0.05d0/dt
+        fvect1(istp) = 1.d0 - ( 1.d0 - dble(istp)/temp)**4
+      else
+        fvect1(istp) = 1.d0
+      end if
     end do
 
     Mol%field_env = fvect1
     
     write(iout, '(A)') ' leaving subroutine cw_env'
-    
 
   end subroutine cw_env
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!

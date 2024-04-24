@@ -868,6 +868,8 @@ contains
      rate = 0.d0
      rate_a = 0.d0
      rate_b = 0.d0
+
+     !write(iout, *) "pop_rate ndim: ", ndim
        
 !### code assumes psi_det is normalized ###
 

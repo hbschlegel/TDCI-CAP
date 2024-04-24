@@ -656,7 +656,7 @@ contains
           allocate( cis_eig(nstates) )             ; cis_eig = 0.d0
        end select
        allocate( ip_eig(ip_states) )               ; ip_eig = 0.d0 
-       allocate( ion_coeff(ip_states) )            ; ip_eig = 0.d0 
+       allocate( ion_coeff_(ip_states) )            ; ip_eig = 0.d0 
 
        if ( Qalloc_Zcomplex ) then
           write(iout,100) 'cis_vec', 2*nstates*nstates      ;  call track_mem( 2*nstates*nstates)
@@ -925,11 +925,12 @@ contains
           write(iout,'(A)') ' deallocated Mol%cmo_b '  
           call track_mem( -nrorb*nbasis )
        end if
-       if( allocated(Mol%cmo_a) ) then
-          deallocate(Mol%cmo_a) 
-          write(iout,'(A)') ' deallocated Mol%cmo_a '
-          call track_mem( -nrorb*nbasis )
-       end if
+       !: Need this to convert density back to AO basis
+       !if( allocated(Mol%cmo_a) ) then
+       !   deallocate(Mol%cmo_a) 
+       !   write(iout,'(A)') ' deallocated Mol%cmo_a '
+       !   call track_mem( -nrorb*nbasis )
+       !end if
        if( allocated(Mol%orben) ) then
           deallocate(Mol%orben)
           write(iout,'(A)') ' deallocated Mol%orben '
@@ -1220,7 +1221,7 @@ contains
           write(iout,'(A)') ' - Maya Angelous'
           write(iout,'(A)') divide
        case( 'date' )          
-          write(iout,'(A)') ' I WAS COMPILED ON Tue Mar 12 10:30:26 EDT 2024 '
+          write(iout,'(A)') ' I WAS COMPILED ON Wed Apr 24 14:10:45 EDT 2024 '
           write(iout,'(A)') ' I AM A REVISED CODE FOR CW PULSE GENERATION '
           write(iout,'(A)') ' RAMPING PARAMETER SET TO RAMP_STEP=16000, NOT NSTEP'
           call dnt(iout)          

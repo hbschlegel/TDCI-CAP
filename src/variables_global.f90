@@ -175,7 +175,7 @@ module variables_global
   complex(8), allocatable :: &
        Zcis_vec(:),&  !: COMPLEX CIS eigenstates for soc
        Zip_vec(:), &  !: ionized state eigenvectors
-       ion_coeff(:),& !: coefficients of ionized states in absorbed wavefunction
+       ion_coeff_(:),& !: coefficients of ionized states in absorbed wavefunction
        Zproj_ion(:)   !: project ion coefficients from wavefunction
 
   real(8), allocatable ::       &

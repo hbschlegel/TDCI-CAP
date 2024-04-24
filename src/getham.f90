@@ -580,10 +580,10 @@ contains
 
     integer(8),   intent(in) :: mythread
     character(*), intent(in) :: myoption
-    real(8)    :: start, finish
+    real(8)    :: start1, finish1
 
 
-    call cpu_time(start)
+    call cpu_time(start1)
  
     select case( trim(myoption) )
     case( 'vabs' )  ; call ao2mo(nbasis,nrorb,Mol%vabsao,Mol%vabsmoa,Mol%cmo_a)
@@ -609,8 +609,8 @@ contains
        Mol%vabs00 = 2.d0 * Mol%vabs00
     end if
 
-    call cpu_time(finish)
-    write(iout,"(' Thread # ',i0, a6,' AO-->MO  time: ',f12.4,' s')") mythread, trim(myoption), finish-start
+    call cpu_time(finish1)
+    write(iout,"(' Thread # ',i0, a6,' AO-->MO  time: ',f12.4,' s')") mythread, trim(myoption), finish1-start1
     flush(iout)
     
 
@@ -736,10 +736,10 @@ contains
 
     integer(8),   intent(in) :: mythread
     character(*), intent(in) :: myoption
-    real(8)    :: start, finish
+    real(8)    :: start1, finish1
     
 
-    call cpu_time(start)
+    call cpu_time(start1)
 
     select case( trim(jobtype) )
     case( flag_cis )     
@@ -789,8 +789,8 @@ contains
     end select
     
     
-    call cpu_time(finish)
-    write(iout,"(' Thread # ',i0, a6,' MO-->det time: ',f12.4,' s')") mythread, trim(myoption), finish-start
+    call cpu_time(finish1)
+    write(iout,"(' Thread # ',i0, a6,' MO-->det time: ',f12.4,' s')") mythread, trim(myoption), finish1-start1
     flush(iout)
 
 

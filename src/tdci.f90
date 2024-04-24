@@ -147,6 +147,11 @@ program main
   !: save for later restart.  
   if( Qsave ) call save_restart_bin
 
+  !: clean matrices folder, save Vabs AO 
+  call cleanup_directory("matrices")
+  call write_dbin( Mol%vabsao, nbasis*(nbasis+1)/2, "matrices/Vabs_AO.bin")
+  
+
   write(iout,*) ' Qdealloc',Qdealloc
   !: deallocate un-used arrays
   if( Qdealloc ) call deallocate_main( '1e_int' )
