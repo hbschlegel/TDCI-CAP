@@ -358,6 +358,17 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
                                    Priv%rate, noa, nva, scratch, Mol%vabsmoa )
   end if
 
+  write(*,*) "nrorb, nbasis, (noa+nva) :", nrorb, nbasis, (noa+nva)
+  write(*,*) "Size Mol%vabsmoa: ", size(Mol%vabsmoa)
+  write(*,*) "Size Mol%cmo_a: ", size(Mol%cmo_a)
+  write(*,*) "Mol%vabsmoa subblock: ", (noa+nva)
+  do i=1,5
+    do j=1,5
+      write(*, "(E10.3,1X)", advance='no') Mol%vabsmoa((i-1)*(noa+nva)+j)
+    end do
+    write(*,*) " "
+  end do
+
   !: Write density to binary file
   !write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/density_AO-e", trim(Priv%emaxstr), &
   !       "-d", trim(Priv%dirstr), ".", itime, ".bin"
@@ -2493,7 +2504,7 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
   real(8), intent(in) :: U_NO(:) !: Transformation matrix from MO -> NO.
   !: Interesting, vabsmo is a 2D array (:,:), so I can't do Vabs(:) here.
   !:  but I can do Vabs(norb*norb)...
-  real(8), intent(in) :: Vabs(norb*norb) !: <n|Vabs|m> in MO basis
+  real(8), intent(in) :: Vabs(nrorb*nrorb) !: <n|Vabs|m> in MO basis
   logical, intent(in), optional :: verbosity
 
   logical :: verbose
@@ -2502,7 +2513,7 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
   integer(8) :: nva95_NO_sort, nva99_NO_sort, nva95_MO_sort, nva99_MO_sort
   integer(8) :: nva95, nva99
   real(8) :: rate, tmp
-  real(8) :: tmprate(norb*norb) !: way too big but doesnt matter
+  real(8) :: tmprate(nrorb*nrorb) !: way too big but doesnt matter
   real(8), allocatable :: opdm_NO(:), Vabs_NO(:)
   real(8), allocatable :: temp(:), temp2(:)
   real(8), allocatable :: sort_vals(:), vals_sorted(:)
@@ -2811,7 +2822,7 @@ subroutine write_density_bin(filename, time, rate, noa, nva, density, vabs)
   write(*,*) "first 20x20 subblock of Density: "
   do i=1,20
     do j=1,20
-      write(*, "(E10.3,1X)", advance='no') density((i-1)*norb+j)
+      write(*, "(E10.3,1X)", advance='no') density((i-1)*ndim+j)
     end do
     write(*,*) " "
   end do
@@ -2859,7 +2870,7 @@ subroutine write_density_difference_bin(filename, time, rate, noa, nva, density,
   write(*,*) "first 20x20 subblock of dens_diff: "
   do i=1,20
     do j=1,20
-      write(*, "(E10.3,1X)", advance='no') density((i-1)*norb+j)
+      write(*, "(E10.3,1X)", advance='no') temp_density((i-1)*ndim+j)
     end do
     write(*,*) " "
   end do
@@ -2903,6 +2914,35 @@ subroutine write_vdens_diff_bin(filename, time, rate, noa, nva, density, vabs)
     temp_density(i) = density(i)
   end do
 
+
+  write(*,*) "ENTERED DDIFF VABS CODE "
+  write(*,*) "Size vabs: ", size(vabs)
+
+  write(*,*) "density subblock: "
+  do i=1,5
+    do j=1,5
+      write(*, "(E10.3,1X)", advance='no') density((i-1)*ndim+j)
+    end do
+    write(*,*) " "
+  end do
+
+  write(*,*) "temp_density subblock: "
+  do i=1,5
+    do j=1,5
+      write(*, "(E10.3,1X)", advance='no') temp_density((i-1)*ndim+j)
+    end do
+    write(*,*) " "
+  end do
+
+  write(*,*) "vabs subblock: "
+  do i=1,5
+    do j=1,5
+      write(*, "(E10.3,1X)", advance='no') vabs((i-1)*ndim+j)
+    end do
+    write(*,*) " "
+  end do
+
+
   do i=1, noa !: Density difference from HF
     temp_density(i+(i-1)*ndim) = temp_density(i+(i-1)*ndim) - 2.d0
   end do
@@ -2930,7 +2970,7 @@ subroutine write_vdens_diff_bin(filename, time, rate, noa, nva, density, vabs)
   write(*,*) "first 20x20 subblock of vabs*dens_diff: "
   do i=1,20
     do j=1,20
-      write(*, "(E10.3,1X)", advance='no') density((i-1)*norb+j)
+      write(*, "(E10.3,1X)", advance='no') temp_density((i-1)*ndim+j)
     end do
     write(*,*) " "
   end do
@@ -2944,10 +2984,10 @@ end subroutine write_vdens_diff_bin
 
 subroutine write_density_difference(funit, time, rate, noa, nva, density, vabs)
   implicit none
-  integer(8), intent(in) :: funit
-  real(8), intent(in)    :: time, rate
-  integer(8), intent(in)    :: noa, nva
-  real(8), intent(in)    :: density(:)
+  integer(8), intent(in)              :: funit
+  real(8), intent(in)                 :: time, rate
+  integer(8), intent(in)              :: noa, nva
+  real(8), intent(in)                 :: density(:)
   real(8), allocatable, intent(in)    :: vabs(:)
 
   integer(8) :: i,j, idx, ndim, ndim2
