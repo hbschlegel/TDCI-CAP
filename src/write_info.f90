@@ -26,32 +26,34 @@ contains
     implicit none
 
     real(8)    :: fstrnth
-    integer(8) :: i, ifield, idir, ij
+    integer(8) :: i, ifield, idir, ij, iatom
     
 
     call write_header( 'write_specifics1','write_info','enter' )
     
 
     !: job title taken from TDCI.dat
-    write(iout,'(A)') ' JOB TITLE: '//trim(Mol%job_title)
+    write(iout,'(A70)') ' JOB TITLE: '//trim(Mol%job_title)
 
     !: molecule info
-    write(iout,"(5x,'charge = ',i0,'  multiplicity = ',i0,'  natoms = ',i0)") Mol%ICharg, Mol%Multip, Mol%natoms
+    write(iout,"(5x,'charge = ',i0,'  multiplicity = ',i0,'  natoms = ',i0)") &
+            Mol%ICharg, Mol%Multip, Mol%natoms
     write(iout,"(5x,'coordinates in Angstroms')")
 
-    do i=1, Mol%natoms
+    do iatom=1, Mol%natoms
        write(iout,"(5x,a4,2x,3(f17.11,2x))") &
-            Mol%myatom(i),          &
-            Mol%xcoord(i)*bohr2ang, &
-            Mol%ycoord(i)*bohr2ang, &
-            Mol%zcoord(i)*bohr2ang
+         Mol%myatom(iatom),          &
+            Mol%xcoord(iatom)*bohr2ang, &
+            Mol%ycoord(iatom)*bohr2ang, &
+            Mol%zcoord(iatom)*bohr2ang
     end do
     
     write(iout,'(A)') '     ground state dipole in au:'
-    write(iout,"(5x,'xdip = ',f10.4,'  ydip = ',f10.4,'  zdip = ',f10.4)") Mol%dipx00, Mol%dipy00, Mol%dipz00
+    write(iout,"(5x,'xdip = ',f10.4,'  ydip = ',f10.4,'  zdip = ',f10.4)") &
+            Mol%dipx00, Mol%dipy00, Mol%dipz00
     write(iout,'(A)') '     ground state dipole in Debye:'
     write(iout,"(5x,'xdip = ',f10.4,'  ydip = ',f10.4,'  zdip = ',f10.4)") &
-         Mol%dipx00*audip2debye, Mol%dipy00*audip2debye, Mol%dipz00*audip2debye
+            Mol%dipx00*audip2debye, Mol%dipy00*audip2debye, Mol%dipz00*audip2debye
 
     !: jobtype info
     if( unrestricted )      write(iout,"(A)") ' unrestricted'
@@ -65,18 +67,16 @@ contains
     end select
     
     !: system size info   
-    write(iout,"(5x,'nbasis   = ',i0)") nbasis
-    write(iout,"(5x,'noa      = ',i0)") noa
-    write(iout,"(5x,'nva      = ',i0)") nva
-    write(iout,"(5x,'nob      = ',i0)") nob
-    write(iout,"(5x,'nvb      = ',i0)") nvb
-    write(iout,"(5x,'nactive  = ',i0)") nactive
-    write(iout,"(5x,'nvirtual = ',i0)") nvirtual
-    write(iout,"(5x,'norb     = ',i0)") norb
-    write(iout,"(5x,'nrorb    = ',i0)") nrorb
-    write(iout,"(5x,'noanva   = ',i0)") noanva
-    write(iout,"(5x,'nobnvb   = ',i0)") nobnvb
-    write(iout,"(5x,'nstates  = ',i0)") nstates
+    write(iout,"(5x,'nbasis  = ',i0)") nbasis
+    write(iout,"(5x,'noa     = ',i0)") noa
+    write(iout,"(5x,'nva     = ',i0)") nva
+    write(iout,"(5x,'nob     = ',i0)") nob
+    write(iout,"(5x,'nvb     = ',i0)") nvb
+    write(iout,"(5x,'norb    = ',i0)") norb
+    write(iout,"(5x,'nrorb   = ',i0)") nrorb
+    write(iout,"(5x,'noanva  = ',i0)") noanva
+    write(iout,"(5x,'nobnvb  = ',i0)") nobnvb
+    write(iout,"(5x,'nstates = ',i0)") nstates
     
     !: field info
     write( iout, '(A)' )  ' FIELD VARIABLES'
@@ -161,6 +161,7 @@ contains
     
 
   end subroutine write_specifics1
+
   !: ----------------------------- :!
   !: subroutine write_specific2    :!
   !: ----------------------------- :!

@@ -33,7 +33,7 @@ contains
 
 
   end subroutine get_size_variables
-  ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
+!: paste below
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! SUBROUTINE Read_MatrixElements
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -58,9 +58,10 @@ contains
       Dimension IAn(MaxAt),IAtTyp(MaxAt),AtmChg(MaxAt),C(3,MaxAt), &
        IBfAtm(MaxBf),IBfTyp(MaxBf),AtmWgt(MaxAt)
 
+
  1000 Format(' File ',A,' IU=',I6)
  1010 Format(' Label ',A,' IVers=',I2,' NLab=',I2,' Version=',A,/,     &
-        ' Title ',A,/,' NAtoms=',I6,' NBasis=',I6,' NBsUse=',I6,       &
+        ' Title ',A60,/,' Mol%NAtoms=',I6,' NBasis=',I6,' NBsUse=',I6,       &
         ' ICharg=',I6,' Multip=',I6,' NE=',I6,' Len12L=',I1,' Len4L=', &
         I1,' IOpCl=',I6,' ICGU=',I3)
  1110 Format(' Label ',A48,' NI=',I2,' NR=',I2,' NRI=',I1,' NTot=',I8, &
@@ -75,7 +76,7 @@ contains
       !: read MatrixElements.dat
       Call Open_Read(trim(tdcidatfile),IU,LabFil,IVers,NLab,GVers,Mol%job_title, &
         Mol%natoms,nbasis,NBsUse,Mol%ICharg,Mol%Multip,NE,Len12L,Len4L,IOpCl,ICGU)
-      Write(IOut,1000) trim(filename), IU
+!      Write(IOut,1000) trim(filename), IU
       If(IU.le.0) Stop
       Write(IOut,1010) trim(LabFil),IVers,NLab,trim(GVers),           &
         trim(Mol%job_title),Mol%natoms,nbasis,NBsUse,Mol%ICharg,Mol%Multip,NE,Len12L, &
@@ -98,8 +99,8 @@ contains
         NBE = (NE-Mol%Multip-1)/2
         endIf
  
-      Mol%unrstedflag = IOpCl
-      Mol%vabsflag = 1
+        Mol%unrstedflag = IOpCl
+        Mol%vabsflag = 1
  
       NOA = NAE - NFC
       NOB = NBE - NFC
@@ -110,14 +111,14 @@ contains
 !:      write(42,*) nae,nbe,noa,nob,nva,nvb,nrorb
 
     !: allocate coordinate arrays
-    allocate( Mol%xcoord(Mol%natoms), Mol%ycoord(Mol%natoms), Mol%zcoord(Mol%natoms), Mol%myatom(Mol%natoms)) 
+    allocate( Mol%xcoord(Mol%natoms), Mol%ycoord(Mol%natoms), Mol%zcoord(Mol%natoms), Mol%myatom(Mol%natoms) )    
     do i = 1, Mol%natoms
-         Mol%xcoord(i) = c(1,i)
-         Mol%ycoord(i) = c(2,i)
-         Mol%zcoord(i) = c(3,i)
-         write(Mol%myatom(i),'(I3)') ian(i)
-!:         write(42,*) ian(i),atmchg(i),Mol%xcoord(i),Mol%ycoord(i),Mol%zcoord(i)
-         end do
+      Mol%xcoord(i) = c(1,i)
+      Mol%ycoord(i) = c(2,i)
+      Mol%zcoord(i) = c(3,i)
+      write(Mol%myatom(i),'(I3)') ian(i)
+      !:write(42,*) ian(i),atmchg(i),xcoord(i),ycoord(i),zcoord(i)
+    end do
  
       call get_size_variables
       allocate( RArr(MaxArr) )
@@ -161,8 +162,8 @@ contains
           Mol%dipxao = RArr(1:ntt)
           Mol%dipyao = RArr(ntt+1:2*ntt)
           Mol%dipzao = RArr(2*ntt+1:3*ntt)
-        case ( trim(' File   619') )
-          allocate(Mol%socxao(nbasis,nbasis),Mol%socyao(nbasis,nbasis),Mol%soczao(nbasis,nbasis))
+        case ( trim(' File   617'), trim('FILE 617 REALS'), trim('FILE 751 REALS') )
+           allocate(Mol%socxao(nbasis,nbasis),Mol%socyao(nbasis,nbasis),Mol%soczao(nbasis,nbasis))
           Call Rd_RBuf(IU,NTot,LenBuf,RArr)
           ij = 0
           do i = 1,nbasis
@@ -176,77 +177,77 @@ contains
               Mol%soczao(j,i) = dconjg(Mol%soczao(i,j))
               end do
             end do
-        case ( trim(' File   828') )
+        case ( trim(' File   828'), trim('FILE 828 REALS'), trim('FILE 870 REALS') )
           allocate( Mol%vabsao(ntt) )
           Call Rd_RBuf(IU,NTot,LenBuf,Mol%vabsao)
-!:          write(iout,*) 'file 828', (Mol%vabsao(i),i=1,ntt)
-        case ( trim(' File     1') )
+!:          write(iout,*) 'file 828', (vabsao(i),i=1,ntt)
+        case ( trim(' File     1'), trim('FILE 1 REALS') )
           allocate( Mol%dijabAA(nva3,noa3) )
           Call Rd_RBf2(IU,NTot,nva3,noa3,LenBuf,Mol%dijabAA)
-        case ( trim(' File     2') )
+        case ( trim(' File     2'), trim('FILE 2 REALS') )
           allocate( Mol%dijabAB(nob*nvb,noa*nva) )
           Call Rd_RBf2(IU,NTot,nob*nvb,noa*nva,LenBuf,Mol%dijabAB)
-!:          write(42,*) 'Bucket 2 head',(Mol%dijabAB(i,1),i=1,100)
-!:          write(42,*) 'Bucket 2 tail',(Mol%dijabAB(nob*nvb-100+i,noa*nva),i=1,100)
-        case ( trim(' File     3') )
+!:          write(42,*) 'Bucket 2 head',(dijabAB(i,1),i=1,100)
+!:          write(42,*) 'Bucket 2 tail',(dijabAB(nob*nvb-100+i,noa*nva),i=1,100)
+        case ( trim(' File     3'), trim('FILE 3 REALS') )
           allocate( Mol%dijabBB(nvb3,nob3) )
           Call Rd_RBf2(IU,NTot,nvb3,nob3,LenBuf,Mol%dijabBB)
-        case ( trim(' File     4') )
+        case ( trim(' File     4'), trim('FILE 4 REALS') )
           allocate( Mol%dijklAA(noa3,noa3) )
           Call Rd_RBf3(IU,NTot,noa3,noa3,LenBuf,Mol%dijklAA)
-        case ( trim(' File     5') )
+        case ( trim(' File     5'), trim('FILE 5 REALS') )
           allocate( Mol%diajbAA(noa*nva,noa*nva) )
           Call Rd_RBf2(IU,NTot,noa*nva,noa*nva,LenBuf,Mol%diajbAA)
-!:          write(42,*) 'Bucket 5 head',(Mol%diajbAA(i,1),i=1,100)
-!:          write(42,*) 'Bucket 5 tail',(Mol%diajbAA(nob*nvb-100+i,noa*nva),i=1,100)
-        case ( trim(' File     6') )
+!:          write(42,*) 'Bucket 5 head',(diajbAA(i,1),i=1,100)
+!:          write(42,*) 'Bucket 5 tail',(diajbAA(nob*nvb-100+i,noa*nva),i=1,100)
+        case ( trim(' File     6'), trim('FILE 6 REALS') )
           allocate( Mol%dijklAB(nob2,noa2) )
           Call Rd_RBf2(IU,NTot,nob2,noa2,LenBuf,Mol%dijklAB)
-        case ( trim(' File     7') )
+        case ( trim(' File     7'), trim('FILE 7 REALS') )
           allocate( Mol%diajbAB(nvb2,noa2) )
           Call Rd_RBf2(IU,NTot,nvb2,noa2,LenBuf,Mol%diajbAB)
-        case ( trim(' File     8') )
+        case ( trim(' File     8'), trim('FILE 8 REALS') )
           allocate( Mol%diajbBA(nva2,nob2) )
           Call Rd_RBf2(IU,NTot,nva2,nob2,LenBuf,Mol%diajbBA)
-        case ( trim(' File     9') )
+        case ( trim(' File     9'), trim('FILE 9 REALS') )
           allocate( Mol%dijklBB(nob3,nob3) )
           Call Rd_RBf3(IU,NTot,nob3,nob3,LenBuf,Mol%dijklBB)
-        case ( trim(' File    10') )
+        case ( trim(' File    10'), trim('FILE 10 REALS') )
           allocate( Mol%diajbBB(nob*nvb,nob*nvb) )
           Call Rd_RBf2(IU,NTot,nob*nvb,nob*nvb,LenBuf,Mol%diajbBB)
 !:          write(42,*) 'Bucket 10 head',(Mol%diajbBB(i,1),i=1,100)
 !:          write(42,*) 'Bucket 10 tail',(Mol%diajbBB(nob*nvb-100+i,noa*nva),i=1,100)
-        case ( trim(' File    11') )
+        case ( trim(' File    11'), trim('FILE 11 REALS') )
           allocate( Mol%dijkaAA(noa*nva,noa3))
           Call Rd_RBf2(IU,NTot,noa*nva,noa3,LenBuf,Mol%dijkaAA)
-        case ( trim(' File    12') )
+        case ( trim(' File    12'), trim('FILE 12 REALS') )
           allocate( Mol%dijkaAB(nob*nvb,noa2))
           Call Rd_RBf2(IU,NTot,nob*nvb,noa2,LenBuf,Mol%dijkaAB)
-        case ( trim(' File    13') )
+        case ( trim(' File    13'), trim('FILE 13 REALS') )
           allocate( Mol%dijkaBA(noa*nva,nob2))
           Call Rd_RBf2(IU,NTot,noa*nva,nob2,LenBuf,Mol%dijkaBA)
-        case ( trim(' File    14') )
+        case ( trim(' File    14'), trim('FILE 14 REALS') )
           allocate( Mol%dijkaBB(nob*nvb,nob3))
           Call Rd_RBf2(IU,NTot,nob*nvb,nob3,LenBuf,Mol%dijkaBB)
-        case ( trim(' File    15') )
+        case ( trim(' File    15'), trim('FILE 15 REALS') )
           allocate( Mol%diabcAA(nva3,noa*nva))
           Call Rd_RBf2(IU,NTot,nva3,noa*nva,LenBuf,Mol%diabcAA)
-        case ( trim(' File    16') )
+        case ( trim(' File    16'), trim('FILE 16 REALS') )
           allocate( Mol%diabcAB(nvb2,noa*nva))
           Call Rd_RBf2(IU,NTot,nvb2,noa*nva,LenBuf,Mol%diabcAB)
-        case ( trim(' File    17') )
+        case ( trim(' File    17'), trim('FILE 17 REALS') )
           allocate( Mol%diabcBA(nva2,nob*nvb))
           Call Rd_RBf2(IU,NTot,nva2,nob*nvb,LenBuf,Mol%diabcBA)
-        case ( trim(' File    18') )
+        case ( trim(' File    18'), trim('FILE 18 REALS') )
           allocate( Mol%diabcBB(nvb3,nob*nvb))
           Call Rd_RBf2(IU,NTot,nvb3,nob*nvb,LenBuf,Mol%diabcBB)
-        case ( trim(' File    19') )
+        case ( trim(' File    19'), trim('FILE 19 REALS') )
           allocate( Mol%dabcdAA(nva3,nva3) )
           Call Rd_RBf3(IU,NTot,nva3,nva3,LenBuf,Mol%dabcdAA)
-        case ( trim(' File    20') )
+        case ( trim(' File    20'), trim('FILE 20 REALS') )
           allocate( Mol%dabcdAB(nvb2,nva2) )
           Call Rd_RBf2(IU,NTot,nvb2,nva2,LenBuf,Mol%dabcdAB)
-        case ( trim(' File    21') )
+        case ( trim(' File    21'), trim('FILE 21 REALS') )
           allocate( Mol%dabcdBB(nvb3,nvb3) )
           Call Rd_RBf3(IU,NTot,nvb3,nvb3,LenBuf,Mol%dabcdBB)
         case default
@@ -256,41 +257,42 @@ contains
         Goto 10
         endIf
         deallocate( RArr )
-!:        deallocate(Mol%orben,Mol%cmo_a,Mol%socxao,Mol%socyao,Mol%soczao,Mol%vabsao)
-!:        If(IOpCl.eq.1) deallocate(Mol%cmo_b)
-!:        deallocate(Mol%dijabAB,Mol%diajbAA,Mol%diajbBB)
+!:        deallocate(orben,cmo_a,socxao,socyao,soczao,vabsao)
+!:        If(IOpCl.eq.1) deallocate(cmo_b)
+!:        deallocate(dijabAB,diajbAA,diajbBB)
       Call Close_MatF(IU)
 !
 !    Calculate dipole moment
 !
-     Mol%dipx00 = 0.d0
-     Mol%dipy00 = 0.d0
-     Mol%dipz00 = 0.d0
-     do i = 1,ntt
-       Mol%dipx00 = Mol%dipx00 - 2*density(i)*Mol%dipxao(i)
-       Mol%dipy00 = Mol%dipy00 - 2*density(i)*Mol%dipyao(i)
-       Mol%dipz00 = Mol%dipz00 - 2*density(i)*Mol%dipzao(i)
-       end do
-     do i = 1,nbasis
-       ij = i*(i+1)/2
-       Mol%dipx00 = Mol%dipx00 + density(ij)*Mol%dipxao(ij)
-       Mol%dipy00 = Mol%dipy00 + density(ij)*Mol%dipyao(ij)
-       Mol%dipz00 = Mol%dipz00 + density(ij)*Mol%dipzao(ij)
-       end do
-     do i = 1,Mol%natoms
-       Mol%dipx00 = Mol%dipx00 + AtmChg(i)*Mol%xcoord(i)
-       Mol%dipy00 = Mol%dipy00 + AtmChg(i)*Mol%ycoord(i)
-       Mol%dipz00 = Mol%dipz00 + AtmChg(i)*Mol%zcoord(i)
-       end do
+    Mol%dipx00 = 0.d0
+    Mol%dipy00 = 0.d0
+    Mol%dipz00 = 0.d0
+    do i = 1,ntt
+      Mol%dipx00 = Mol%dipx00 - 2*density(i)*Mol%dipxao(i)
+      Mol%dipy00 = Mol%dipy00 - 2*density(i)*Mol%dipyao(i)
+      Mol%dipz00 = Mol%dipz00 - 2*density(i)*Mol%dipzao(i)
+    end do
+    do i = 1,nbasis
+      ij = i*(i+1)/2
+      Mol%dipx00 = Mol%dipx00 + density(ij)*Mol%dipxao(ij)
+      Mol%dipy00 = Mol%dipy00 + density(ij)*Mol%dipyao(ij)
+      Mol%dipz00 = Mol%dipz00 + density(ij)*Mol%dipzao(ij)
+    end do
+    do i = 1,Mol%natoms
+      Mol%dipx00 = Mol%dipx00 + AtmChg(i)*Mol%xcoord(i)
+      Mol%dipy00 = Mol%dipy00 + AtmChg(i)*Mol%ycoord(i)
+      Mol%dipz00 = Mol%dipz00 + AtmChg(i)*Mol%zcoord(i)
+    end do
     write(42,*) " dipole ",Mol%dipx00,Mol%dipy00,Mol%dipz00
     deallocate( density )
-!:    deallocate(Mol%dipxao,Mol%dipyao,Mol%dipzao)
-!:    deallocate(Mol%xcoord,Mol%ycoord,Mol%zcoord,Mol%myatom)
+!:    deallocate(dipxao,dipyao,dipzao)
+!:    deallocate(xcoord,ycoord,zcoord,myatom)
             
     call write_header( 'read_matrixelements','initialize','leave' )
     
     
   end subroutine read_matrixelements
+
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   subroutine read_vabs_ao( Qstore )

@@ -656,7 +656,7 @@ contains
           allocate( cis_eig(nstates) )             ; cis_eig = 0.d0
        end select
        allocate( ip_eig(ip_states) )               ; ip_eig = 0.d0 
-       allocate( ion_coeff_(ip_states) )            ; ip_eig = 0.d0 
+       allocate( ion_coeff(ip_states) )            ; ip_eig = 0.d0 
 
        if ( Qalloc_Zcomplex ) then
           write(iout,100) 'cis_vec', 2*nstates*nstates      ;  call track_mem( 2*nstates*nstates)
@@ -1221,7 +1221,7 @@ contains
           write(iout,'(A)') ' - Maya Angelous'
           write(iout,'(A)') divide
        case( 'date' )          
-          write(iout,'(A)') ' I WAS COMPILED ON Thu Apr 25 12:52:53 EDT 2024 '
+          write(iout,'(A)') ' I WAS COMPILED ON Mon Apr 29 19:55:04 EDT 2024 '
           write(iout,'(A)') ' I AM A REVISED CODE FOR CW PULSE GENERATION '
           write(iout,'(A)') ' RAMPING PARAMETER SET TO RAMP_STEP=16000, NOT NSTEP'
           call dnt(iout)          
