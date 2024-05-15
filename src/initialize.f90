@@ -49,7 +49,8 @@ contains
                                 ffieldy, ffieldz, QsocA2B, QeigenDC, Qserial
     namelist /SYSTEM_units/     dt_units, eigmax_units
     namelist /InOutFILES/       tdcidatfile, outputfile, restartbinfile, &
-                                Qread_TDCIdata, Qwrite_ion_coeff, Qread_ion_coeff, Qmo_dens, Qci_save
+                                Qread_TDCIdata, Qwrite_ion_coeff, Qread_ion_coeff, &
+                                Qmo_dens, Qci_save, write_binaries
     namelist /DAVIDSON/         flag_davidson
     namelist /ReadU_NO/         flag_ReadU_NO
     
@@ -201,6 +202,7 @@ contains
     flag_davidson = .False.
 
     flag_ReadU_NO = .False.
+    write_binaries = .false.
 
     
   end subroutine set_default
@@ -1186,6 +1188,7 @@ contains
     if ( Qread_ion_coeff )    write(myoption,'(A)') ' Qread_ion_coeff  = .True.  '
     if ( Qmo_dens )    write(myoption,'(A)') ' Qmo_dens  = .True.  '
     if ( Qci_save )    write(myoption,'(A)') ' Qci_save  = .True.  '
+    if ( write_binaries )  write(myoption,'(A)') ' write_binaries = .True.   '
     write(myoption,'(A)') ' /'    
 
     write(myoption,'(A)') '&Davidson'
@@ -1221,7 +1224,7 @@ contains
           write(iout,'(A)') ' - Maya Angelous'
           write(iout,'(A)') divide
        case( 'date' )          
-          write(iout,'(A)') ' I WAS COMPILED ON Mon Apr 29 19:55:04 EDT 2024 '
+          write(iout,'(A)') ' I WAS COMPILED ON Mon May 13 09:40:46 EDT 2024 '
           write(iout,'(A)') ' I AM A REVISED CODE FOR CW PULSE GENERATION '
           write(iout,'(A)') ' RAMPING PARAMETER SET TO RAMP_STEP=16000, NOT NSTEP'
           call dnt(iout)          

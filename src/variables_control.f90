@@ -70,6 +70,9 @@ module variables_control
        Qread_ion_coeff=.false., &  !: read coefficients from singly ionized states from cis and soc simulations
        Qmo_dens = .false., &       !: write density matrix in the MO basis
        Qci_save = .false.          !: write CI vectors to a binary file
+
+  logical :: write_binaries !: Dump many binary arrays in matrices/ folder 
+                            !: (This should be turned off for multithreaded calculations)
  
   
   !: allocate control

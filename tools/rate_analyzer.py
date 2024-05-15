@@ -39,22 +39,45 @@ def write_bin_array(array, filepath):
 
 class orb:
   def __init__(self):
-    orb_index = 0
-    atom_index = 0
-    atom_type = 0
-    n = 0
-    l = 0
-    m = 0
+    self.orb_index = 0
+    self.atom_index = 0
+    self.atom_type = 0
+    self.n = 0
+    self.l = 0
+    self.m = 0
+    self.prim_expon = []
+    self.prim_coeff = []
 
 class gdvlog_parser:
   def __init__(self, filename):
     self.filename = filename
     self.orbs = []
+    self.l_map = {'S': 0, 'P': 1, 'D': 2, 'F': 3, 'G': 4, 'H': 5, 'I': 6}
+    self.inv_l_map = {value: key for key, value in self.l_map.items()}
+    self.atomtypes = {} # map iatom -> atom type (H, He, etc.)
 
   def get_params(self):
-    nao = 128
-    nmo = 22
-    natoms = 3
+    nao = 0
+    nmo = 0
+    natoms = 0
+
+    # Parse tdci output for array sizes
+    f = open("OUTPUT" , 'r')
+    line = f.readline()
+    while line is not "":
+      ls = line.split()
+      if len(ls) > 2:
+        #     charge = 0  multiplicity = 1  natoms = 4
+        if ls[0] == "charge":
+          natoms = int(ls[8])
+        #      nbasis  = 390
+        if ls[0] == "nbasis":
+          nao = int(ls[2])
+        #      nrorb   = 267
+        if ls[0] == "nrorb":
+          nmo = int(ls[2])
+      line = f.readline()
+
     return nao, nmo, natoms
 
   # Return tuple (n, l, m)
@@ -64,7 +87,7 @@ class gdvlog_parser:
   # "20D+2" -> (20, 2, 2)
   # "29F 0" -> (29, 3, 0) 
   def decipher_orbstring(self,orb_string):
-    l_map = {'S': 0, 'P': 1, 'D': 2, 'F': 3, 'G': 4, 'H': 5, 'I': 6}
+    l_map = self.l_map
 
     # get rid of space and lowercase
     orb_string = orb_string.replace(" ", "").upper()
@@ -124,6 +147,7 @@ class gdvlog_parser:
       if len(line) == 6: # New atom
         atom_index = int(line[1])
         atom_type = line[2]
+        self.atomtypes[atom_index] = atom_type
         orbstring = line[3] # Never will have space like '16D 0'
       elif len(line) == 4: # 154       20D+2        0.12572   1.79229
         orbstring = line[1]
@@ -144,6 +168,81 @@ class gdvlog_parser:
       elif len(line[0])==0:
         break
     print("Done Parsing!")
+
+  # This should be executed after parse(), and it assumes that the list self.orbs
+  #   is properly in order ( orbs[i] == orbs[i].orb_index ), as it should be
+  def parse_prims(self):
+    print("Entered parse_prims")
+    f = open(self.filename, 'r')
+    keystr = "AO basis set (Overlap normalization)"
+    line = f.readline()
+    while (keystr not in line) and (line != ""):
+      line = f.readline()
+
+    # Read first data line -- new shell
+    line = f.readline()
+    # First line after data looks like 
+    #   185 basis functions,   237 primitive gaussians,   216 cartesian basis functions
+    # in h2o, in hcci it looks like:
+    #   There are   206 symmetry adapted cartesian basis functions of A1  symmetry.
+    # So for our keystring we could use 'basis' or 'function'
+
+    # Data lines will look like either:
+    #  Atom C3       Shell    62 S   7     bf  212 -   212          0.000000000000          0.000000000000         -4.998683
+    # or
+    #  0.8236000000D+04  0.5419783203D-03
+    # (exponent, coefficient) 
+
+    # Initialize shell variables in outer scope
+    atomi_ = atomtype_ = n_ = nprim = bfi_min = bfi_max = None
+    xcoord = ycoord = zcoord = None
+    prim_i = 0
+
+    while ( 'basis' not in line ):
+      ls = line.split()
+      if ls[0] == "Atom": # New shell
+        # Mostly extra info used for asserts
+        #atomi_ = int(ls[1][1:])
+        atomi_ = int(''.join(filter(lambda x: x.isdigit(), ls[1]))) # Remove non-numbers for He31 etc.
+        atomtype_ = ''.join(filter(lambda x: not x.isdigit(), ls[1])) # Remove numbers for He31 etc.
+        #n_ = int(ls[3]) # What actually is this value? Shell number?
+        l_ = self.l_map[ls[4]] 
+        nprim = int(ls[5]) # Not needed
+        bfi_min = int(ls[7]) # INCLUSIVE RANGE, 1-indexed
+        bfi_max = int(ls[9])
+        xcoord = float(ls[10]) # I don't think we need these, just putting them here incase we do later
+        ycoord = float(ls[11])
+        zcoord = float(ls[12])
+
+      if ( len(ls) == 2 ): # New prim
+        for i in range(bfi_min, bfi_max+1):
+          # Make sure nothing is fishy
+          # Remember orbs is 0-indexed while orb_index, bfi are 1-indexed.
+          assert( i == self.orbs[i-1].orb_index )
+          assert( atomtype_ == self.orbs[i-1].atom_type )
+          assert( atomi_ == self.orbs[i-1].atom_index )
+          assert( l_ == self.orbs[i-1].l )
+          # Add the prims
+          #   Python requires scientific notation have an E instead of D
+          self.orbs[i-1].prim_expon.append(float(ls[0].replace('D','E'))) 
+          self.orbs[i-1].prim_coeff.append(float(ls[1].replace('D','E')))
+
+      line = f.readline()
+
+  
+    idx = 78
+    print(str(idx)+"th orbital:")
+    print("orb_index  : "+str(self.orbs[idx].orb_index ) )
+    print("atom_index : "+str(self.orbs[idx].atom_index ))
+    print("atom_type  : "+str(self.orbs[idx].atom_type ) )
+    print("n          : "+str(self.orbs[idx].n ) )
+    print("l          : "+str(self.orbs[idx].l ) )
+    print("m          : "+str(self.orbs[idx].m ) )
+    print("prim_expon : "+str(self.orbs[idx].prim_expon ))
+    print("prim_coeff : "+str(self.orbs[idx].prim_coeff ))
+    return 0
+
+    
 
 ##############################
 # End gdvlog_parser class
@@ -185,10 +284,10 @@ class ratechecker:
     self.Vabs_AO = vabs_AO
     return 0
 
-  def make_vdens(self,timestep):
+  def make_vdens(self,timestep,e,d):
     nao, nmo = self.nao, self.nmo
     CMO = self.CMO
-    dens_MO = read_bin_array( "matrices/MO_density-e1-d1."+str(timestep)+"00.bin", nmo**2)
+    dens_MO = read_bin_array( f"matrices/MO_density-e{e}-d{d}.{timestep}00.bin", nmo**2)
     dens_MO.resize((nmo,nmo))
     mm = np.matmul
     dens_AO = mm(CMO.T, mm(dens_MO, CMO))
@@ -200,17 +299,22 @@ class ratechecker:
 
 
 
+
+
 def __main__():
 
-  parser = gdvlog_parser("h2o_gaussian.log")
+  parser = gdvlog_parser(sys.argv[1])
 
   parser.parse()
+  parser.parse_prims()
 
-  nao = 128
-  nmo = 22
-  natoms = 3
+
+  nao, nmo, natoms = parser.get_params()
   nsteps = 160
   lmax = 4
+
+  e_idx = 1 # Field number
+  d_idx = 1 # Direction
 
   rc = ratechecker(parser)
 
@@ -221,7 +325,7 @@ def __main__():
 
   # Generate density*vabs in AO basis and partition by atom and L
   for time in range(0, nsteps):
-    vdens = rc.make_vdens(time+1)
+    vdens = rc.make_vdens(time+1,e_idx,d_idx)
     rate[time] = np.trace(vdens)
     # Atoms/orbitals are 1-indexed!
     #print("Breakdown of rate by atom and angular momentum")
@@ -243,6 +347,8 @@ def __main__():
     #  print(f"atom {iatom+1} : {atomsum[iatom]: 4.2e} ({atomsum[iatom]/rate: .2f})")
     #print(f"Total rate : {totsum: 4.2e} ({totsum/rate: .2f} of Tr(vdens))")
 
+  maxrate = max(totsum)
+
   # Plotting
 
   # Plot by Atom and Angular momentum
@@ -251,7 +357,11 @@ def __main__():
   ax = fig.add_subplot(1,1,1)
   for iatom in range(0,natoms):
     for l_ in range(0, lmax):
-      ax.plot( X , lsum[:, iatom, l_], label=f"{iatom+1}: {l_}" )
+      if max(lsum[:,iatom,l_]) < 0.1*maxrate:
+        continue # Skip low contributions to avoid clutter
+      l_str = parser.inv_l_map[l_]
+      atomstr = str(iatom+1)+parser.atomtypes[iatom+1]
+      ax.plot( X , lsum[:, iatom, l_], label=f"{atomstr}: {l_str}" )
 
   ax.legend()
   ax.title.set_text("Rate by Atom:Angular Momentum")
@@ -265,7 +375,10 @@ def __main__():
   ax = fig.add_subplot(1,1,1)
   l_noatom = np.sum(lsum, axis=1) # Now has shape l_noatom[nsteps][lmax]
   for l_ in range(0, lmax):
-    ax.plot( X , l_noatom[:, l_], label=f"{l_}" )
+    #if max(l_noatom[:,l_]) < 0.1*maxrate:
+    #  continue # Skip low contributions to avoid clutter
+    l_str = parser.inv_l_map[l_]
+    ax.plot( X , l_noatom[:, l_], label=f"{l_str}" )
 
   ax.legend()
   ax.title.set_text("Rate by Angular Momentum")
@@ -279,7 +392,10 @@ def __main__():
   fig = plt.figure()
   ax = fig.add_subplot(1,1,1)
   for iatom in range(0,natoms):
-    ax.plot( X , atomsum[:, iatom], label=f"{iatom+1}" )
+    #if max(atomsum[:,iatom]) < 0.1*maxrate:
+    #  continue # Skip low contributions to avoid clutter
+    atomstr = str(iatom+1)+parser.atomtypes[iatom+1]
+    ax.plot( X , atomsum[:, iatom], label=f"{atomstr}" )
 
   ax.legend()
   ax.title.set_text("Rate by Atom")

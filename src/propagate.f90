@@ -229,7 +229,7 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
 
   !: ION_COEFF datafile
   Priv%funit(5) = 4000+100*iemax + idir
-  If( Qread_ion_coeff .or. Qwrite_ion_coeff ) then
+  if( Qread_ion_coeff .or. Qwrite_ion_coeff ) then
     Priv%datafile = 'ION_COEFF-e'//trim(Priv%emaxstr)//'-d'//trim(Priv%dirstr)//'.bin'
     open( unit=Priv%funit(5),file=trim(Priv%datafile),form='unformatted' )
   else
@@ -239,13 +239,13 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
       's(i)(i=1,ip_states)','proj Zion_coeff(j,i)','Zion_coeff(j,i)'
     write(Priv%funit(5),"('ntimes ',i0)") int(nstep/outstep)
     write(Priv%funit(5),"('ip_states ',i0)") ip_states
-  end If
-  If( Qread_ion_coeff ) then 
+  end if
+  if( Qread_ion_coeff ) then 
     read(Priv%funit(5)) Zion_coeff
   end if
 
   !: MO density datafile
-  If( Qmo_dens ) then
+  if( Qmo_dens ) then
     Priv%funit(6) = 5000+100*iemax + idir
     Priv%datafile = 'MO_density-e'//trim(Priv%emaxstr)//'-d'//trim(Priv%dirstr)//'.dat'
     open( unit=Priv%funit(6),file=trim(Priv%datafile) )
@@ -358,64 +358,65 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
                                    Priv%rate, noa, nva, scratch, Mol%vabsmoa )
   end if
 
-  write(*,*) "nrorb, nbasis, (noa+nva) :", nrorb, nbasis, (noa+nva)
-  write(*,*) "Size Mol%vabsmoa: ", size(Mol%vabsmoa)
-  write(*,*) "Size Mol%cmo_a: ", size(Mol%cmo_a)
-  write(*,*) "Mol%vabsmoa subblock: ", (noa+nva)
-  do i=1,5
-    do j=1,5
-      write(*, "(E10.3,1X)", advance='no') Mol%vabsmoa((i-1)*(noa+nva)+j)
+  if ( write_binaries ) then
+
+    write(*,*) "nrorb, nbasis, (noa+nva) :", nrorb, nbasis, (noa+nva)
+    write(*,*) "Size Mol%vabsmoa: ", size(Mol%vabsmoa)
+    write(*,*) "Size Mol%cmo_a: ", size(Mol%cmo_a)
+    write(*,*) "Mol%vabsmoa subblock: ", (noa+nva)
+    do i=1,5
+      do j=1,5
+        !write(*, "(E10.3,1X)", advance='no') Mol%vabsmoa((i-1)*(noa+nva)+j)
+        write(*, "(E10.3,1X)", advance='no') Mol%vabsmoa(i,j)
+      end do
+      write(*,*) " "
     end do
-    write(*,*) " "
-  end do
 
-  !: Write density to binary file
-  !write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/density_AO-e", trim(Priv%emaxstr), &
-  !       "-d", trim(Priv%dirstr), ".", itime, ".bin"
+    !: Write density to binary file
+    !write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/density_AO-e", trim(Priv%emaxstr), &
+    !       "-d", trim(Priv%dirstr), ".", itime, ".bin"
 
-  !write(iout,*) "Writing file: ", trim(density_filename) ; flush(iout)
-  !allocate( density_AO(nbasis*nbasis) )
-  !call mo2ao_full(nbasis, nrorb, scratch, density_AO, Mol%cmo_a )
+    !write(iout,*) "Writing file: ", trim(density_filename) ; flush(iout)
+    !allocate( density_AO(nbasis*nbasis) )
+    !call mo2ao_full(nbasis, nrorb, scratch, density_AO, Mol%cmo_a )
 
-  !call mo2ao_full(nbasis, nrorb, reshape(scratch(1:nrorb*nrorb), [nrorb,nrorb]), &
-  !                density_AO, Mol%cmo_a )
+    !call mo2ao_full(nbasis, nrorb, reshape(scratch(1:nrorb*nrorb), [nrorb,nrorb]), &
+    !                density_AO, Mol%cmo_a )
 
-  !allocate( density_MO(nrorb*nrorb) )
-  !density_MO = scratch(1:nrorb*nrorb)
-  !call mo2ao_full(nbasis, nrorb, density_MO, density_AO, Mol%cmo_a )
+    !allocate( density_MO(nrorb*nrorb) )
+    !density_MO = scratch(1:nrorb*nrorb)
+    !call mo2ao_full(nbasis, nrorb, density_MO, density_AO, Mol%cmo_a )
 
-  !write(iout, *) "use funit(7): ", Priv%funit(7)
-  !call write_dbin( density_AO, nbasis*nbasis, trim(density_filename), Priv%funit(7) )
-  !deallocate( density_AO )
+    !write(iout, *) "use funit(7): ", Priv%funit(7)
+    !call write_dbin( density_AO, nbasis*nbasis, trim(density_filename), Priv%funit(7) )
+    !deallocate( density_AO )
 
-  !: Write MO density too to double check
-  write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/MO_density-e", trim(Priv%emaxstr), &
-         "-d", trim(Priv%dirstr), ".", itime, ".bin"
+    !: Write MO density too to double check
+    write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/MO_density-e", trim(Priv%emaxstr), &
+           "-d", trim(Priv%dirstr), ".", itime, ".bin"
 
-  !write(iout,*) "Writing file: ", trim(density_filename), " using unit: ", Priv%funit(7) ; flush(iout)
-  !call write_dbin( scratch(1:nrorb*nrorb), nrorb*nrorb, trim(density_filename) )
-  call write_density_bin( density_filename, dble(itime)*dt*au2fs, &
-                                   Priv%rate, noa, nva, scratch, Mol%vabsmoa )
+    !write(iout,*) "Writing file: ", trim(density_filename), " using unit: ", Priv%funit(7) ; flush(iout)
+    !call write_dbin( scratch(1:nrorb*nrorb), nrorb*nrorb, trim(density_filename) )
+    call write_density_bin( density_filename, dble(itime)*dt*au2fs, &
+                                     Priv%rate, noa, nva, scratch, Mol%vabsmoa )
 
 
+    density_filename = trim("")
+    write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/MO_density-e", trim(Priv%emaxstr), &
+           "-d", trim(Priv%dirstr), ".", itime, ".diff.bin"
+    
+    call write_density_difference_bin( density_filename, dble(itime)*dt*au2fs, &
+                                     Priv%rate, noa, nva, scratch, Mol%vabsmoa )
 
 
+    density_filename = trim("")
+    write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/MO_density-e", trim(Priv%emaxstr), &
+           "-d", trim(Priv%dirstr), ".", itime, ".vdens.bin"
+    
+    call write_vdens_diff_bin( density_filename, dble(itime)*dt*au2fs, &
+                               Priv%rate, noa, nva, scratch, Mol%vabsmoa )
 
-  density_filename = trim("")
-  write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/MO_density-e", trim(Priv%emaxstr), &
-         "-d", trim(Priv%dirstr), ".", itime, ".diff.bin"
-  
-  call write_density_difference_bin( density_filename, dble(itime)*dt*au2fs, &
-                                   Priv%rate, noa, nva, scratch, Mol%vabsmoa )
-
-
-  density_filename = trim("")
-  write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/MO_density-e", trim(Priv%emaxstr), &
-         "-d", trim(Priv%dirstr), ".", itime, ".vdens.bin"
-  
-  call write_vdens_diff_bin( density_filename, dble(itime)*dt*au2fs, &
-                             Priv%rate, noa, nva, scratch, Mol%vabsmoa )
-
+  end if ! write_matrices
 
   if(trim(jobtype).eq.flag_cis .and. (.not. Qwrite_ion_coeff) ) then
     call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
@@ -2886,7 +2887,7 @@ subroutine write_vdens_diff_bin(filename, time, rate, noa, nva, density, vabs)
   real(8), intent(in)    :: time, rate
   integer(8), intent(in)    :: noa, nva
   real(8), intent(in)    :: density(:)
-  real(8), allocatable, intent(in)    :: vabs(:)
+  real(8), allocatable, intent(in)    :: vabs(:,:)
 
   integer(8) :: i,j, idx, ndim, ndim2
   real(8) :: temp_density( (noa+nva)*(noa+nva) )
@@ -2937,7 +2938,8 @@ subroutine write_vdens_diff_bin(filename, time, rate, noa, nva, density, vabs)
   write(*,*) "vabs subblock: "
   do i=1,5
     do j=1,5
-      write(*, "(E10.3,1X)", advance='no') vabs((i-1)*ndim+j)
+      !write(*, "(E10.3,1X)", advance='no') vabs((i-1)*ndim+j)
+      write(*, "(E10.3,1X)", advance='no') vabs(i,j)
     end do
     write(*,*) " "
   end do
@@ -2950,7 +2952,13 @@ subroutine write_vdens_diff_bin(filename, time, rate, noa, nva, density, vabs)
 
   !: Weight density by vabs
   !temp_density = temp_density * vabs(:ndim2)
-  temp_density = temp_density * vabs
+  !temp_density = temp_density * vabs
+
+  do i=1,ndim
+    do j=1,ndim
+      temp_density((i-1)*ndim+j) = temp_density((i-1)*ndim+j) * vabs(i,j)
+    end do
+  end do
 
   !do i=1,ndim2
   !  temp_density(i) = (temp_density(i)) * (vabs(i))
