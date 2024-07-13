@@ -8,7 +8,7 @@
 #
 
 import numpy as np
-import struct, sys
+import struct, sys, re
 np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(formatter={'float': lambda x: "{0:0.2f}".format(x)})
 
@@ -37,6 +37,46 @@ def write_bin_array(array, filepath):
   f.write( struct.pack('d'*len(array), *array ))
   f.close(); del f
 
+# Parses the file 'input' for the theta/phi of each direction
+def parse_tdci_input_directions():
+  polar_coords = []
+  f = open('input', 'r')
+  l = f.readline()
+  while l.strip() != "&FIELD_directions":
+    l = f.readline()
+    if l == "":
+      print("Can't find &FIELD_directions !!!")
+  l = f.readline()
+  nemax = int(l.split()[-1])
+  l = f.readline()
+  while l.strip() != "/":
+    if l == "":
+      print("Can't find end of directions !!!")
+      sys.exit()
+    index, theta, phi = parse_tdci_input_line(l)
+    polar_coords.append( (theta,phi) )
+    l = f.readline()
+  #print("Polar coords:")
+  #print( (nemax, len(polar_coords)) )
+  #print(polar_coords)
+  return polar_coords
+  
+  
+def parse_tdci_input_line(line):
+  # read_theta( 1) = 0.d0    ;  read_phi( 1) = 0.d0 
+  # regex magic collects first index and the params, d/D case insensitive, ignore spaces.
+  pattern = r'read_theta\((\d+)\)\s*=\s*([\d.]+[dD][\d+-]+)\s*;\s*read_phi\((\d+)\)\s*=\s*([\d.]+[dD][\d+-]+)'
+  match = re.search(pattern, line.replace(' ', ''))
+  if match:
+    index = int(match.group(1))
+    theta = float(match.group(2).replace('d', 'e').replace('D', 'e'))
+    phi = float(match.group(4).replace('d', 'e').replace('D', 'e'))
+    return index, theta, phi
+  print("NO MATCH ON LINE!!: "+str(line))
+  sys.exit()
+
+  
+
 class orb:
   def __init__(self):
     self.orb_index = 0
@@ -52,8 +92,11 @@ class gdvlog_parser:
   def __init__(self, filename):
     self.filename = filename
     self.orbs = []
-    self.l_map = {'S': 0, 'P': 1, 'D': 2, 'F': 3, 'G': 4, 'H': 5, 'I': 6}
-    self.inv_l_map = {value: key for key, value in self.l_map.items()}
+    # What should I do with 'SP' orbitals? I think just treat them as P?
+    self.l_map = {'S': 0, 'P': 1, 'SP': 1, 'D': 2, 'F': 3, 'G': 4, 'H': 5, 'I': 6}
+    self.inv_l_map = ['S', 'P', 'D', 'F', 'G', 'H', 'I'] # Only used for labels
+    # the 'SP' entry breaks this
+    #self.inv_l_map = {value: key for key, value in self.l_map.items()}
     self.atomtypes = {} # map iatom -> atom type (H, He, etc.)
 
   def get_params(self):
@@ -64,7 +107,7 @@ class gdvlog_parser:
     # Parse tdci output for array sizes
     f = open("OUTPUT" , 'r')
     line = f.readline()
-    while line is not "":
+    while line != "":
       ls = line.split()
       if len(ls) > 2:
         #     charge = 0  multiplicity = 1  natoms = 4
@@ -298,112 +341,173 @@ class ratechecker:
     return vdens
 
 
+class RateTrajectoryData:
+  def __init__(self, nsteps, natoms, lmax):
+    self.rate = np.zeros(nsteps)
+    self.atomsum = np.zeros((nsteps,natoms))
+    self.lsum = np.zeros((nsteps,natoms,lmax))
+    self.totsum = np.zeros(nsteps) # Sanity check for rate
+    self.maxrate = 0
+    self.direction = 0
+
+class RatePlotter:
+  def  __init__(self, gdvlog ):
+    self.parser = gdvlog_parser(gdvlog)
+    parser = self.parser
+    parser.parse()
+    parser.parse_prims()
+
+    self.polar_coords = parse_tdci_input_directions()
+    self.dataset = [] # RateTrajectoryData indexed by direction index.
+    self.ndir = len(self.polar_coords)
+
+    self.nao, self.nmo, self.natoms = self.parser.get_params()
+    nao, nmo, natoms = self.nao, self.nmo, self.natoms
+    self.nsteps = 160
+    self.lmax = 6
+    nsteps = self.nsteps
+    lmax = self.lmax
+   
+
+
+    e_idx = 1 # Field number
+    d_idx = 1 # Direction
+
+    self.rc = ratechecker(self.parser)
+
+    for d in range(0,self.ndir):
+      d_data = RateTrajectoryData(self.nsteps, self.natoms, self.lmax)
+      rate = d_data.rate
+      atomsum = d_data.atomsum
+      lsum = d_data.lsum
+      totsum = d_data.totsum
+      d_data.direction = d
+
+      # Generate density*vabs in AO basis and partition by atom and L
+      for time in range(0, nsteps):
+        vdens = self.rc.make_vdens(time+1,e_idx,d+1)
+        rate[time] = np.trace(vdens)
+        # Atoms/orbitals are 1-indexed!
+        #print("Breakdown of rate by atom and angular momentum")
+#
+        for iatom in range(0,self.natoms):
+          for l_ in range(0, lmax):
+            for orb in parser.orbs:
+              if orb.l == l_ and orb.atom_index == iatom+1:
+                #print(orb.orb_index)
+                #print(len(a.orbs))
+                idx = orb.orb_index-1 # orb_index is 1-indexed
+                lsum[time][iatom][l_] += vdens[idx][idx]
+                atomsum[time][iatom] += vdens[idx][idx]
+          totsum[time] += atomsum[time][iatom]
+      self.dataset.append(d_data)
+      self.rate_by_time_plots(d_data)
+    self.polar_angular_plot()
+
+
+  def rate_by_time_plots(self,d_data):
+    nsteps = self.nsteps
+    lmax = self.lmax
+    parser = self.parser
+    natoms = self.natoms
+    maxrate = 1e-5 # forgot where to get this from
+    # Plot by Atom and Angular momentum
+    X = np.array(list(range(1,nsteps+1)))
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    for iatom in range(0,natoms):
+      for l_ in range(0, lmax):
+        if max(d_data.lsum[:,iatom,l_]) < 0.1*maxrate:
+          continue # Skip low contributions to avoid clutter
+        l_str = parser.inv_l_map[l_]
+        #print(parser.atomtypes, flush=True)
+        atomstr = str(iatom+1)+parser.atomtypes[iatom+1]
+        ax.plot( X , d_data.lsum[:, iatom, l_], label=f"{atomstr}: {l_str}" )
+
+    ax.legend()
+    ax.title.set_text(f"Rate by Atom:Angular Momentum. Dir: {d_data.direction}")
+    
+    plt.tight_layout()
+    plt.savefig(f"atomangular{d_data.direction}.png", dpi=200)
+
+    # Plot by angular momentum, no atoms
+    plt.clf()
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    l_noatom = np.sum(d_data.lsum, axis=1) # Now has shape l_noatom[nsteps][lmax]
+    for l_ in range(0, lmax):
+      #if max(l_noatom[:,l_]) < 0.1*maxrate:
+      #  continue # Skip low contributions to avoid clutter
+      l_str = parser.inv_l_map[l_]
+      ax.plot( X , l_noatom[:, l_], label=f"{l_str}" )
+
+    ax.legend()
+    ax.title.set_text(f"Rate by Angular Momentum. Dir:{d_data.direction}")
+    
+    plt.tight_layout()
+    plt.savefig(f"angular{d_data.direction}.png", dpi=200)
+
+
+    # Plot by atom, no angular momentum
+    plt.clf()
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    for iatom in range(0,natoms):
+      #if max(atomsum[:,iatom]) < 0.1*maxrate:
+      #  continue # Skip low contributions to avoid clutter
+      #print(parser.atomtypes, flush=True)
+      atomstr = str(iatom+1)+parser.atomtypes[iatom+1]
+      ax.plot( X , d_data.atomsum[:, iatom], label=f"{atomstr}" )
+
+    ax.legend()
+    ax.title.set_text(f"Rate by Atom. Dir:{d_data.direction}")
+    
+    plt.tight_layout()
+    plt.savefig(f"atom{d_data.direction}.png", dpi=200)
+
+    return 0 
+
+  def polar_angular_plot(self):
+    # For now we just ignore phi i think
+    print( "Length check (dataset, polar_coords)")
+    print( (len(self.dataset), len(self.polar_coords)))
+    ndir = len(self.polar_coords)
+    X_theta = []
+    for x in self.polar_coords:
+      X_theta.append( x[0] * (np.pi/180.)  )
+    Y_L = [ [] for _ in range(self.lmax) ]
+    time = (self.nsteps-1)
+    for d in range(0,ndir):
+      for l_ in range(0,self.lmax):
+        rate_l = 0.0
+        for iatom in range(0,self.natoms):
+          rate_l += self.dataset[d].lsum[time][iatom][l_]
+        Y_L[l_].append(rate_l)
+
+    plt.clf()
+    fig, ax = plt.subplots( subplot_kw={'projection':'polar'})
+    for l_ in range(0,self.lmax):
+      l_str = self.parser.inv_l_map[l_]
+      print(X_theta)
+      print(Y_L[l_])
+      #ax.plot(X_theta, Y_L[l_], label=f"{l_str}") 
+      # 180 degree symmetry
+      X_theta_neg = list(-1.0*np.array(X_theta))
+      X = X_theta+X_theta_neg[1:-1]
+      Y = Y_L[l_] + Y_L[l_][1:-1]
+      ax.plot(X,Y, label=f"{l_str}") 
+    ax.grid(True)
+    ax.legend()
+    ax.set_title("Incident light angle and Angular rate dependence")
+    plt.savefig("polar_angular.png",dpi=600)
+        
+
 
 
 
 def __main__():
+  rateplotter = RatePlotter(sys.argv[1])
 
-  parser = gdvlog_parser(sys.argv[1])
-
-  parser.parse()
-  parser.parse_prims()
-
-
-  nao, nmo, natoms = parser.get_params()
-  nsteps = 160
-  lmax = 4
-
-  e_idx = 1 # Field number
-  d_idx = 1 # Direction
-
-  rc = ratechecker(parser)
-
-  rate = np.zeros(nsteps)
-  atomsum = np.zeros((nsteps,natoms))
-  lsum = np.zeros((nsteps,natoms,lmax))
-  totsum = np.zeros(nsteps) # Sanity check for rate
-
-  # Generate density*vabs in AO basis and partition by atom and L
-  for time in range(0, nsteps):
-    vdens = rc.make_vdens(time+1,e_idx,d_idx)
-    rate[time] = np.trace(vdens)
-    # Atoms/orbitals are 1-indexed!
-    #print("Breakdown of rate by atom and angular momentum")
-
-    for iatom in range(0,natoms):
-      for l_ in range(0, lmax):
-        for orb in parser.orbs:
-          if orb.l == l_ and orb.atom_index == iatom+1:
-            #print(orb.orb_index)
-            #print(len(a.orbs))
-            idx = orb.orb_index-1 # orb_index is 1-indexed
-            lsum[time][iatom][l_] += vdens[idx][idx]
-            atomsum[time][iatom] += vdens[idx][idx]
-      totsum[time] += atomsum[time][iatom]
-    
-    #for iatom in range(1,natoms+1):
-    #  for l_ in range(0, lmax):
-    #    print(f"atom {iatom+1}, l={l_}: {lsum[iatom][l_]: 4.2e} ({lsum[iatom][l_]/rate: .2f})")
-    #  print(f"atom {iatom+1} : {atomsum[iatom]: 4.2e} ({atomsum[iatom]/rate: .2f})")
-    #print(f"Total rate : {totsum: 4.2e} ({totsum/rate: .2f} of Tr(vdens))")
-
-  maxrate = max(totsum)
-
-  # Plotting
-
-  # Plot by Atom and Angular momentum
-  X = np.array(list(range(1,nsteps+1)))
-  fig = plt.figure()
-  ax = fig.add_subplot(1,1,1)
-  for iatom in range(0,natoms):
-    for l_ in range(0, lmax):
-      if max(lsum[:,iatom,l_]) < 0.1*maxrate:
-        continue # Skip low contributions to avoid clutter
-      l_str = parser.inv_l_map[l_]
-      atomstr = str(iatom+1)+parser.atomtypes[iatom+1]
-      ax.plot( X , lsum[:, iatom, l_], label=f"{atomstr}: {l_str}" )
-
-  ax.legend()
-  ax.title.set_text("Rate by Atom:Angular Momentum")
-  
-  plt.tight_layout()
-  plt.savefig("atomangular.png", dpi=200)
-
-  # Plot by angular momentum, no atoms
-  plt.clf()
-  fig = plt.figure()
-  ax = fig.add_subplot(1,1,1)
-  l_noatom = np.sum(lsum, axis=1) # Now has shape l_noatom[nsteps][lmax]
-  for l_ in range(0, lmax):
-    #if max(l_noatom[:,l_]) < 0.1*maxrate:
-    #  continue # Skip low contributions to avoid clutter
-    l_str = parser.inv_l_map[l_]
-    ax.plot( X , l_noatom[:, l_], label=f"{l_str}" )
-
-  ax.legend()
-  ax.title.set_text("Rate by Angular Momentum")
-  
-  plt.tight_layout()
-  plt.savefig("angular.png", dpi=200)
-
-
-  # Plot by atom, no angular momentum
-  plt.clf()
-  fig = plt.figure()
-  ax = fig.add_subplot(1,1,1)
-  for iatom in range(0,natoms):
-    #if max(atomsum[:,iatom]) < 0.1*maxrate:
-    #  continue # Skip low contributions to avoid clutter
-    atomstr = str(iatom+1)+parser.atomtypes[iatom+1]
-    ax.plot( X , atomsum[:, iatom], label=f"{atomstr}" )
-
-  ax.legend()
-  ax.title.set_text("Rate by Atom")
-  
-  plt.tight_layout()
-  plt.savefig("atom.png", dpi=200)
-
-  return 0 
   
 __main__()
 

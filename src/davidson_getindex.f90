@@ -122,9 +122,9 @@ contains
              end if
           end do
           !$OMP END DO
-          !$OMP CRITICAL
+          !$OMP CRITICAL (form_sigma_lock)
           sigma(:,ibasis) = sigma(:,ibasis) + residue(:)
-          !$OMP END CRITICAL          
+          !$OMP END CRITICAL (form_sigma_lock)
           !$OMP END PARALLEL
          
        end do get_sigma

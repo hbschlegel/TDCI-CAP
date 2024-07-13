@@ -160,9 +160,18 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
   write( Priv%emaxstr, '(i0)' ) iemax
   write( Priv%dirstr, '(i0)' )  idir
 
+
+  Priv%funit(1) = 0    +1000*iemax + idir
+  Priv%funit(2) = 10000+1000*iemax + idir
+  Priv%funit(3) = 20000+1000*iemax + idir
+  Priv%funit(4) = 30000+1000*iemax + idir
+  Priv%funit(5) = 40000+1000*iemax + idir
+  Priv%funit(6) = 50000+1000*iemax + idir
+  Priv%funit(7) = 60000+1000*iemax + idir
+
+
   !: cifile binary
   if( Qci_save ) then
-    Priv%funit(1)  = iemax*100 + idir
     Priv%cifile ='CI-e'//trim(Priv%emaxstr)//'-d'//trim(Priv%dirstr)//'.bin'
     open( unit=Priv%funit(1), file=trim(Priv%cifile), form='unformatted' )
     write(Priv%funit(1)) ndata, nstuse, nstates
@@ -179,7 +188,6 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
   end if    
   
   !: RESULTS datafile
-  Priv%funit(2) = 1000+100*iemax + idir
   Priv%datafile = 'RESULTS-e'//trim(Priv%emaxstr)//'-d'//trim(Priv%dirstr)//'.dat'
   open( unit=Priv%funit(2),file=trim(Priv%datafile) )
   write( Priv%funit(2), '(A)' ) '# emax1 emax2 theta0 phi0 theta1 phi1 theta2 phi2 dirx0 diry0 dirz0 dirx1 diry1 dirz1 dirx2 diry2 dirz2'
@@ -210,7 +218,6 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
   end if
 
   !: POP datafile
-  Priv%funit(3) = 2000+100*iemax + idir
   Priv%datafile = 'POP-e'//trim(Priv%emaxstr)//'-d'//trim(Priv%dirstr)//'.dat'
   open( unit=Priv%funit(3),file=trim(Priv%datafile) )
   if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
@@ -222,13 +229,11 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
   end if
 
   !: ION datafile
-  Priv%funit(4) = 3000+100*iemax + idir
   Priv%datafile = 'ION-e'//trim(Priv%emaxstr)//'-d'//trim(Priv%dirstr)//'.dat'
   open( unit=Priv%funit(4),file=trim(Priv%datafile) )
   write( Priv%funit(4),"(a5,8(a14,1x))" ) '#','time(fs)','rate/norm2','normV','ion_a(occ)','ion_b(occ)','ion_coeff'
 
   !: ION_COEFF datafile
-  Priv%funit(5) = 4000+100*iemax + idir
   if( Qread_ion_coeff .or. Qwrite_ion_coeff ) then
     Priv%datafile = 'ION_COEFF-e'//trim(Priv%emaxstr)//'-d'//trim(Priv%dirstr)//'.bin'
     open( unit=Priv%funit(5),file=trim(Priv%datafile),form='unformatted' )
@@ -246,7 +251,6 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
 
   !: MO density datafile
   if( Qmo_dens ) then
-    Priv%funit(6) = 5000+100*iemax + idir
     Priv%datafile = 'MO_density-e'//trim(Priv%emaxstr)//'-d'//trim(Priv%dirstr)//'.dat'
     open( unit=Priv%funit(6),file=trim(Priv%datafile) )
     !open( newunit=Priv%funit(6),file=trim(Priv%datafile) )
@@ -360,17 +364,17 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
 
   if ( write_binaries ) then
 
-    write(*,*) "nrorb, nbasis, (noa+nva) :", nrorb, nbasis, (noa+nva)
-    write(*,*) "Size Mol%vabsmoa: ", size(Mol%vabsmoa)
-    write(*,*) "Size Mol%cmo_a: ", size(Mol%cmo_a)
-    write(*,*) "Mol%vabsmoa subblock: ", (noa+nva)
-    do i=1,5
-      do j=1,5
-        !write(*, "(E10.3,1X)", advance='no') Mol%vabsmoa((i-1)*(noa+nva)+j)
-        write(*, "(E10.3,1X)", advance='no') Mol%vabsmoa(i,j)
-      end do
-      write(*,*) " "
-    end do
+    !write(*,*) "nrorb, nbasis, (noa+nva) :", nrorb, nbasis, (noa+nva)
+    !write(*,*) "Size Mol%vabsmoa: ", size(Mol%vabsmoa)
+    !write(*,*) "Size Mol%cmo_a: ", size(Mol%cmo_a)
+    !write(*,*) "Mol%vabsmoa subblock: ", (noa+nva)
+    !do i=1,5
+    !  do j=1,5
+    !    !write(*, "(E10.3,1X)", advance='no') Mol%vabsmoa((i-1)*(noa+nva)+j)
+    !    write(*, "(E10.3,1X)", advance='no') Mol%vabsmoa(i,j)
+    !  end do
+    !  write(*,*) " "
+    !end do
 
     !: Write density to binary file
     !write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/density_AO-e", trim(Priv%emaxstr), &
@@ -398,7 +402,7 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
     !write(iout,*) "Writing file: ", trim(density_filename), " using unit: ", Priv%funit(7) ; flush(iout)
     !call write_dbin( scratch(1:nrorb*nrorb), nrorb*nrorb, trim(density_filename) )
     call write_density_bin( density_filename, dble(itime)*dt*au2fs, &
-                                     Priv%rate, noa, nva, scratch, Mol%vabsmoa )
+                            Priv%rate, noa, nva, scratch, Mol%vabsmoa, Priv%funit(7) )
 
 
     density_filename = trim("")
@@ -406,7 +410,7 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
            "-d", trim(Priv%dirstr), ".", itime, ".diff.bin"
     
     call write_density_difference_bin( density_filename, dble(itime)*dt*au2fs, &
-                                     Priv%rate, noa, nva, scratch, Mol%vabsmoa )
+                                 Priv%rate, noa, nva, scratch, Mol%vabsmoa, Priv%funit(7) )
 
 
     density_filename = trim("")
@@ -414,7 +418,7 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
            "-d", trim(Priv%dirstr), ".", itime, ".vdens.bin"
     
     call write_vdens_diff_bin( density_filename, dble(itime)*dt*au2fs, &
-                               Priv%rate, noa, nva, scratch, Mol%vabsmoa )
+                               Priv%rate, noa, nva, scratch, Mol%vabsmoa, Priv%funit(7) )
 
   end if ! write_matrices
 
@@ -752,12 +756,12 @@ subroutine trotter_linear
       Priv%emax1 = tdciresults(1+(iemax-1)*ndir)%fstrength0
 
 
-      !$OMP CRITICAL
+      !$OMP CRITICAL (PropThreadOutput)
       call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff, 0)
       if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
       write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
       flush( iout )
-      !$OMP END CRITICAL
+      !$OMP END CRITICAL (PropThreadOutput)
                   
       !: initialize psi
       call cpu_time(start3)
@@ -921,7 +925,7 @@ subroutine trotter_linear
                     Priv%nva95max_debug, Priv%nva99max_debug, Priv%rate_debug, &
                     Prop%opdm_avg, Prop%U_NO_input, Mol%vabsmoa )
 
-            !$OMP CRITICAL
+            !$OMP CRITICAL (prop_add_opdm_avg_lock)
             !: Add 1-RDM (opdm) to 1-RDM average for Natural Orbital generation.
               
             call add_opdm_average( Prop%opdm_avg, scratch, Prop%opdm_avg_N )
@@ -933,7 +937,7 @@ subroutine trotter_linear
             !flush(iout)    
             !call dgemm_sanity 
 
-            !$OMP END CRITICAL
+            !$OMP END CRITICAL (prop_add_opdm_avg_lock)
 
             call get_norm( Priv%norm,nstuse, psi )
             call get_expectation( nstuse, Priv%norm, psi, abp, Priv%rate) !: rate expectation value
@@ -996,7 +1000,7 @@ subroutine trotter_linear
         !  write(iout,"(' psi ',9f12.8)") Priv%norm,(scratch(j+(noa+nob)),j=1,noa+nob)
         !end do
 
-        !$OMP CRITICAL                    
+        !$OMP CRITICAL (prop_final_timestep_lock)
         !: record data at last timestep
         tdciresults( idir + (iemax-1)*ndir)%norm0 = Priv%norm**2
         tdciresults( idir + (iemax-1)*ndir)%dipx  = Priv%mux
@@ -1044,7 +1048,7 @@ subroutine trotter_linear
 
         flush(iout)
 
-        !$OMP END CRITICAL
+        !$OMP END CRITICAL (prop_final_timestep_lock)
      end do emax_loop
 
     call Priv%deconstruct()
@@ -1309,10 +1313,10 @@ subroutine trotter_circular
 
         call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff, 1)
 
-        !$OMP CRITICAL
+        !$OMP CRITICAL (start_prop_lock)
         write(iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0 )") idir, iemax, ithread
         flush(iout)
-        !$OMP END CRITICAL
+        !$OMP END CRITICAL (start_prop_lock)
         
         !: initialize psi
         psi = psi0
@@ -1489,7 +1493,7 @@ subroutine trotter_circular
                       !Priv%nva95max_density, Priv%nva99max_density, Priv%rate_density, &
                       Prop%opdm_avg, Prop%U_NO_input, Mol%vabsmoa )
 
-              !$OMP CRITICAL
+              !$OMP CRITICAL (prop_add_opdm_avg_lock2)
               !: set critical for sum so we dont have multiple threads
               !:   modifying opdm_avg at a time... is this going to destroy
               !:   performance?
@@ -1503,7 +1507,7 @@ subroutine trotter_circular
               !flush(iout)    
               !call dgemm_sanity 
 
-              !$OMP END CRITICAL
+              !$OMP END CRITICAL (prop_add_opdm_avg_lock2)
 
               ion_coeff = dcmplx( 0.d0,0.d0 )
               do i=1,ip_states
@@ -1654,7 +1658,7 @@ subroutine trotter_circular
 
         If( Qmo_dens ) close(Priv%funit(6))
 
-        !$OMP CRITICAL
+        !$OMP CRITICAL (prop_final_timestep_lock2)
         !: record data at last timestep
         tdciresults( idir + (iemax-1)*ndir)%norm0 = Priv%norm**2
         tdciresults( idir + (iemax-1)*ndir)%dipx  = Priv%mux
@@ -1703,7 +1707,7 @@ subroutine trotter_circular
         end if
         flush(iout)
 
-        !$OMP END CRITICAL
+        !$OMP END CRITICAL (prop_final_timestep_lock2)
 
      end do emax_loop
 
@@ -2710,14 +2714,14 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
   end do
   call quicksort_descending(sort_vals, vals_sorted, sort_key)
 
-  !if (verbose) then
-    !write(iout, *) "MO Contribution Analysis"
-    !write(iout, *) "i, i_sort, rate, rate_sort"
-    !write(iout, *) "=========================="
-    !do i=1,ndim
-    !  write(iout, "(i4, i4, f12.8, f12.8)") i, sort_key(i), sort_vals(i), vals_sorted(i)
-    !end do
-  !end if
+  if (verbose) then
+    write(iout, *) "MO Contribution Analysis"
+    write(iout, *) "i, i_sort, rate, rate_sort"
+    write(iout, *) "=========================="
+    do i=1,ndim
+      write(iout, "(i4, i4, f12.8, f12.8)") i, sort_key(i), sort_vals(i), vals_sorted(i)
+    end do
+  end if
 
   do i=1,ndim
     do j=1,ndim
@@ -2793,13 +2797,14 @@ end subroutine matrix_MO_to_AO
 
 
 
-subroutine write_density_bin(filename, time, rate, noa, nva, density, vabs)
+subroutine write_density_bin(filename, time, rate, noa, nva, density, vabs, funit)
   implicit none
   character(len=*), intent(in) :: filename
   real(8), intent(in)    :: time, rate
   integer(8), intent(in)    :: noa, nva
   real(8), intent(in)    :: density(:)
   real(8), allocatable, intent(in)    :: vabs(:)
+  integer(8), intent(in), optional :: funit
 
   integer(8) :: i,j, idx, ndim, ndim2
   real(8) :: temp_density( (noa+nva)*(noa+nva) )
@@ -2820,25 +2825,29 @@ subroutine write_density_bin(filename, time, rate, noa, nva, density, vabs)
   temp_density = temp_density/temptrace
 
 
-  write(*,*) "first 20x20 subblock of Density: "
-  do i=1,20
-    do j=1,20
-      write(*, "(E10.3,1X)", advance='no') density((i-1)*ndim+j)
-    end do
-    write(*,*) " "
-  end do
-
-  call write_dbin_safe(temp_density, nrorb*nrorb, trim(filename))
+  !write(*,*) "first 20x20 subblock of Density: "
+  !do i=1,20
+  !  do j=1,20
+  !    write(*, "(E10.3,1X)", advance='no') density((i-1)*ndim+j)
+  !  end do
+  !  write(*,*) " "
+  !end do
+  if (present(funit)) then
+    call write_dbin_safe(temp_density, nrorb*nrorb, trim(filename), funit)
+  else
+    call write_dbin_safe(temp_density, nrorb*nrorb, trim(filename))
+  end if
 
 end subroutine write_density_bin
 
-subroutine write_density_difference_bin(filename, time, rate, noa, nva, density, vabs)
+subroutine write_density_difference_bin(filename, time, rate, noa, nva, density, vabs, funit)
   implicit none
   character(len=*), intent(in) :: filename
   real(8), intent(in)    :: time, rate
   integer(8), intent(in)    :: noa, nva
   real(8), intent(in)    :: density(:)
   real(8), allocatable, intent(in)    :: vabs(:)
+  integer(8), intent(in), optional :: funit
 
   integer(8) :: i,j, idx, ndim, ndim2
   real(8) :: temp_density( (noa+nva)*(noa+nva) )
@@ -2849,14 +2858,6 @@ subroutine write_density_difference_bin(filename, time, rate, noa, nva, density,
   !ndim = norb
   ndim2 = ndim*ndim
 
-  !: HCCI: 
-  !:   NRORB = 267
-  !:   NORB = 534 ! norb is different in different scopes... bad practice...
-  !:   (noa+nva) = 267
-  !:   ndim = 267
-  !:   norb/ndim in pop_rate = 267
-  !write(iout, *) "ASDF: ", nrorb, norb, (noa+nva), ndim
-  
   !: Prepare weighted density difference
   !temp_density = density(:ndim2)
   temp_density = 0.d0
@@ -2868,26 +2869,31 @@ subroutine write_density_difference_bin(filename, time, rate, noa, nva, density,
     temp_density(i+(i-1)*ndim) = temp_density(i+(i-1)*ndim) - 2.d0
   end do
 
-  write(*,*) "first 20x20 subblock of dens_diff: "
-  do i=1,20
-    do j=1,20
-      write(*, "(E10.3,1X)", advance='no') temp_density((i-1)*ndim+j)
-    end do
-    write(*,*) " "
-  end do
+  !write(*,*) "first 20x20 subblock of dens_diff: "
+  !do i=1,20
+  !  do j=1,20
+  !    write(*, "(E10.3,1X)", advance='no') temp_density((i-1)*ndim+j)
+  !  end do
+  !  write(*,*) " "
+  !end do
 
-  call write_dbin_safe(temp_density, ndim2, trim(filename))
+  if (present(funit)) then
+    call write_dbin_safe(temp_density, ndim2, trim(filename), funit)
+  else
+    call write_dbin_safe(temp_density, ndim2, trim(filename))
+  end if
 
 end subroutine write_density_difference_bin
 
 
-subroutine write_vdens_diff_bin(filename, time, rate, noa, nva, density, vabs)
+subroutine write_vdens_diff_bin(filename, time, rate, noa, nva, density, vabs, funit)
   implicit none
   character(len=*), intent(in) :: filename
   real(8), intent(in)    :: time, rate
   integer(8), intent(in)    :: noa, nva
   real(8), intent(in)    :: density(:)
   real(8), allocatable, intent(in)    :: vabs(:,:)
+  integer(8), intent(in), optional :: funit
 
   integer(8) :: i,j, idx, ndim, ndim2
   real(8) :: temp_density( (noa+nva)*(noa+nva) )
@@ -2916,33 +2922,33 @@ subroutine write_vdens_diff_bin(filename, time, rate, noa, nva, density, vabs)
   end do
 
 
-  write(*,*) "ENTERED DDIFF VABS CODE "
-  write(*,*) "Size vabs: ", size(vabs)
+  !write(*,*) "ENTERED DDIFF VABS CODE "
+  !write(*,*) "Size vabs: ", size(vabs)
 
-  write(*,*) "density subblock: "
-  do i=1,5
-    do j=1,5
-      write(*, "(E10.3,1X)", advance='no') density((i-1)*ndim+j)
-    end do
-    write(*,*) " "
-  end do
+  !write(*,*) "density subblock: "
+  !do i=1,5
+  !  do j=1,5
+  !    write(*, "(E10.3,1X)", advance='no') density((i-1)*ndim+j)
+  !  end do
+  !  write(*,*) " "
+  !end do
 
-  write(*,*) "temp_density subblock: "
-  do i=1,5
-    do j=1,5
-      write(*, "(E10.3,1X)", advance='no') temp_density((i-1)*ndim+j)
-    end do
-    write(*,*) " "
-  end do
+  !write(*,*) "temp_density subblock: "
+  !do i=1,5
+  !  do j=1,5
+  !    write(*, "(E10.3,1X)", advance='no') temp_density((i-1)*ndim+j)
+  !  end do
+  !  write(*,*) " "
+  !end do
 
-  write(*,*) "vabs subblock: "
-  do i=1,5
-    do j=1,5
-      !write(*, "(E10.3,1X)", advance='no') vabs((i-1)*ndim+j)
-      write(*, "(E10.3,1X)", advance='no') vabs(i,j)
-    end do
-    write(*,*) " "
-  end do
+  !write(*,*) "vabs subblock: "
+  !do i=1,5
+  !  do j=1,5
+      !!write(*, "(E10.3,1X)", advance='no') vabs((i-1)*ndim+j)
+  !    write(*, "(E10.3,1X)", advance='no') vabs(i,j)
+  !  end do
+  !  write(*,*) " "
+  !end do
 
 
   do i=1, noa !: Density difference from HF
@@ -2975,15 +2981,19 @@ subroutine write_vdens_diff_bin(filename, time, rate, noa, nva, density, vabs)
   !temp_density = temp_density/temptrace
 
 
-  write(*,*) "first 20x20 subblock of vabs*dens_diff: "
-  do i=1,20
-    do j=1,20
-      write(*, "(E10.3,1X)", advance='no') temp_density((i-1)*ndim+j)
-    end do
-    write(*,*) " "
-  end do
+  !write(*,*) "first 20x20 subblock of vabs*dens_diff: "
+  !do i=1,20
+  !  do j=1,20
+  !    write(*, "(E10.3,1X)", advance='no') temp_density((i-1)*ndim+j)
+  !  end do
+  !  write(*,*) " "
+  !end do
 
-  call write_dbin_safe(temp_density, ndim2, trim(filename))
+  if (present(funit)) then
+    call write_dbin_safe(temp_density, ndim2, trim(filename), funit)
+  else
+    call write_dbin_safe(temp_density, ndim2, trim(filename))
+  end if
 
 end subroutine write_vdens_diff_bin
 

@@ -82,10 +82,11 @@ end subroutine io_bin_test
 
 
 
-subroutine write_dbin_safe(array, n, filename)
+subroutine write_dbin_safe(array, n, filename, funit)
   real(8), intent(in) :: array(n)
   integer(8), intent(in) :: n
   character(len=*) :: filename
+  integer(8), intent(in), optional :: funit
 
   logical :: verify_correct, verify_exists
   integer(8) :: verify_attempts, ios
@@ -93,8 +94,15 @@ subroutine write_dbin_safe(array, n, filename)
   real(8) :: wait_time = 3.0
   real(8) :: verify_array(n)
 
+
+  !: Maybe putting an extra critical region here will prevent our thread unsafety
+  !$OMP CRITICAL (write_dbin_safe_lock)
   ! Call the original subroutine to attempt writing the file
-  call write_dbin(array, n, filename)
+  if (present(funit)) then
+    call write_dbin(array, n, filename, funit)
+  else
+    call write_dbin(array, n, filename)
+  end if
 
   ! Now, let's check if the file has been written
   verify_correct = .false.
@@ -119,7 +127,11 @@ subroutine write_dbin_safe(array, n, filename)
     if (.not. verify_correct) then
       ! if something screwed up, try again!
       call sleep(wait_time)
-      call write_dbin(array, n, filename)
+      if (present(funit)) then
+        call write_dbin(array, n, filename, funit)
+      else
+        call write_dbin(array, n, filename)
+      end if
       verify_attempts = verify_attempts + 1
     else
       exit ! File exists, let's break out of the loop
@@ -134,6 +146,7 @@ subroutine write_dbin_safe(array, n, filename)
       write(iout, *) "SUCCESS: ", filename, " has been successfully written and verified! (", verify_attempts, " attempts)"
     end if
   end if
+  !$OMP END CRITICAL (write_dbin_safe_lock)
 end subroutine write_dbin_safe
 
 
@@ -152,6 +165,17 @@ subroutine write_dbin(array, n, filename, funit)
 
   attempts = 1
   fileisopen = .false.
+  if (present(funit)) then
+    inquire(unit=funit, opened=fileisopen)
+    !: If the file unit we were given is already open, close it!
+    do while (fileisopen)
+      flush(funit)
+      call sleep(sleep_time)
+      close(funit)
+      call sleep(sleep_time)
+      inquire(unit=funit, opened=fileisopen)
+    end do
+  end if
   
   do while (.not. fileisopen .and. attempts < max_attempts)
     if (present(funit)) then
@@ -163,6 +187,12 @@ subroutine write_dbin(array, n, filename, funit)
       !write(iout, *) "Getting new unit to write file ", filename ; flush(iout)
       open(newunit=localUnit, file=filename, form='unformatted', &
            access='stream', status='replace', action='write', iostat=iost)
+    end if
+    if (iost /= 0) then
+      write(iout, *) "Error opening file: ", iost
+      attempts = attempts+1
+      call sleep(sleep_time)
+      cycle ! skips to next loop, like python continue
     end if
 
     inquire(unit=localUnit, opened=fileisopen)
@@ -179,7 +209,11 @@ subroutine write_dbin(array, n, filename, funit)
       write(iout, *) "Attempt ", attempts, ": ", filename, " properly opened!"
     end if
     ! Write the array
-    write(localUnit) array
+    write(localUnit, iostat=iost) array
+    if (iost /= 0) then
+      write(iout, *) "Error writing file: ", iost
+    end if
+    flush(localUnit)
     ! Close the file
     close(localUnit)
   else
