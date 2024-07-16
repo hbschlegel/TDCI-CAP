@@ -688,7 +688,6 @@ subroutine trotter_linear
 
   !: Start loop over directions.  Counters need to be passed in as non-derived datatype
 
-  !$OMP STACKSIZE=2G
   !$OMP PARALLEL DEFAULT(NONE),&
   !$OMP PRIVATE(Priv, i, idata, idir, iemax, ii, itime, j, jj, k, kk, ithread, &
   !$OMP norm0, lscratch, liwork, scratch, iwork, info1, start1, finish1, &
@@ -3039,8 +3038,7 @@ subroutine write_density_difference(Priv, time, rate, noa, nva, density, vabs)
     temp_density(i) = temp_density(i) * vabs(i)
   end do
 
-  write(temp_line,"(f13.9,f16.10)") time, rate
-  output_string = temp_line // new_line('a')
+  write(Priv%funit(6),"(f13.9,f16.10)") time, rate
 
   do i=1, ndim
     do j=1, ndim
