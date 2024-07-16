@@ -5,6 +5,9 @@ use analysis
 use util
 use sort
 use io_binary  ! io_bin_test, write_dbin, read_dbin
+
+use iso_fortran_env, only: output_unit
+use ieee_arithmetic
   
 implicit none
 
@@ -261,8 +264,6 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
   end if 
 
 
-
-
 end subroutine PropWriteDataHeaders
 
 
@@ -353,13 +354,10 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
   flush(Priv%funit(4))
               
   if( Qmo_dens) then
-    fileopen = .false.
-    inquire( unit=Priv%funit(6), opened=fileopen )
-    if (.not. fileopen) then
-      write(iout, *) "funit(6) isn't opened! ", fileopen
-    end if
-    call write_density_difference( Priv%funit(6), dble(itime)*dt*au2fs, &
-                                   Priv%rate, noa, nva, scratch, Mol%vabsmoa )
+    Priv%datafile = 'MO_density-e'//trim(Priv%emaxstr)//'-d'//trim(Priv%dirstr)//'.dat'
+    call write_density_difference( Priv, dble(itime)*dt*au2fs, &
+                                   Priv%rate, noa, nva, scratch, &
+                       reshape(Mol%vabsmoa, [size(Mol%vabsmoa)]) )
   end if
 
   if ( write_binaries ) then
@@ -690,6 +688,7 @@ subroutine trotter_linear
 
   !: Start loop over directions.  Counters need to be passed in as non-derived datatype
 
+  !$OMP STACKSIZE=2G
   !$OMP PARALLEL DEFAULT(NONE),&
   !$OMP PRIVATE(Priv, i, idata, idir, iemax, ii, itime, j, jj, k, kk, ithread, &
   !$OMP norm0, lscratch, liwork, scratch, iwork, info1, start1, finish1, &
@@ -964,7 +963,7 @@ subroutine trotter_linear
         if( Qwrite_ion_coeff ) write(Priv%funit(5)) Zion_coeff
         close(Priv%funit(5))
 
-        if( Qmo_dens ) close(Priv%funit(6))
+        !if( Qmo_dens ) close(Priv%funit(6))
 
         !scratch(1:3*(noa+nob)) = 0.d0
         !psi(1:(noa+nob)**2) = dcmplx(0.d0,0.d0)
@@ -2586,8 +2585,10 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
         tmp = tmp + abs(opdm_NO((i-1)*ndim+j) * Vabs_NO((i-1)*ndim+j))
       end do
     end do
-    if (tmp/rate .lt. 0.95d0) nva95_NO = k
-    if (tmp/rate .lt. 0.99d0) nva99_NO = k
+    if (abs(rate) > 1.0d-10) then
+      if (tmp/rate .lt. 0.95d0) nva95_NO = k
+      if (tmp/rate .lt. 0.99d0) nva99_NO = k
+    end if
   end do
 
   if ( nva95_NO .gt. nva95maxNO) nva95maxNO = nva95_NO
@@ -2636,8 +2637,10 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
         tmp = tmp + abs(opdm((i-1)*ndim+j) * Vabs((i-1)*ndim+j))
       end do
     end do
-    if (tmp/rate .lt. 0.95d0) nva95_NO = k
-    if (tmp/rate .lt. 0.99d0) nva99_NO = k
+    if (abs(rate) > 1.0d-10) then
+      if (tmp/rate .lt. 0.95d0) nva95_NO = k
+      if (tmp/rate .lt. 0.99d0) nva99_NO = k
+    end if
   end do
 
   if ( nva95_NO .gt. nva95maxMO) nva95maxMO = nva95_NO
@@ -2687,8 +2690,10 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
         tmp = tmp + abs(opdm_NO(idx) * Vabs_NO(idx))
       end do
     end do
-    if (tmp/rate .lt. 0.95d0) nva95_NO_sort = k
-    if (tmp/rate .lt. 0.99d0) nva99_NO_sort = k
+    if (abs(rate) > 1.0d-10) then
+      if (tmp/rate .lt. 0.95d0) nva95_NO_sort = k
+      if (tmp/rate .lt. 0.99d0) nva99_NO_sort = k
+    end if
   end do
   if ( nva95_NO_sort .gt. nva95maxNO_sort) nva95maxNO_sort = nva95_NO_sort
   if ( nva99_NO_sort .gt. nva99maxNO_sort) nva99maxNO_sort = nva99_NO_sort
@@ -2738,8 +2743,10 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
         tmp = tmp + abs(opdm(idx) * Vabs(idx))
       end do
     end do
-    if (tmp/rate .lt. 0.95d0) nva95_MO_sort = k
-    if (tmp/rate .lt. 0.99d0) nva99_MO_sort = k
+    if (abs(rate) > 1.0d-10) then
+      if (tmp/rate .lt. 0.95d0) nva95_MO_sort = k
+      if (tmp/rate .lt. 0.99d0) nva99_MO_sort = k
+    end if
   end do
   if ( nva95_MO_sort .gt. nva95maxMO_sort) nva95maxMO_sort = nva95_MO_sort
   if ( nva99_MO_sort .gt. nva99maxMO_sort) nva99maxMO_sort = nva99_MO_sort
@@ -3000,64 +3007,49 @@ end subroutine write_vdens_diff_bin
 
 
 
-subroutine write_density_difference(funit, time, rate, noa, nva, density, vabs)
+subroutine write_density_difference(Priv, time, rate, noa, nva, density, vabs)
   implicit none
-  integer(8), intent(in)              :: funit
+  class(PropagationPrivate), intent(inout) :: Priv
   real(8), intent(in)                 :: time, rate
   integer(8), intent(in)              :: noa, nva
   real(8), intent(in)                 :: density(:)
-  real(8), allocatable, intent(in)    :: vabs(:)
+  !real(8), allocatable, intent(in)    :: vabs(:)
+  real(8), intent(in)    :: vabs( (noa+nva)*(noa+nva) )
 
+  integer(8), parameter :: max_attempts = 12
+  real(8), parameter :: sleep_time = 2.0 ! in seconds
+
+  integer(8) :: funit
   integer(8) :: i,j, idx, ndim, ndim2
   real(8) :: temp_density( (noa+nva)*(noa+nva) )
   real(8) :: temp, temptrace
-  logical :: isSymm
 
   ndim = (noa+nva)
   ndim2 = ndim*ndim
-  
+  !write(iout, *) "noa: ", noa, ", nva: ", nva, ", ndim: ", ndim, ", ndim2: ", ndim2, ", size(vabs): ", size(vabs)
   !: Prepare weighted density difference
-  temp_density = density(:ndim2)
+  temp_density(:) = density(1:ndim2)
   do i=1, noa !: Density difference from HF
     temp_density(i+(i-1)*ndim) = temp_density(i+(i-1)*ndim) - 2.d0
   end do
 
 
   !: Weight density by vabs
-  !temp_density = temp_density * vabs(:ndim2)
-  !temp_density = temp_density * vabs
   do i=1,ndim2
     temp_density(i) = temp_density(i) * vabs(i)
   end do
-  !: Re-normalize density matrix
-  !temptrace =  sum([(temp_density(i+(i-1)*ndim), i=1,ndim)])
-  !temp_density = temp_density / temptrace
 
-  !: Scale so max value is 2.0
-  !temptrace = 0.5*maxval(abs(temp_density))
-  !temptrace = 0.0020426 !: scaling in ch3br at end of 045 field
-  temptrace = 1.00
-  temp_density = temp_density/temptrace
+  write(temp_line,"(f13.9,f16.10)") time, rate
+  output_string = temp_line // new_line('a')
 
-  !write(iout, "('density scaling factor: ', f16.10)") temptrace
-
-  !write(funit,"(f13.9,f16.10,f16.10, L1)") time, rate, temptrace, isSymm
-  write(funit,"(f13.9,f16.10)") time, rate
-  do i=1, ndim !: Diagonal
-    idx = i+(i-1)*ndim
-    if ( abs(density(idx)).gt.1.d-9 ) then
-      write(funit,"(i5,i5,1x,f13.10)") &
-            i, i, temp_density(idx)
-    end if
-    do j =1, i-1 !: Off-Diagonals
+  do i=1, ndim
+    do j=1, ndim
       idx = i+(j-1)*ndim
-      if ( abs(density(idx)).gt.1.d-9 ) then 
-        write(funit,"(i5,i5,1x,f13.10)") &
-              i, j, temp_density(idx)
+      if ( j<i .and. (abs(density(idx)) .gt. 1.0d-9) ) then
+        write(Priv%funit(6), "(i5,i5,1x,f13.10)") i, j, density(idx)
       end if
     end do
   end do
-  write(funit,"(i5,i5,1x,f13.10)") 0,0,0.d0
 
 end subroutine write_density_difference
 

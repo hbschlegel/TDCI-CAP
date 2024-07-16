@@ -25,12 +25,13 @@ $(info OBJECTS: $(OBJECTS))
 
 #FC = pgf95
 FC = nvfortran
+#FFLAGS = -tp px -O0 -g -Mbounds -Mchkptr -Mchkstk -Ktrap=fp
 FFLAGS = -tp px -O3 -g
 #LIBDIR = /wsu/el7/pgi/2018-187/linux86-64/18.7/lib/
 LIBDIR = /wsu/el7/nvhpc-cuda/24.1/Linux_x86_64/24.1/compilers/lib/
 LAPACK_LIBS = -L${LIBDIR} -llapack -lblas
 OPT_FLAGS = -Minfo -Mneginfo -time -fast -Mconcur=allcores -mp=allcores -Munroll -Mvect
-O_FLAGS = -module $(MOD) -I$(MOD)
+O_FLAGS = -module $(MOD) -I$(MOD) 
 
 #ALL_OBJECTS = $(OBJ)/tdci.o $(OBJ)/variables_units.o $(OBJ)/variables_setup.o $(OBJ)/variables_control.o $(OBJ)/variables_global.o $(OBJ)/write_info.o $(OBJ)/readintegrals.o $(OBJ)/initialize.o $(OBJ)/getfield.o $(OBJ)/util.o $(OBJ)/sort.o $(OBJ)/io_binary.o $(OBJ)/getham0_cisd.o $(OBJ)/getham0.o $(OBJ)/getham.o $(OBJ)/propagate.o $(OBJ)/Zpropagate.o $(OBJ)/analysis.o $(OBJ)/davidson_ip.o $(OBJ)/qcmatrixio.o
 
@@ -85,7 +86,7 @@ $(OBJ)/readintegrals.o : $(SRC)/readintegrals.f90 $(OBJ)/variables_global.o $(OB
 $(OBJ)/write_info.o : $(SRC)/write_info.f90 $(OBJ)/variables_units.o $(OBJ)/variables_setup.o $(OBJ)/variables_control.o $(OBJ)/variables_global.o $(OBJ)/util.o
 	$(FC) $(O_FLAGS) -c $< -o $@ 
 
-$(OBJ)/util.o : $(SRC)/util.f90 $(OBJ)/readintegrals.o
+$(OBJ)/util.o : $(SRC)/util.f90 $(OBJ)/readintegrals.o $(OBJ)/io_binary.o
 	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
 $(OBJ)/variables_global.o : $(SRC)/variables_global.f90 $(OBJ)/variables_units.o $(OBJ)/variables_setup.o $(OBJ)/variables_control.o 

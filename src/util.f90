@@ -1,8 +1,8 @@
 module util
 
-  use io_binary
+use io_binary
 
-  implicit none
+implicit none
 
   
 
