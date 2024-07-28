@@ -132,7 +132,6 @@ subroutine write_dbin_safe(array, n, filename, funit)
       else
         call write_dbin(array, n, filename)
       end if
-      call sleep(wait_time)
       verify_attempts = verify_attempts + 1
     else
       exit ! File exists, let's break out of the loop

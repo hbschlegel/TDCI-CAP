@@ -1,30 +1,4 @@
 
-
-!:
-!: Construct a formated checkpoint file from a template formatted chekpoint file 
-!: and the MO density data at a selected step in an MO_densty-ei-dj.dat file
-!: The ouput formatted checkpoint file contains the total density
-!:
-!: Usage:
-!:   density2fchk infile MOdensityfile nstep diff iscale
-!:
-!: Command line input:
-!:    infile -  full name of the template formatted checkpoint file (with ".fchk")
-!:    MOdensityfile - full name of the ion coefficient file (e.g. MO_density-e1-d1.dat)
-!:    nstep - step number to be used for the constructiion of the NTOs and hole density
-!:    diff = 0 - calculate the density
-!:         = 1 - calculate the density minus the density of the field-free neutral
-!:         = 2 - calculate the density minus the density in the template fchk file
-!:         = 3 - calculate the density minus the density at time step 1
-!:    iscale = 0 - do not scale NTOs or hole density
-!:           = 1 - scale by the ratio of the rate to the maximum rate
-!:
-!: Output
-!:    infile-1.fchk - formatted checkpoint file with total density
-!:    total SCF density replaced bt the density or density difference
-!:
-
-
 module density2fchk
 
 contains
@@ -83,9 +57,32 @@ end module density2fchk
       program main
       use density2fchk
 
+!:
+!: Construct a formated chekpoint file from a template formatted chekpoint file 
+!: and the MO density data at a selected step in an MO_densty-ei-dj.dat file
+!: The ouput formatted checkpoint file contains the total density
+!:
+!: Usage:
+!:   density2fchk infile MOdensityfile nstep diff iscale
+!:
+!: Command line input:
+!:    infile -  full name of the template formatted checkpoint file (with ".fchk")
+!:    MOdensityfile - full name of the ion coefficient file (e.g. MO_density-e1-d1.dat)
+!:    nstep - step number to be used for the constructiion of the NTOs and hole density
+!:    diff = 0 - calculate the density
+!:         = 1 - calculate the density minus the density of the field-free neutral
+!:         = 2 - calculate the density minus the density in the template fchk file
+!:         = 3 - calculate the density minus the density at time step 1
+!:    iscale = 0 - do not scale NTOs or hole density
+!:           = 1 - scale by the ratio of the rate to the maximum rate
+!:
+!: Output
+!:    infile-1.fchk - formatted checkpoint file with total density
+!:    total SCF density replaced bt the density or density difference
+!:
       implicit none
-      character(80) line
-      character(80) infile,densityfile,outfile
+      character(180) line
+      character(180) infile,densityfile,outfile
       integer(8) funit1,funit2,funit3
       integer(8) nea,neb,nbasis,nbsuse,ntt,nocc,norb,nstep,nend,diff,iscale
       integer(8) i,j,ij,k,kk,n
@@ -113,6 +110,11 @@ end module density2fchk
         read(line,*) diff
       call get_command_argument(5,line) 
         read(line,*) iscale
+
+      call get_command_argument(6,line) 
+        read(line,*) nocc
+      call get_command_argument(7,line) 
+        read(line,*) norb
 !:
 !: open fchk file and read info
 !:
@@ -150,59 +152,59 @@ end module density2fchk
 !:
 !: open density file 
 !:
-      write(*,"('  Density file:              ',A)") trim(densityfile)
-      open(funit2,file=trim(densityfile))
-      read(funit2,"(7x,I10)") nend
-!:      write(*,*) " nend ",nend
-      read(funit2,"(11x,I10)") nocc
-      read(funit2,"(10x,I10)") nocc
-!:      write(*,*) " nocc ",nocc
-      read(funit2,"(15x,I10)") norb
-!:      write(*,*) " norb ",norb
+!      write(*,"('  Density file:              ',A)") trim(densityfile)
+!      open(funit2,file=trim(densityfile))
+!      read(funit2,"(7x,I10)") nend
+!      !write(*,*) " nend ",nend
+!      read(funit2,"(11x,I10)") nocc
+!      read(funit2,"(10x,I10)") nocc
+!      !write(*,*) " nocc ",nocc
+!      read(funit2,"(15x,I10)") norb
+!      !write(*,*) " norb ",norb
 !:
 !: skip records in MO density file to get to nstep
 !:
-      density = 0.d0
-      if(nstep.gt.1) then
-        do n = 1, nstep-1
-          if(n.eq.1) write(*,*) "1st loop "
-          read(funit2,"(f13.9)") time
-          do
-            read(funit2,"(i5,i5,1x,f13.10)") i,j,x
-            if(i.eq.0 .and. j.eq.0) go to 150
-            if( diff.eq.3 .and. n.eq.1 ) then
-!:              if(abs(x).gt.1.d-4) write(*,"(2I5,1x,f16.10)") i,j,x
-              if(i.eq.j) then
-                density((i-1)*norb+i) = -x
-              else
-                density((i-1)*norb+j) = -0.5d0 * x
-                density((j-1)*norb+i) = -0.5d0 * x
-              endif
-            endif
-          enddo
-  150     continue
-        enddo
-      endif
+!      density = 0.d0
+!      if(nstep.gt.1) then
+!        do n = 1, nstep-1
+!          if(n.eq.1) write(*,*) "1st loop "
+!          read(funit2,"(f13.9)") time
+!          do
+!            read(funit2,"(i5,i5,1x,f13.10)") i,j,x
+!            if(i.eq.0 .and. j.eq.0) go to 150
+!            if( diff.eq.3 .and. n.eq.1 ) then
+!              !if(abs(x).gt.1.d-4) write(*,"(2I5,1x,f16.10)") i,j,x
+!              if(i.eq.j) then
+!                density((i-1)*norb+i) = -x
+!              else
+!                density((i-1)*norb+j) = -0.5d0 * x
+!                density((j-1)*norb+i) = -0.5d0 * x
+!              endif
+!            endif
+!          enddo
+!  150     continue
+!        enddo
+!      endif
 !:
 !: read elements of the density matrix
 !:
-        read(funit2,"(f13.9,f16.10)") time,rate
-        do
-          read(funit2,"(i5,i5,1x,f13.10)") i,j,x
-          if(i.eq.0 .and. j.eq.0) go to 160
-!:          if(abs(x).gt.1.d-4) write(*,"(2I5,1x,f16.10)") i,j,x
-          if(i.eq.j) then
-            density((i-1)*norb+i) = density((i-1)*norb+i) + x
-!:            write(*,*) i,x
-          else
-            density((i-1)*norb+j) = density((i-1)*norb+j) + 0.5d0 * x
-            density((j-1)*norb+i) = density((j-1)*norb+i) + 0.5d0 * x
-          endif
-!:          if(abs(x).gt.1.d-5) write(*,"(2I5,1x,f16.10)") i,j,density((i-1)*norb+j)
-        enddo
-  160   continue
-        if( nstep.eq.1 .and. diff.eq.3 ) density = 0.d0
-        close(funit2)
+!        read(funit2,"(f13.9,f16.10)") time,rate
+!        do
+!          read(funit2,"(i5,i5,1x,f13.10)") i,j,x
+!          if(i.eq.0 .and. j.eq.0) go to 160
+!!:          if(abs(x).gt.1.d-4) write(*,"(2I5,1x,f16.10)") i,j,x
+!          if(i.eq.j) then
+!            density((i-1)*norb+i) = density((i-1)*norb+i) + x
+!!:            write(*,*) i,x
+!          else
+!            density((i-1)*norb+j) = density((i-1)*norb+j) + 0.5d0 * x
+!            density((j-1)*norb+i) = density((j-1)*norb+i) + 0.5d0 * x
+!          endif
+!!:          if(abs(x).gt.1.d-5) write(*,"(2I5,1x,f16.10)") i,j,density((i-1)*norb+j)
+!        enddo
+!  160   continue
+!        if( nstep.eq.1 .and. diff.eq.3 ) density = 0.d0
+!        close(funit2)
 
 !:
 !: read density matrix from bin file
@@ -211,12 +213,14 @@ end module density2fchk
 !: Keep the previous code for rate, but overwrite density
 density = 0.d0
 
-write( filename, '(A,A,I0,A)') trim(remove_extension(densityfile)), trim("."), &
-                               nstep, "00.bin"
+!write( filename, '(A,A,I0,A)') trim(remove_extension(densityfile)), trim("."), &
+!                               nstep, "00.bin"
 
-write(*,"(A,A)") "Reading file: ", filename
+!write(*,"(A,A)") "Reading file: ", filename
+write(*,"(A,A)") "Reading file: ", trim(densityfile)
 
-call read_dbin( density, norb*norb, trim(filename) , ios)
+!call read_dbin( density, norb*norb, trim(filename) , ios)
+call read_dbin( density, norb*norb, trim(densityfile) , ios)
 
 write(*,*) "ios: ", ios
 
