@@ -420,6 +420,7 @@ class gdvlog_parser:
 
     while ( 'basis' not in line ):
       ls = line.split()
+      #print(ls[0])
       if ls[0] == "Atom": # New shell
         # Mostly extra info used for asserts
         #atomi_ = int(ls[1][1:])
@@ -433,21 +434,40 @@ class gdvlog_parser:
         xcoord = float(ls[10]) # I don't think we need these, just putting them here incase we do later
         ycoord = float(ls[11])
         zcoord = float(ls[12])
+        #print(ls)
+        #print(f"l_, nprim, bfi_min, bfi_max: {(l_, nprim, bfi_min, bfi_max)}")
 
-      if ( len(ls) == 2 ): # New prim
+      if ( (len(ls) == 2) or (len(ls) == 3) ): # New prim
+        #print(f"bfi_min, bfi_max+1: {(bfi_min, bfi_max+1)}")
         for i in range(bfi_min, bfi_max+1):
           # Make sure nothing is fishy
           # Remember orbs is 0-indexed while orb_index, bfi are 1-indexed.
-          assert( i == self.orbs[i-1].orb_index )
+          assert i == self.orbs[i-1].orb_index , f"Orb index mismatch, {i} != {self.orbs[i-1].orb_index}" 
           assert( atomtype_ == self.orbs[i-1].atom_type )
           assert( atomi_ == self.orbs[i-1].atom_index )
-          assert( l_ == self.orbs[i-1].l )
+          # Actually, the following assert will fire for SP orbitals, since l_map['SP'] = 1, 
+          #  but they contain an S primitive.
+          #assert l_ == self.orbs[i-1].l, f"Orb {i}, l mismatch: {l_} != {self.orbs[i-1].l}" 
           # Add the prims
           #   Python requires scientific notation have an E instead of D
           self.orbs[i-1].prim_expon.append(float(ls[0].replace('D','E'))) 
-          self.orbs[i-1].prim_coeff.append(float(ls[1].replace('D','E')))
+          coeffs = tuple(float(coeff.replace('D', 'E')) for coeff in ls[1:])
+          self.orbs[i-1].prim_coeff.append(coeffs)
 
       line = f.readline()
+    for idx in range(0,len(self.orbs)):
+      if (len(self.orbs[idx].prim_coeff)==0):
+        print("BAD ORBITAL!!")
+        print(str(idx)+"th orbital:")
+        print("orb_index  : "+str(self.orbs[idx].orb_index ) )
+        print("atom_index : "+str(self.orbs[idx].atom_index ))
+        print("atom_type  : "+str(self.orbs[idx].atom_type ) )
+        print("n          : "+str(self.orbs[idx].n ) )
+        print("l          : "+str(self.orbs[idx].l ) )
+        print("m          : "+str(self.orbs[idx].m ) )
+        print("prim_expon : "+str(self.orbs[idx].prim_expon ))
+        print("prim_coeff : "+str(self.orbs[idx].prim_coeff ))
+        
 
   
     # debug print to test
@@ -713,16 +733,20 @@ class RatePlotter:
           Y.append( (1/au2fs)*expdict_max[ (i,l_,exp_) ] )
           Y_tot.append( (1/au2fs)*expdict_max[ (i,l_,exp_) ] )
           exponent.append( exp_ )
-          label_tot.append( f"({i}:{exp_:.4f})" )
+          idxlist = []
+          for orb in parser.orbs:
+            if ( (i==orb.atom_index) and (l_==orb.l) and (exp_==orb.prim_expon[0]) ):
+              idxlist.append( orb.orb_index )
+          label_tot.append( str(f"({idxlist}:{exp_:.4f})") )
         ax.scatter(X,Y, label=l_str, s=48 )
-      for j, (x, y, exp_) in enumerate(zip(X_tot, Y_tot, label_tot)):
+      for j, (x, y, label_) in enumerate(zip(X_tot, Y_tot, label_tot)):
         #texts.append(ax.text(x,y,f"{exp_:.4f}"))
         offset = random.uniform(0,1)*5+(2*(j%2))
         #offset = 5 + (j%3)*5
         #angle = ((j%5)-2)*20
         angle = 0
         #ax.annotate(f"{exp_:.4f}", (x,y), xytext=(0,5), textcoords='offset points')
-        ax.annotate(exp_, (x,y), fontsize=6, xytext=(0,offset),
+        ax.annotate(label_, (x,y), fontsize=6, xytext=(0,offset),
                     textcoords='offset points', rotation=angle, ha='center', va='bottom')
       ax.legend()
       #adjust_text(texts, arrowprops=dict(arrowstyle='->', color='red'))
@@ -799,33 +823,65 @@ class RatePlotter:
     ax.legend(title=f"Atom, L, Exp, MaxRate")
     ax.set_ylabel("Rate $fs^{-1}$")
     ax.set_xlabel("Timestep")
-    ax.title.set_text(f"Top 10 orbitals, Dir: {d_data.direction}")
+    ax.title.set_text(f"Top 10 orbitals, Dir: {d_data.direction+1}")
     
     plt.tight_layout()
-    plt.savefig(f"AtomLExp{d_data.direction}.png", dpi=200)
+    plt.savefig(f"AtomLExp{d_data.direction+1}.png", dpi=200)
     plt.close()
 
 
     # Write CSV
-    f = open(f"AtomLExp_rate{d_data.direction}.csv", 'w')
-    f.write(f"Direction,{d_data.direction},,,\n")
-    f.write("AtomIdx,AtomType,L,Exponent,MaxRate(fs^-1)\n")
+    f = open(f"AtomLExp_rate{d_data.direction+1}.csv", 'w')
+    f.write(f"Direction,{d_data.direction+1},,,\n")
+    f.write("AtomIdx,AtomType,OrbIdxList,L,Exponent,MaxRate(fs^-1)\n")
     for i in range(0,len(maxrates)):
       idx = orb_idx_ratesorted[i]
       # key is ( atomidx, l, exponent )
       key = keys[idx]
       atype = parser.atomtypes[ key[0] ]
       l_str = parser.inv_l_map[key[1]]
+      idxlist = []
+      for orb in parser.orbs:
+        #print(key)
+        #print(orb.prim_expon)
+        if ( (key[0]==orb.atom_index) and (key[1]==orb.l) and (key[2]==orb.prim_expon[0]) ):
+          idxlist.append( orb.orb_index )
+      idxliststr = str(idxlist).replace(" ","").replace("[","").replace("]","").replace(","," ")
       
-      outstr = f"{key[0]},{atype},{l_str},{key[2]},{(1/au2fs)*maxrates[idx]}\n"
+      outstr = f"{key[0]},{atype},{idxliststr},{l_str},{key[2]},{(1/au2fs)*maxrates[idx]}\n"
+      #print(outstr)
+      f.write(outstr)
+    f.close()
+
+    # Write CSV
+    f = open(f"AtomLExp_FinalRate{d_data.direction+1}.csv", 'w')
+    f.write(f"Direction,{d_data.direction+1},,,\n")
+    f.write("AtomIdx,AtomType,OrbIdxList,L,Exponent,FinalRate(fs^-1)\n")
+    for i in range(0,len(maxrates)):
+      idx = orb_idx_ratesorted[i]
+      # key is ( atomidx, l, exponent )
+      key = keys[idx]
+      atype = parser.atomtypes[ key[0] ]
+      l_str = parser.inv_l_map[key[1]]
+      idxlist = []
+      for orb in parser.orbs:
+        #print(key)
+        #print(orb.prim_expon)
+        if ( (key[0]==orb.atom_index) and (key[1]==orb.l) and (key[2]==orb.prim_expon[0]) ):
+          idxlist.append( orb.orb_index )
+      idxliststr = str(idxlist).replace(" ","").replace("[","").replace("]","").replace(","," ")
+      finalrate = expdict[key][-1]
+      outstr = f"{key[0]},{atype},{idxliststr},{l_str},{key[2]},{(1/au2fs)*finalrate}\n"
       #print(outstr)
       f.write(outstr)
     f.close()
 
 
+
+
   # CSV Summary Average Table
   def AtomLExp_AvgCSV(self, d_data, parser, expdict): 
-    f = open(f"AtomLExp_AvgRate{d_data.direction}.csv", 'w')
+    f = open(f"AtomLExp_AvgRate{d_data.direction+1}.csv", 'w')
     exponent_list = []
     atype_list = []
     for key, val in expdict.items():
@@ -872,7 +928,7 @@ class RatePlotter:
         
   # Combines the CSV files 
   def AtomLExp_DirAvgCSV(self):
-    csv_files = [f"AtomLExp_AvgRate{d}.csv" for d in range(0,self.ndir)]
+    csv_files = [f"AtomLExp_AvgRate{d}.csv" for d in range(1,self.ndir+1)]
     
     # Read the first file to get dimensions
     with open(csv_files[0], 'r') as f:
@@ -933,10 +989,10 @@ class RatePlotter:
       ax.plot( X, (1/au2fs)*d_data.orbrate[:,idx],
         label=f"{orb.atom_type}, {l_str}, {orb.prim_expon}, {(1/au2fs)*maxrates[idx]:0.3f}")
     ax.legend(title=f"Atom, L, Exp, MaxRate")
-    ax.title.set_text(f"Top 10 orbitals, Dir: {d_data.direction}")
+    ax.title.set_text(f"Top 10 orbitals, Dir: {d_data.direction+1}")
     
     plt.tight_layout()
-    plt.savefig(f"orbsort{d_data.direction}.png", dpi=200)
+    plt.savefig(f"orbsort{d_data.direction+1}.png", dpi=200)
     plt.close()
       
       
@@ -965,10 +1021,10 @@ class RatePlotter:
         ax.plot( X , (1/au2fs)*d_data.lsum[:, iatom, l_], label=f"{atomstr}: {l_str}" )
 
     ax.legend()
-    ax.title.set_text(f"Rate by Atom:Angular Momentum. Dir: {d_data.direction}")
+    ax.title.set_text(f"Rate by Atom:Angular Momentum. Dir: {d_data.direction+1}")
     
     plt.tight_layout()
-    plt.savefig(f"atomangular{d_data.direction}.png", dpi=200)
+    plt.savefig(f"atomangular{d_data.direction+1}.png", dpi=200)
     plt.close()
 
     # Plot by angular momentum, no atoms
@@ -983,10 +1039,10 @@ class RatePlotter:
       ax.plot( X , (1/au2fs)*l_noatom[:, l_], label=f"{l_str}" )
 
     ax.legend()
-    ax.title.set_text(f"Rate by Angular Momentum. Dir:{d_data.direction}")
+    ax.title.set_text(f"Rate by Angular Momentum. Dir:{d_data.direction+1}")
     
     plt.tight_layout()
-    plt.savefig(f"angular{d_data.direction}.png", dpi=200)
+    plt.savefig(f"angular{d_data.direction+1}.png", dpi=200)
     plt.close()
 
 
@@ -1002,10 +1058,10 @@ class RatePlotter:
       ax.plot( X , (1/au2fs)*d_data.atomsum[:, iatom], label=f"{atomstr}" )
 
     ax.legend()
-    ax.title.set_text(f"Rate by Atom. Dir:{d_data.direction}")
+    ax.title.set_text(f"Rate by Atom. Dir:{d_data.direction+1}")
     
     plt.tight_layout()
-    plt.savefig(f"atom{d_data.direction}.png", dpi=200)
+    plt.savefig(f"atom{d_data.direction+1}.png", dpi=200)
     plt.close()
 
     return 0 
