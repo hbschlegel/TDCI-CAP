@@ -2,15 +2,16 @@
 
 
 #
-# Assume cwd is a completed tdci job, also containing a gaussian output file
+# Usage: Run from a completed TDCI directory, argument is relative or absolute path to corresponding gaussian output
 # This script partitions the rate by atomic orbital, and can generate plots
 #   showing contribution to the rate based on atom/quantum numbers. 
 #
 
 import numpy as np
-import struct, sys, re, os, csv
+import struct, sys, re, os, csv, random
 np.set_printoptions(threshold=sys.maxsize)
-np.set_printoptions(formatter={'float': lambda x: "{0:0.2f}".format(x)})
+np.set_printoptions(formatter={'float': lambda x: "{0:0.4e}".format(x)})
+
 
 import matplotlib
 matplotlib.use("Agg")
@@ -18,7 +19,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 
 # globals
-au2fs = 2.418884326509e-2
+au2fs = 0.0241888432650900
 
 # WARNING: BIN FILES ARE NOT PORTABLE BETWEEN COMPUTERS
 #          WITH DIFFERENT DOUBLE IMPLEMENTATIONS  
@@ -62,6 +63,7 @@ def parse_tdci_input_directions():
   return polar_coords
   
   
+# Get ndirs and the theta,phi for each direction
 def parse_tdci_input_line(line):
   # read_theta( 1) = 0.d0    ;  read_phi( 1) = 0.d0 
   # regex magic collects first index and the params, d/D case insensitive, ignore spaces.
@@ -76,7 +78,116 @@ def parse_tdci_input_line(line):
   sys.exit()
 
 
+def matrix2csv(mat,n, outname):
+  f = open(outname,'w')
+  i, j = 0,0
+  while i<n:
+    j=0
+    while j<n:
+      f.write(f"{mat[i][j]:.10E},")
+      j+=1
+    f.write("\n")
+    i+=1
+  f.close()
+  return 0
     
+
+# Get CMO and some parameters from an fchk file
+def parse_fchk(filename):
+  nea = 0
+  nbasis = 0
+  nbsuse = 0
+  cmo = []
+
+  f = open(filename,'r')
+  keystr = "Number of alpha electrons"
+  line = f.readline()
+  while line != "":
+    ls = line.split()
+    if "Number of alpha electrons" in line:
+      nea = int(ls[-1])
+    if "Number of basis functions" in line:
+      nbasis = int(ls[-1])
+    if "Number of independent functions" in line:
+      nbsuse = int(ls[-1])
+    if "Alpha MO coefficients" in line:
+      N = int(ls[-1]) # number of elements in fchk section
+      assert N == nbasis*nbsuse
+      line = f.readline()
+      while len(cmo) < N:
+        ls = line.split()
+        #print(ls)
+        for entry in ls:
+          #print(entry)
+          cmo.append(float(entry))
+        line = f.readline()
+      assert len(cmo) == N
+
+    line = f.readline() 
+  return nea, nbasis, nbsuse, np.array(cmo)
+  
+
+# Get AO density from population analysis of gaussian output
+# For sanity testing MO2AO transformation
+def parse_gdv_AO_density(filename,nao):
+  f = open(filename, 'r')
+  line = f.readline()
+  # This thing is triangular
+  density_AO_tri = []
+  while ("Density Matrix" not in line):
+    line = f.readline()
+  while (("Beta Density Matrix" not in line) and ("Mulliken" not in line)):
+    ls = line.split()
+    for entry in ls:
+      if "." in entry: density_AO_tri.append(float(entry))
+    line = f.readline()
+
+  f.close()
+  density_AO_tri = np.array(density_AO_tri)
+  # Unpack triangular matrix, arranged in columns of 5
+  density_AO_2D = np.zeros((nao, nao))
+  idx = 0
+  BLOCK_SIZE = 5
+  for block_start in range(0, nao, BLOCK_SIZE):
+      for i in range(block_start, nao):
+          for j in range(block_start, min(i+1, block_start+BLOCK_SIZE)):
+              density_AO_2D[i, j] = density_AO_tri[idx]
+              density_AO_2D[j, i] = density_AO_tri[idx]  # Symmetry
+              idx += 1
+  return density_AO_2D*2
+
+def mm_MO2AO(nbasis, norb, density_MO, CMO):
+  print("start MO2AO")
+  density_MO.resize( (norb,norb) )
+  CMO.resize((norb,nbasis))
+  mm = np.matmul
+  density_AO = mm( CMO.T, mm( density_MO, CMO )  )
+  return density_AO
+ 
+
+def MO2AO_sanity(ref_density_AO, CMO, nbasis, norb, nocc):
+  # Make ground state MO density matrix
+  density_MO = np.zeros((norb,norb))
+  for i in range(0,nocc):
+    density_MO[i,i] = 2.0
+
+  # Transform to AO
+  #density_AO = tdci_MO2AO(nbasis, norb, density_MO, CMO)
+  density_AO = mm_MO2AO(nbasis, norb, density_MO, CMO)
+
+  # Compare with reference
+  print("Comparing density_AO with ref_density_AO")
+  good = True
+  density_AO.resize( (nbasis*nbasis) )
+  ref_density_AO.resize( (nbasis*nbasis) )
+  for i in range(0,nbasis**2):
+  #for i in range(0,1000):
+    if (np.abs(density_AO[i]-ref_density_AO[i]) > 1e-3):
+      good = False
+      print(f"BAD ({i//nbasis},{i%nbasis}) : {density_AO[i]:.3E} , {ref_density_AO[i]:.3E}")
+  if good: print("Passed!!")
+  else: print("Failed! :( ")
+
   
 
 class orb:
@@ -92,7 +203,11 @@ class orb:
 
 class gdvlog_parser:
   def __init__(self, filename):
-    self.filename = filename
+    self.gaussdir = os.path.dirname(filename)+"/"
+    self.filename = filename 
+    self.nao, self.nmo, self.natoms, self.nocc, self.Ra, self.Rb = 0, 0, 0, 0, None, None
+    self.get_params()
+    #self.run_MO2AO_sanity( self.nao, self.nmo)
     self.orbs = []
     # What should I do with 'SP' orbitals? I think just treat them as P?
     self.l_map = {'S': 0, 'P': 1, 'SP': 1, 'D': 2, 'F': 3, 'G': 4, 'H': 5, 'I': 6}
@@ -101,10 +216,25 @@ class gdvlog_parser:
     #self.inv_l_map = {value: key for key, value in self.l_map.items()}
     self.atomtypes = {} # map iatom -> atom type (H, He, etc.)
 
+
+  # Something doesn't work in this test either... not sure
+  def run_MO2AO_sanity(self, nao, nmo):
+    CMO = read_bin_array( "matrices/CMO.bin", nmo*nao)
+    CMO.resize((nmo,nao)) # This is correct.
+    # MO2AO density transformation sanity check
+    print("getting reference density from gdv log")
+    ref_density_AO = parse_gdv_AO_density(self.filename, nao)
+    print("doing sanity check")
+    MO2AO_sanity(ref_density_AO, CMO, nao, nmo, self.nocc)
+    print("finished")
+    
+
+  # Parses TDCI output
   def get_params(self):
     nao = 0
     nmo = 0
     natoms = 0
+    nocc = 0
 
     # Parse tdci output for array sizes
     f = open("OUTPUT" , 'r')
@@ -112,6 +242,8 @@ class gdvlog_parser:
     while line != "":
       ls = line.split()
       if len(ls) > 2:
+        if ls[0] == "noa":
+          nocc = int(ls[2])
         #     charge = 0  multiplicity = 1  natoms = 4
         if ls[0] == "charge":
           natoms = int(ls[8])
@@ -121,9 +253,16 @@ class gdvlog_parser:
         #      nrorb   = 267
         if ls[0] == "nrorb":
           nmo = int(ls[2])
+          
       line = f.readline()
 
-    return nao, nmo, natoms
+    print(f"nao, nmo : {nao}, {nmo}")
+    self.nao, self.nmo, self.natoms, self.nocc = nao, nmo, natoms, nocc
+    #self.Ra = Ra
+    #self.Rb = Rb
+    #assert len(Ra) == natoms
+    #return nao, nmo, natoms, nocc, Ra, Rb
+    return 0
 
   # Return tuple (n, l, m)
   # Examples:
@@ -158,7 +297,7 @@ class gdvlog_parser:
 
 
   # NOTE atom_index and orb_index are 1-indexed!!
-  def parse(self):
+  def parse_vabs(self):
     f = open(self.filename, 'r')
     keystr = "Absorbing boundary integrals in AO basis"
     line = f.readline()
@@ -185,6 +324,8 @@ class gdvlog_parser:
     while line[0][0].isnumeric():
       orb_index = 0
       orbstring = ""
+      vabs_diag = 0.0
+      vabs_rowsum = 0.0
       neworb = orb()
 
       orb_index = int(line[0])
@@ -198,13 +339,17 @@ class gdvlog_parser:
         orbstring = line[1]
       elif len(line) == 5: # 131       16D 0        0.00000   0.00000
         orbstring = line[1]+line[2]
+
+      vabs_diag = float(line[-2])
+      vabs_rowsum = float(line[-1])
         
-      
       # Save info
       neworb.orb_index = orb_index
       neworb.atom_index = atom_index
       neworb.atom_type = atom_type
       neworb.n, neworb.l, neworb.m = self.decipher_orbstring(orbstring)
+      neworb.vabs_diag = vabs_diag
+      neworb.vabs_rowsum = vabs_rowsum
       self.orbs.append(neworb) # Append to output data
       # End loop, make sure next line doesn't crash the while loop
       line = f.readline().split()
@@ -213,6 +358,36 @@ class gdvlog_parser:
       elif len(line[0])==0:
         break
     print("Done Parsing!")
+
+  def parse_gdv_params(self):
+    self.nea = 0
+    Ra = []
+    Rb = []
+    f = open(self.filename, 'r')
+    line = f.readline()
+    while line != "":
+      ls = line.split()
+      if "alpha electrons" in line:
+        self.nea = int( line.split()[0] )
+      if "IAtom   RA        RB" in line:
+        print("FOUND VABS RA RB")
+        line = f.readline()
+        ls = line.split()
+        # in my jobs the line after this section is:
+        # There are a total of     1322692 grid points.
+        while (len(ls) == 3):
+          Ra.append(float(ls[1]))
+          Rb.append(float(ls[2]))
+          line = f.readline()
+          ls = line.split()
+      line = f.readline()
+    self.Ra = Ra
+    self.Rb = Rb
+    print(Ra)
+
+
+    
+    
 
   # This should be executed after parse(), and it assumes that the list self.orbs
   #   is properly in order ( orbs[i] == orbs[i].orb_index ), as it should be
@@ -299,7 +474,9 @@ class gdvlog_parser:
 class ratechecker:
   def __init__(self, gdvparser):
     self.gdvparser = gdvparser
-    self.nao , self.nmo, self.natoms = gdvparser.get_params()
+    self.gaussdir = gdvparser.gaussdir
+    self.nao, self.nmo = gdvparser.nao, gdvparser.nmo
+    self.natoms, self.nocc = gdvparser.natoms, gdvparser.nocc
     self.ntri = self.nao*(self.nao+1)//2
     self.CMO = None
     self.Vabs_AO = None
@@ -308,15 +485,14 @@ class ratechecker:
 
   # Read in and transform 
   def prep_matrices(self):
-
+    mm = np.matmul
     nao, nmo, ntri = self.nao, self.nmo, self.ntri
     
     vabs_tri = read_bin_array( "matrices/Vabs_AO.bin", ntri )
-    vabs_MO = read_bin_array( "matrices/Vabs_MO.bin", nmo**2)
+    #vabs_MO = read_bin_array( "matrices/Vabs_MO.bin", nmo**2)
 
     CMO = read_bin_array( "matrices/CMO.bin", nmo*nao)
-    CMO.resize((nmo,nao)) # This is correct.
-    print( "CMO size:"+ str((nmo,nao)) )
+    CMO.resize((nmo,nao))
     self.CMO = CMO
 
     # Unpack triangular matrix
@@ -324,25 +500,15 @@ class ratechecker:
 
     for iao in range(0,nao):
       for jao in range(0,nao):
-        ij = (iao+1)*(iao)//2 + (jao+1)
+        ij = (iao+1)*(iao)//2 + jao
         if (jao>iao) :
-          ij = (jao+1)*(jao)//2 + (iao+1)
-        vabs_AO[iao][jao] = vabs_tri[ij-1]
+          ij = (jao+1)*(jao)//2 + iao
+        vabs_AO[iao][jao] = vabs_tri[ij]
 
-    vabs_AO.resize((nao**2))
+    test_vabs_MO = mm( CMO, mm( vabs_AO, CMO.T))
+
     self.Vabs_AO = vabs_AO
-
-    # Verify Vabs_MO
-    mm = np.matmul
-    vabs_MO.resize((nmo,nmo))
-    test_vabs_AO = mm( CMO.T, mm(vabs_MO, CMO))
-    print("test vabs_MO")
-    print(np.shape(test_vabs_AO))
-    test_vabs_AO.resize((nao**2))
-    #for i in range(0,len(test_vabs_AO)):
-    for i in range(0,5):
-      if test_vabs_AO[i] != vabs_AO[i]:
-        print(f"Vabs_AO test {i} bad: {vabs_AO[i]} vs {test_vabs_AO[i]}")
+    self.Vabs_MO = test_vabs_MO
 
     return 0
 
@@ -353,10 +519,37 @@ class ratechecker:
     dens_MO.resize((nmo,nmo))
     mm = np.matmul
     dens_AO = mm(CMO.T, mm(dens_MO, CMO))
+    #CMO_pinv = self.CMO_pinv
+    #dens_AO = CMO_pinv @ dens_MO @ CMO_pinv.T
+
     dens_AO.resize((nao**2))
     self.Vabs_AO.resize((nao**2))
-    vdens = self.Vabs_AO * dens_AO
+    vdens = np.multiply(self.Vabs_AO,dens_AO) # Element-wise multiplication
+    vdens = vdens*2 # density is for alpha electrons, so *2 for full rate
     vdens.resize((nao,nao))
+    if timestep == 1:
+      sumrate = np.sum(vdens)
+      tracerate = 0.0
+      for i in range(0,nao):
+        tracerate += vdens[i][i]
+      #print(f"vdens dir {d} from AO : sumrate: {sumrate} | {2*sumrate/au2fs}")
+      #print(f"vdens dir {d} from AO : tracerate: {tracerate}")
+
+      # Test MO rate
+      vabs_MO = read_bin_array( "matrices/Vabs_MO.bin", nmo**2)
+      dens_MO.resize((nmo**2))
+      vdens_MO = vabs_MO * dens_MO
+      vdens_MO.resize((nmo,nmo))
+      sumrate = np.sum(vdens_MO)
+      tracerate = 0.0
+      for i in range(0,nmo):
+        tracerate += vdens_MO[i][i]
+      #print(f"vdens dir {d} from MO : sumrate: {sumrate} | {2*sumrate/au2fs}")
+      #print(f"vdens dir {d} from MO : tracerate: {tracerate}")
+
+    #print("in make_vdens")
+    #print(vdens[:2,:5])
+    #print(np.sum(vdens))
     return vdens
 
 
@@ -372,17 +565,19 @@ class RateTrajectoryData:
 
 class RatePlotter:
   def  __init__(self, gdvlog ):
+    self.gaussdir = os.path.dirname(gdvlog)+"/"
     self.parser = gdvlog_parser(gdvlog)
     parser = self.parser
-    parser.parse()
+    parser.parse_vabs()
     parser.parse_prims()
+    parser.parse_gdv_params()
 
     self.polar_coords = parse_tdci_input_directions()
     self.dataset = [] # RateTrajectoryData indexed by direction index.
     self.ndir = len(self.polar_coords)
     print("ndir: "+str(self.ndir))
 
-    self.nao, self.nmo, self.natoms = self.parser.get_params()
+    self.nao, self.nmo, self.natoms, self.nocc = parser.nao, parser.nmo, parser.natoms, parser.nocc
     nao, nmo, natoms = self.nao, self.nmo, self.natoms
     self.nsteps = 160
     self.lmax = 6
@@ -393,6 +588,13 @@ class RatePlotter:
     d_idx = 1 # Direction
 
     self.rc = ratechecker(self.parser)
+    expdict_max = {}
+    # Generate index keys for angular and exponent breakdown
+    for orb in parser.orbs:
+      if len(orb.prim_expon)>0:
+        l_ = orb.l
+        exp_ = orb.prim_expon[0]
+        expdict_max[ (orb.atom_index, l_, exp_) ] = 0.0
 
     for d in range(0,self.ndir):
       d_data = RateTrajectoryData(self.nsteps, self.natoms, self.lmax, len(parser.orbs))
@@ -415,17 +617,27 @@ class RatePlotter:
       # Generate density*vabs in AO basis and partition by atom and L
       for time in range(0, nsteps):
         vdens = self.rc.make_vdens(time+1,e_idx,d+1)
-        rate[time] = np.trace(vdens)
-        if time == nsteps-1:
-          print(f"Final rate for d={d+1} : {rate[time]} | {rate[time]/au2fs:.3f}")
+        #print("in __init__")
+        #print(vdens[:2,:5])
+        #print(np.sum(vdens))
+        #rate[time] = np.trace(vdens)
+        rate[time] = 0.0
+        rate[time] = np.sum(vdens) # sum all elements
+        if (time == nsteps-1) or (time == 0):
+          print(f"rate for step={time+1} d={d+1} : {rate[time]} au | {(1/au2fs)*rate[time]:.10f} fs")
+          matrix2csv(vdens, nao, f"vdens-d{d+1}-{time+1}.csv")
         # Atoms/orbitals are 1-indexed!
         #print("Breakdown of rate by atom and angular momentum")
 
         for orb in parser.orbs:
           idx = orb.orb_index-1
-          orbrate[time][idx] = vdens[idx][idx]
+          #orbrate[time][idx] = vdens[idx][idx]
+          orbrate[time][idx] = np.sum(vdens[idx])
           if len(orb.prim_expon)>0:
-            expdict[ (orb.atom_index, orb.l, orb.prim_expon[0]) ][time] += vdens[idx][idx]
+            key = (orb.atom_index, orb.l, orb.prim_expon[0])
+            #expdict[ (orb.atom_index, orb.l, orb.prim_expon[0]) ][time] += vdens[idx][idx]
+            expdict[ key ][time] += np.sum(vdens[idx])
+            expdict_max[key] = max( expdict_max[key], np.sum(vdens[idx]) )
           
 
         for iatom in range(0,self.natoms):
@@ -435,20 +647,124 @@ class RatePlotter:
                 #print(orb.orb_index)
                 #print(len(a.orbs))
                 idx = orb.orb_index-1 # orb_index is 1-indexed
-                lsum[time][iatom][l_] += vdens[idx][idx]
-                atomsum[time][iatom] += vdens[idx][idx]
+                #lsum[time][iatom][l_] += vdens[idx][idx]
+                #atomsum[time][iatom] += vdens[idx][idx]
+                lsum[time][iatom][l_] += np.sum(vdens[idx])
+                atomsum[time][iatom]  += np.sum(vdens[idx])
           totsum[time] += atomsum[time][iatom]
         if np.abs(totsum[time]-rate[time])>1e-3:
-          print(f"totsum doesnt match rate: totsum={totsum[time]} , rate={rate[time]}")
-      #self.dataset.append(d_data)
+          #print(f"totsum doesnt match rate: totsum={totsum[time]} , rate={rate[time]}")
+          pass
+      self.dataset.append(d_data)
       #self.rate_by_time_plots(d_data)
       #self.individual_orb_plot(d_data, parser)
-      #self.AtomLExp_plot(d_data, parser, expdict)
+      self.AtomLExp_plot(d_data, parser, expdict)
+      self.RateCheck_CSV(d_data, parser)
       self.AtomLExp_AvgCSV(d_data, parser, expdict)
-    #self.polar_angular_plot()
-    #combine_csv_files(self.ndir)
+    self.polar_angular_plot()
+    ##combine_csv_files(self.ndir)
     self.AtomLExp_DirAvgCSV()
+    self.RmaxRaRbPlot(expdict_max)
+
+
+  def RmaxRaRbPlot(self, expdict_max):
+    parser = self.parser
+    Ra = self.parser.Ra
+    Rb = self.parser.Rb
+
+    exponent_list = []
+    atype_list = []
+    for key, val in expdict_max.items():
+      if ((key[2] < 0.1) and key[2] not in exponent_list):
+        exponent_list.append(key[2])
+      atype = parser.atomtypes[key[0]]
+      if atype not in atype_list: atype_list.append(atype)
+    exponent_list.sort(reverse=True) # sort our exponents descending
+
+    atoms_plotted = []
+    print("Ra:")
+    print(Ra)
+    for i in range(1,len(Ra)+1):
+      if parser.atomtypes[i] in atoms_plotted:
+        continue
+      else:
+        atoms_plotted.append(parser.atomtypes[i])
+      print(f"plotting {parser.atomtypes[i]}!")
+      fig = plt.figure()
+      ax = fig.add_subplot(1,1,1)
+      # Create data and plot for each angular momentum
+      #texts = []
+      X_tot = []
+      Y_tot = []
+      label_tot = []
+      for l_ in range(0,self.lmax):
+        l_str = parser.inv_l_map[l_] 
+        X = [] # distance
+        Y = [] # rate contribution
+        exponent = [] # exponent for label
+        for exp_ in exponent_list:
+          if ( i, l_, exp_ ) not in expdict_max.keys():
+            #print(f"missing: {(i,l_,exp_)}")
+            continue # Skip
+          print(f"hit: {(i,l_,exp_)}")
+          Rmax = np.sqrt((l_+1)/exp_)
+          X.append(Rmax)
+          X_tot.append(Rmax)
+          Y.append( (1/au2fs)*expdict_max[ (i,l_,exp_) ] )
+          Y_tot.append( (1/au2fs)*expdict_max[ (i,l_,exp_) ] )
+          exponent.append( exp_ )
+          label_tot.append( f"({i}:{exp_:.4f})" )
+        ax.scatter(X,Y, label=l_str, s=48 )
+      for j, (x, y, exp_) in enumerate(zip(X_tot, Y_tot, label_tot)):
+        #texts.append(ax.text(x,y,f"{exp_:.4f}"))
+        offset = random.uniform(0,1)*5+(2*(j%2))
+        #offset = 5 + (j%3)*5
+        #angle = ((j%5)-2)*20
+        angle = 0
+        #ax.annotate(f"{exp_:.4f}", (x,y), xytext=(0,5), textcoords='offset points')
+        ax.annotate(exp_, (x,y), fontsize=6, xytext=(0,offset),
+                    textcoords='offset points', rotation=angle, ha='center', va='bottom')
+      ax.legend()
+      #adjust_text(texts, arrowprops=dict(arrowstyle='->', color='red'))
+      basisname = (os.getcwd()).split('_')[-1]
+      ax.title.set_text(f"Rmax for {parser.atomtypes[i]}, basis: {basisname}")
+      ax.set_ylabel("Max Rate Contribution ($fs^{-1}$)")
+      ax.set_xlabel("Rmax Distance (bohr)")
+      ax.set_ylim( 0.0, np.max(Y_tot)+0.005 )
+
+      # Vertical lines for Ra and Rb
+      ax.axvline(x=Ra[i-1], color='r', linestyle='--')
+      ypos = ax.get_ylim()[0] - 0.015 * (ax.get_ylim()[1] - ax.get_ylim()[0])
+      ax.text(Ra[i-1], ypos, "Ra", va='bottom', ha='center')
+      ax.axvline(x=Rb[i-1], color='r', linestyle='--')
+      ax.text(Rb[i-1], ypos, "Rb", va='bottom', ha='center')
+
+
+      plt.tight_layout()
+      plt.savefig(f"Rmax{parser.atomtypes[i]}.png", dpi=400)
+      plt.close()
+      
+        
     
+    
+  # Compare rate calculated from AO density * Vabs_AO
+  #   with the rate in RESULTS.dat files
+  # Note: the RESULTS value is multiplied by norm^2
+  def RateCheck_CSV(self,d_data, parser):
+    f = open(f"RESULTS-e1-d{d_data.direction+1}.dat", 'r')
+    g = open(f"ratecheck-d{d_data.direction+1}.csv", 'w')
+    line = f.readline() ; f.readline() ; f.readline()
+    line = f.readline() #first data line, step 1
+    rate = d_data.rate
+    g.write("step,rate python,rate RESULTS\n")
+    for i in range(self.nsteps):
+      RESULTSrate = float( line.split()[10] )
+      g.write(f"{i},{(1/au2fs)*rate[i]:.10f},{RESULTSrate:.10f}\n")
+      line = f.readline()
+    f.close()
+    g.close()
+    return 0
+
 
   def AtomLExp_plot(self,d_data, parser, expdict):
     orbs = parser.orbs
@@ -478,9 +794,11 @@ class RatePlotter:
       key = keys[idx]
       l_str = parser.inv_l_map[key[1]]
       atype = parser.atomtypes[key[0] ] 
-      ax.plot( X, data[idx],
-        label=f"{atype}{key[0]}, {l_str}, {key[2]}, {maxrates[idx]:0.3f}")
+      ax.plot( X, (1/au2fs)*data[idx],
+        label=f"{atype}{key[0]}, {l_str}, {key[2]}, {(1/au2fs)*maxrates[idx]:0.3f}")
     ax.legend(title=f"Atom, L, Exp, MaxRate")
+    ax.set_ylabel("Rate $fs^{-1}$")
+    ax.set_xlabel("Timestep")
     ax.title.set_text(f"Top 10 orbitals, Dir: {d_data.direction}")
     
     plt.tight_layout()
@@ -491,7 +809,7 @@ class RatePlotter:
     # Write CSV
     f = open(f"AtomLExp_rate{d_data.direction}.csv", 'w')
     f.write(f"Direction,{d_data.direction},,,\n")
-    f.write("AtomIdx,AtomType,L,Exponent,MaxRate\n")
+    f.write("AtomIdx,AtomType,L,Exponent,MaxRate(fs^-1)\n")
     for i in range(0,len(maxrates)):
       idx = orb_idx_ratesorted[i]
       # key is ( atomidx, l, exponent )
@@ -499,7 +817,7 @@ class RatePlotter:
       atype = parser.atomtypes[ key[0] ]
       l_str = parser.inv_l_map[key[1]]
       
-      outstr = f"{key[0]},{atype},{l_str},{key[2]},{maxrates[idx]}\n"
+      outstr = f"{key[0]},{atype},{l_str},{key[2]},{(1/au2fs)*maxrates[idx]}\n"
       #print(outstr)
       f.write(outstr)
     f.close()
@@ -520,7 +838,7 @@ class RatePlotter:
     #header = f"orbital,exponent{','+f for f in atype_list}"
     header = "orbital,exponent"
     for i in range(0,len(atype_list)):
-      header = header + f",{atype_list[i]}"
+      header = header + f",{atype_list[i]}(fs-1)"
     f.write(header)
     for l_ in range(0,self.lmax):
       l_str = parser.inv_l_map[l_]
@@ -545,7 +863,7 @@ class RatePlotter:
         #outstr = "\n"+f"{l_str},{exp_}{','+str(entries[i]) for i in range(0,len(atype_list))}"
         outstr = "\n"+f"{l_str},{exp_}"
         for i in range(0,len(atype_list)):
-          outstr = outstr + f",{entries[i]}"
+          outstr = outstr + f",{(1/au2fs)*entries[i]}"
         if nowrite: # Skip basis elements that do not exist
           pass
         else:
@@ -612,8 +930,8 @@ class RatePlotter:
       idx = orb_idx_ratesorted[i]
       orb = orbs[idx]
       l_str = parser.inv_l_map[orb.l]
-      ax.plot( X, d_data.orbrate[:,idx],
-        label=f"{orb.atom_type}, {l_str}, {orb.prim_expon}, {maxrates[idx]:0.3f}")
+      ax.plot( X, (1/au2fs)*d_data.orbrate[:,idx],
+        label=f"{orb.atom_type}, {l_str}, {orb.prim_expon}, {(1/au2fs)*maxrates[idx]:0.3f}")
     ax.legend(title=f"Atom, L, Exp, MaxRate")
     ax.title.set_text(f"Top 10 orbitals, Dir: {d_data.direction}")
     
@@ -644,7 +962,7 @@ class RatePlotter:
         l_str = parser.inv_l_map[l_]
         #print(parser.atomtypes, flush=True)
         atomstr = str(iatom+1)+parser.atomtypes[iatom+1]
-        ax.plot( X , d_data.lsum[:, iatom, l_], label=f"{atomstr}: {l_str}" )
+        ax.plot( X , (1/au2fs)*d_data.lsum[:, iatom, l_], label=f"{atomstr}: {l_str}" )
 
     ax.legend()
     ax.title.set_text(f"Rate by Atom:Angular Momentum. Dir: {d_data.direction}")
@@ -662,7 +980,7 @@ class RatePlotter:
       #if max(l_noatom[:,l_]) < 0.1*maxrate:
       #  continue # Skip low contributions to avoid clutter
       l_str = parser.inv_l_map[l_]
-      ax.plot( X , l_noatom[:, l_], label=f"{l_str}" )
+      ax.plot( X , (1/au2fs)*l_noatom[:, l_], label=f"{l_str}" )
 
     ax.legend()
     ax.title.set_text(f"Rate by Angular Momentum. Dir:{d_data.direction}")
@@ -681,7 +999,7 @@ class RatePlotter:
       #  continue # Skip low contributions to avoid clutter
       #print(parser.atomtypes, flush=True)
       atomstr = str(iatom+1)+parser.atomtypes[iatom+1]
-      ax.plot( X , d_data.atomsum[:, iatom], label=f"{atomstr}" )
+      ax.plot( X , (1/au2fs)*d_data.atomsum[:, iatom], label=f"{atomstr}" )
 
     ax.legend()
     ax.title.set_text(f"Rate by Atom. Dir:{d_data.direction}")
@@ -694,8 +1012,8 @@ class RatePlotter:
 
   def polar_angular_plot(self):
     # For now we just ignore phi i think
-    print( "Length check (dataset, polar_coords)")
-    print( (len(self.dataset), len(self.polar_coords)))
+    #print( "Length check (dataset, polar_coords)")
+    #print( (len(self.dataset), len(self.polar_coords)))
     ndir = len(self.polar_coords)
     X_theta = []
     for x in self.polar_coords:
@@ -714,12 +1032,14 @@ class RatePlotter:
     for l_ in range(0,self.lmax):
       l_str = self.parser.inv_l_map[l_]
       print(X_theta)
-      print(Y_L[l_])
+      #print(Y_L[l_])
       #ax.plot(X_theta, Y_L[l_], label=f"{l_str}") 
       # 180 degree symmetry
       X_theta_neg = list(-1.0*np.array(X_theta))
       X = X_theta + (X_theta_neg[1:-1][::-1])
       Y = Y_L[l_] + (Y_L[l_][1:-1][::-1])
+      X = np.array(X)
+      Y = (1/au2fs)*np.array(Y)
       ax.plot(X,Y, label=f"{l_str}") 
     ax.grid(True)
     ax.legend()
@@ -767,8 +1087,8 @@ def __main__():
   gdvlog = sys.argv[1]
   rateplotter = RatePlotter(sys.argv[1])
 
-  
-__main__()
+if __name__ == "__main__":  
+  __main__()
 
 
 

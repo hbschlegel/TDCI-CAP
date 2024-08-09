@@ -84,6 +84,8 @@ contains
     mo_mat = matmul( tmp,rotmat )
     
   end subroutine ao2mo
+
+
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! SUBROUTINE MO2AO_full
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -104,17 +106,20 @@ contains
     real(8),    intent(in) :: rotmat(nbasis*nrorb)
 
     integer(8), parameter :: iout = 42
-    real(8), dimension(nbasis, nrorb) :: temp_mat
+    real(8)  :: temp_mat(nrorb*nbasis)
 
-    call write_dbin( mo_mat, nrorb*nrorb  , "matrices/mo_mat.dat"  )
-    call write_dbin( ao_mat, nbasis*nbasis, "matrices/ao_mat.dat"  )
-    call write_dbin( rotmat, nbasis*nrorb , "matrices/rotmat.dat"  )
+    !call write_dbin( mo_mat, nrorb*nrorb  , "matrices/mo_mat.dat"  )
+    !call write_dbin( ao_mat, nbasis*nbasis, "matrices/ao_mat.dat"  )
+    !call write_dbin( rotmat, nbasis*nrorb , "matrices/rotmat.dat"  )
 
-
+    temp_mat = 0.d0
     ! First multiplication, result is stored in temp_mat
+    ! temp_mat = rotmat * mo_mat
     call dgemm('N', 'N', nbasis, nrorb, nrorb, 1.d0, rotmat, nbasis, mo_mat, nrorb, 0.d0, temp_mat, nbasis)
 
+    ao_mat = 0.d0
     ! Second multiplication, result is stored in ao_mat
+    ! ao_mat = temp_mat * rotmat^T
     call dgemm('N', 'T', nbasis, nbasis, nrorb, 1.d0, temp_mat, nbasis, rotmat, nbasis, 0.d0, ao_mat, nbasis)
 
 

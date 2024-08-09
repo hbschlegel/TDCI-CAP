@@ -91,16 +91,17 @@ contains
         NBTot)
  
       ntt = nbasis*(nbasis+1)/2 
-      If(Mol%Multip.ge.0) then
+      if(Mol%Multip.ge.0) then
         NAE = (NE+Mol%Multip-1)/2
         NBE = (NE-Mol%Multip+1)/2
       else
         NAE = (NE+Mol%Multip+1)/2
         NBE = (NE-Mol%Multip-1)/2
-        endIf
+      end if
  
-        Mol%unrstedflag = IOpCl
-        Mol%vabsflag = 1
+      Mol%NAE = NAE
+      Mol%unrstedflag = IOpCl
+      Mol%vabsflag = 1
  
       NOA = NAE - NFC
       NOB = NBE - NFC

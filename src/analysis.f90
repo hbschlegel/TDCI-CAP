@@ -1,6 +1,8 @@
 module analysis
   
   !use variables_global ! <C> use at your risk, beware of private & shared OMP variables
+  use variables_setup ! MolInfo class definition
+  use util
   implicit none
 
   
@@ -827,12 +829,13 @@ contains
   end subroutine write_data
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
-    subroutine pop_rate(iout,noa,nob,norb,nstates,nva,nvb,nva95,nva99,hole,part,state_ip_index,ip_states, &
+    subroutine pop_rate(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,nva95,nva99,hole,part,state_ip_index,ip_states, &
       pop,ion,ion_coeff,rate_a,rate_b,psi_det,psiV,normV,vabs_a,vabs_b,unrestricted,density,au2fs,nva_rate)
 
     implicit none
 
-    integer(8), intent(in)    :: iout, noa, nob, norb, nstates, nva, nvb, ip_states
+    class(MolInfo), intent(in)       :: Mol
+    integer(8), intent(in)    :: nbasis,iout, noa, nob, norb, nstates, nva, nvb, ip_states
     integer(8), intent(in)    :: hole(nstates,2), part(nstates), state_ip_index(noa+nob,noa+nob)
     real(8), intent(in)       :: au2fs, vabs_a(noa+nva,noa+nva), vabs_b(nob+nvb,nob+nvb)
     real(8), intent(inout)    :: pop(norb), ion(norb)
@@ -845,7 +848,9 @@ contains
     real(8), intent(inout), optional :: nva_rate
 
     integer(8) :: i, i1, j, j1, a, a1, b, b1, ia, jb, ii, jj, aa, bb, istate, ndim, k
+    integer(8) :: ij
     real(8)    :: const, const2, psi2, vabs00_, rdum, rate
+    real(8)    :: density_AO(nbasis*nbasis)
     real(8)    :: tmprate(80000), tmpsum, tmp2, tmprate_direct
     integer(8) :: nva95_direct, nva99_direct, nva95_density, nva99_density
     complex(8) :: psi0, psi_ia
@@ -1023,7 +1028,6 @@ contains
            rate = rate + psi2 * rdum
            psiV(ia) = psiV(ia) + psi_det(jb) * rdum
          end if
-
 !:       write(iout,998) ia,jb,ii,aa,jj,bb,rate_a,rate_b
 998    format(6I4/4F20.15/4F20.15)
        end do
@@ -1035,6 +1039,7 @@ contains
       end do
       !write(iout,*) " rate1 = ", rate
 
+
        rate = 0.d0
        do i = 1,ndim
          do j = 1,ndim
@@ -1042,6 +1047,22 @@ contains
          end do
        end do
       !write(iout,*) " rate2 = ", rate
+
+      !: Check rate in AO basis
+      !call mo2ao_full(nbasis, ndim, density, density_AO, Mol%cmo_a)
+      !rate = 0.d0
+      !do i = 1,nbasis
+      !  do j = 1,nbasis
+      !    ij  = i*(i-1)/2 + j ! vabsao has triangular indexing
+      !    if (j.gt.i) ij = j*(j-1)/2 + i
+      !    rate = rate + density_AO(i+(j-1)*nbasis) * Mol%vabsao(ij)
+      !  end do
+      !end do
+      !write(iout,*) " rate3 = ", rate
+
+       
+
+
      
 !:     Population of absorbed wavefunction
  
@@ -1081,7 +1102,7 @@ contains
            tmprate(i) = tmprate(i) + abs(density(i+(j-1)*ndim)*vabs_a(i,j))
            tmprate(i) = tmprate(i) + abs(density(j+(i-1)*ndim)*vabs_a(j,i))
          end do
-!:         write(iout,*) "tmprate ",i,tmprate(i)
+         !write(iout,*) "tmprate ",i,tmprate(i)
        end do
        do aa = 1,nva
          if(tmprate(aa).lt.0.95d0*tmprate(noa+nva)) nva95 = aa
@@ -1138,12 +1159,13 @@ contains
   end subroutine pop_rate
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
-    subroutine pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,nva95,nva99,hole,part,state_ip_index,ip_states, &
+    subroutine pop_rate_ip(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,nva95,nva99,hole,part,state_ip_index,ip_states, &
       pop,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb,psi_det,psiV,normV,vabs_a,vabs_b,density,au2fs,nva_rate)
 
     implicit none
 
-    integer(8), intent(in)  :: iout,noa, nob, norb, nstates, nva, nvb, ip_states
+    class(MolInfo), intent(in)     :: Mol
+    integer(8), intent(in)  :: nbasis,iout,noa, nob, norb, nstates, nva, nvb, ip_states
     integer(8), intent(in)  :: hole(nstates,2), part(nstates), state_ip_index(noa+nob,noa+nob)
     real(8), intent(in)     :: au2fs, vabs_a(noa+nva,noa+nva), vabs_b(nob+nvb,nob+nvb)
     real(8), intent(inout)  :: pop(norb),ion(norb),rate_aa(noa,noa),rate_ab(noa,nob), &
@@ -2409,4 +2431,7 @@ contains
 !:     write(iout,"(9f12.7)") (psi(i),i=1,nstuse)
 
   end subroutine get_Zion_psi1
+
+
+
 end module analysis

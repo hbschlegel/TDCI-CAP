@@ -943,11 +943,12 @@ contains
           write(iout,'(A)') ' deallocated Mol%dipzao, Mol%dipyao, Mol%dipxao '
           call track_mem( -3*ntt )
        end if
-       if( allocated(Mol%vabsao)) then
-          deallocate(Mol%vabsao)   
-          write(iout,'(A)') ' deallocated Mol%vabsao '
-          call track_mem( -ntt )
-       end if
+       ! Using for tests in propagation.f90
+       !if( allocated(Mol%vabsao)) then
+       !   deallocate(Mol%vabsao)   
+       !   write(iout,'(A)') ' deallocated Mol%vabsao '
+       !   call track_mem( -ntt )
+       !end if
        if( allocated(Mol%dipzmob) ) then
           deallocate(Mol%dipzmob, Mol%dipymob, Mol%dipxmob) 
           write(iout,'(A)') ' deallocated Mol%dipzmob, Mol%dipymob, Mol%dipxmob '
@@ -1224,7 +1225,7 @@ contains
           write(iout,'(A)') ' - Maya Angelous'
           write(iout,'(A)') divide
        case( 'date' )          
-          write(iout,'(A)') ' I WAS COMPILED ON Tue Jul 16 22:04:13 EDT 2024 '
+          write(iout,'(A)') ' I WAS COMPILED ON Wed Aug  7 09:16:02 EDT 2024 '
           write(iout,'(A)') ' I AM A REVISED CODE FOR CW PULSE GENERATION '
           write(iout,'(A)') ' RAMPING PARAMETER SET TO RAMP_STEP=16000, NOT NSTEP'
           call dnt(iout)          

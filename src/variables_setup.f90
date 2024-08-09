@@ -11,6 +11,7 @@ module variables_setup
     !: read in from TDCI.dat
     integer(4) :: unrstedflag, vabsflag
     integer(4) :: ICharg, Multip, natoms
+    integer(8) :: NAE
     real(8),      allocatable :: xcoord(:), ycoord(:), zcoord(:)
     character(3), allocatable :: myatom(:)
     character(4000) :: job_title

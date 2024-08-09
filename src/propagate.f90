@@ -38,7 +38,7 @@ type PropagationPrivate
     nva99max_debug, nva95MO_sort, nva99MO_sort, nva95NO_sort, nva99NO_sort, &
     nva95max_direct, nva99max_direct, MO99, NO99
 
-  real(8) :: rate_density, rate_direct, rate_debug
+  real(8) :: rate_density, rate_direct, rate_debug, rate_raw
 
   contains
     procedure :: initialize => initialize_PropPriv
@@ -108,6 +108,7 @@ subroutine initialize_PropPriv(this)
   this%nva95NO_sort = 0
   this%nva99NO_sort = 0    
   this%rate_density = 0.d0 ; this%rate_direct = 0.d0 ; this%rate_debug = 0.d0
+  this%rate_raw = 0.d0
 
   !if( QeigenDC ) then
   !  allocate( this%iwork(3+5*nstuse) )
@@ -394,6 +395,12 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
     !write(iout, *) "use funit(7): ", Priv%funit(7)
     !call write_dbin( density_AO, nbasis*nbasis, trim(density_filename), Priv%funit(7) )
     !deallocate( density_AO )
+
+    ! Test MO to AO transformation:
+    !write(iout, *) nbasis, nrorb, Mol%NAE
+    !write(iout, *) shape(Mol%vabsmoa), shape(Mol%vabsao), shape(Mol%cmo_a)
+    !flush(iout)
+    !call mo2ao_test(nbasis, nrorb, Mol%NAE, Mol%vabsmoa, Mol%vabsao, Mol%cmo_a)
 
     !: Write MO density too to double check
     write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/MO_density-e", trim(Priv%emaxstr), &
@@ -687,6 +694,8 @@ subroutine trotter_linear
      Priv%temp = -0.5d0 * cis_eig(i) * dt
      exphel(i) = dcmplx( dcos(Priv%temp) , dsin(Priv%temp) )
   end do
+  write(iout, '(A,F22.16)') "au2fs= ", au2fs
+
 
   !: Start loop over directions.  Counters need to be passed in as non-derived datatype
 
@@ -700,7 +709,7 @@ subroutine trotter_linear
   !$OMP psi_j, psi_k, psi, psi1, start3, finish3, times, &
   !$OMP pop1, ion, ion_coeff, psi_det0,  &
   !$OMP hp1, tdvals1, Zion_coeff ),  &
-  !$OMP SHARED( Mol, Prop, jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
+  !$OMP SHARED( Mol, Prop, jobtype, nbasis, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
   !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
   !$OMP abp, cis_vec, exp_abp, exphel, fvect1, fvect2, psi0, tdciresults, tdx, tdy, tdz, &
   !$OMP noa, nob, nva, nvb, norb, hole_index, part_index, &
@@ -907,12 +916,12 @@ subroutine trotter_linear
             call get_psid( nstuse, nstates, cis_vec, Priv%norm, psi, psi_det0 )
 
             if ( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip ) then
-              call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+              call pop_rate_ip(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                    hole_index,part_index,state_ip_index,ip_states, &
                    pop1,ion,ion_coeff,Priv%rate_aa,Priv%rate_ab,Priv%rate_ba,Priv%rate_bb, &
                    psi_det0,psi1,Priv%normV,Mol%vabsmoa,Mol%vabsmob,scratch,au2fs,Priv%rate_direct)
             else
-              call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+              call pop_rate(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                    hole_index,part_index,state_ip_index,ip_states, &
                    pop1,ion,ion_coeff,Priv%rate_a,Priv%rate_b,psi_det0,psi1,Priv%normV, &
                    Mol%vabsmoa,Mol%vabsmob,unrestricted,scratch,au2fs,Priv%rate_direct)
@@ -926,7 +935,7 @@ subroutine trotter_linear
             !Priv%ratemax_direct = Priv%rate_direct
             call update_maxnva( Priv%nva95maxMO, Priv%nva99maxMO, Priv%nva95max, Priv%nva99max, &
                     Priv%nva95MO_sort, Priv%nva99MO_sort, Priv%nva95NO_sort, Priv%nva99NO_sort, &
-                    Priv%nva95max_debug, Priv%nva99max_debug, Priv%rate_debug, &
+                    Priv%nva95max_debug, Priv%nva99max_debug, Priv%rate_debug, Priv%rate_raw, &
                     Prop%opdm_avg, Prop%U_NO_input, Mol%vabsmoa )
 
             !$OMP CRITICAL (prop_add_opdm_avg_lock)
@@ -1016,6 +1025,10 @@ subroutine trotter_linear
         write(iout,"(12x,'dir = (',f8.5,',',f8.5,',',f8.5,')    emax = ',f8.5,' au')")           Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%emax1
         write(iout,"(12x,'propagation time:',f12.4,' s')") Priv%finish2 - Priv%start2  
         write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
+        write(iout,"(12x,'final rate = ',f18.10)")          Priv%rate
+        !write(iout,"(12x,'final rate_direct = ',f18.10)")          Priv%rate_direct
+        !write(iout,"(12x,'final rate_debug = ',f18.10)")          Priv%rate_debug
+        !write(iout,"(12x,'final rate_raw = ',f18.10)")          Priv%rate_raw
         !: debug times
         do i=1,7
           write(iout, "('time ',i5,': ',f14.6,' s')") i, times(i) 
@@ -1097,7 +1110,7 @@ subroutine trotter_linear
     Priv%nva99NO_sort = 0
     call update_maxnva( Priv%nva95maxMO, Priv%nva99maxMO, Priv%nva95max, Priv%nva99max, &
                         Priv%nva95MO_sort, Priv%nva99MO_sort, Priv%nva95MO_sort,Priv%nva99NO_sort, &
-                        Priv%nva95max_debug, Priv%nva99max_debug, Priv%rate_debug, &
+                        Priv%nva95max_debug, Priv%nva99max_debug, Priv%rate_debug, Priv%rate_raw, &
                         !Priv%nva95max_density, Priv%nva99max_density, Priv%rate_density, &
                         Prop%opdm_avg, Prop%U_NO_input, Mol%vabsmoa, .True. )
   end if
@@ -1254,7 +1267,7 @@ subroutine trotter_circular
   !$OMP psi_j, psi_k, psi, psi1, times, &
   !$OMP pop1, ion, ion_coeff, psi_det0,  &
   !$OMP hp1, hp2, tdvals1, tdvals2, Zion_coeff ),  &
-  !$OMP SHARED( Mol, Prop, jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
+  !$OMP SHARED( Mol, Prop, jobtype, nbasis, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
   !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
   !$OMP abp, cis_vec, exp_abp, exphel, fvect1, fvect2, psi0, tdciresults, tdx, tdy, tdz, &
   !$OMP noa, nob, nva, nvb, norb, hole_index, part_index, &
@@ -1474,12 +1487,12 @@ subroutine trotter_circular
               call get_norm( Priv%norm, nstuse, psi )
               call get_psid( nstuse, nstates, cis_vec, Priv%norm, psi, psi_det0 )
               if ( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip ) then
-                call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+                call pop_rate_ip(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                   hole_index,part_index,state_ip_index,ip_states, &
                   pop1,ion,ion_coeff,Priv%rate_aa,Priv%rate_ab,Priv%rate_ba,Priv%rate_bb, &
                   psi_det0,psi1,Priv%normV,Mol%vabsmoa,Mol%vabsmob,scratch,au2fs,Priv%rate_direct)
               else
-                call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+                call pop_rate(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                   hole_index,part_index,state_ip_index,ip_states, &
                   pop1,ion,ion_coeff,Priv%rate_a,Priv%rate_b,psi_det0,psi1,Priv%normV, &
                   Mol%vabsmoa,Mol%vabsmob,unrestricted,scratch,au2fs,Priv%rate_direct)
@@ -1494,7 +1507,7 @@ subroutine trotter_circular
               Prop%ratemax_direct = Priv%rate_direct
               call update_maxnva( Priv%nva95maxMO, Priv%nva99maxMO, Priv%nva95max, Priv%nva99max, &
                       Prop%nva95maxMO_sort, Prop%nva99maxMO_sort, Prop%nva95maxMO_sort,Prop%nva99maxMO_sort, &
-                      Priv%nva95max_debug, Priv%nva99max_debug,Priv%rate_debug, &
+                      Priv%nva95max_debug, Priv%nva99max_debug,Priv%rate_debug, Priv%rate_raw, &
                       !Priv%nva95max_density, Priv%nva99max_density, Priv%rate_density, &
                       Prop%opdm_avg, Prop%U_NO_input, Mol%vabsmoa )
 
@@ -1677,6 +1690,10 @@ subroutine trotter_circular
         write(iout,"(12x,'(iemax=1) LAPACK dysev TD diagonalization INFO=',i0)") info1
         write(iout,"(12x,'propagation time:',f12.4,' s')") finish2-start2
         write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
+        write(iout,"(12x,'final rate = ',f10.5)")          Priv%rate
+        write(iout,"(12x,'final rate_direct = ',f10.5)")          Priv%rate_direct
+        write(iout,"(12x,'final rate_debug = ',f10.5)")          Priv%rate_debug
+        write(iout,"(12x,'final rate_raw = ',f10.5)")          Priv%rate_raw
 
 
         if (flag_ReadU_NO) then
@@ -1752,7 +1769,7 @@ subroutine trotter_circular
     Prop%nva99maxNO_sort = 0
     call update_maxnva( Priv%nva95maxMO, Priv%nva99maxMO, Priv%nva95max, Priv%nva99max, &
                         Prop%nva95maxMO_sort, Prop%nva99maxMO_sort, Prop%nva95maxMO_sort, Prop%nva99maxNO_sort, &
-                        Priv%nva95max_debug, Priv%nva99max_debug, Priv%rate_debug, &
+                        Priv%nva95max_debug, Priv%nva99max_debug, Priv%rate_debug, Priv%rate_raw, &
                         Prop%opdm_avg, Prop%U_NO_input, Mol%vabsmoa, .True. )
   end if
 
@@ -2499,7 +2516,7 @@ end subroutine NO_rate_sanity2
 
 subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
                           nva95maxMO_sort, nva99maxMO_sort, nva95maxNO_sort, nva99maxNO_sort, &
-                          nva95max_debug, nva99max_debug, rate_debug, &
+                          nva95max_debug, nva99max_debug, rate_debug, rate_raw, &
                           !nva95max_density, nva99max_density, rate_density, &
                           opdm, U_NO, Vabs, verbosity)
   implicit none
@@ -2509,7 +2526,7 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
   integer(8), intent(inout) :: nva95maxNO_sort, nva99maxNO_sort
   integer(8), intent(inout) :: nva95max_debug, nva99max_debug 
   !integer(8), intent(inout) :: nva95max_density, nva99max_density 
-  real(8), intent(inout) :: rate_debug  !, rate_density
+  real(8), intent(inout) :: rate_debug, rate_raw  !, rate_density
   real(8), intent(in) :: opdm(:) !: One-particle density matrix in MO basis
   real(8), intent(in) :: U_NO(:) !: Transformation matrix from MO -> NO.
   !: Interesting, vabsmo is a 2D array (:,:), so I can't do Vabs(:) here.
@@ -2622,6 +2639,14 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
     nva99max_debug = nva99
     rate_debug = tmprate(noa+nva)
   end if
+
+  !: For MOs (Raw, no abs())
+  rate = 0.d0
+  temp = 0.d0
+  rate_raw = 0.d0
+  do i=1,ndim*ndim
+    rate_raw = rate_raw + opdm(i)*Vabs(i)
+  end do
 
   !: For MOs (UNSORTED)
   rate = 0.0d0
@@ -2826,8 +2851,8 @@ subroutine write_density_bin(filename, time, rate, noa, nva, density, vabs, funi
   !: Scale so max value is 2.0
   !temptrace = 0.5*maxval(abs(temp_density))
   !temptrace = 0.0020426 !: scaling in ch3br at end of 045 field
-  temptrace = 1.00
-  temp_density = temp_density/temptrace
+  !temptrace = 1.00
+  !temp_density = temp_density/temptrace
 
 
   !write(*,*) "first 20x20 subblock of Density: "
@@ -3073,9 +3098,94 @@ subroutine write_density_difference(funit, time, rate, noa, nva, density, vabs)
 end subroutine write_density_difference
 
 
+! Accepts triangular ao_mat to test against
+subroutine mo2ao_test_old(nbasis,nrorb,mo_mat,ao_mat_test,rotmat)
+  implicit none
+  
+  integer(8), intent(in) :: nbasis, nrorb
+  real(8),    intent(in) :: mo_mat(nrorb*nrorb)
+  real(8), intent(in) :: ao_mat_test(nbasis*nbasis)
+  !real(8),    intent(in) :: rotmat(nrorb,nbasis)
+  real(8),    intent(in) :: rotmat(nbasis,nrorb)
+
+  integer(8), parameter :: iout = 42
+  real(8), dimension(nbasis,nbasis) :: ao_mat
+  real(8), dimension(nbasis, nrorb) :: temp_mat
+  integer(8) :: iao, jao, ij, p, q
+
+  ao_mat = 0
+  iao = 3
+  jao = 2
+  do p=1,nrorb
+    do q=1,nrorb
+      ao_mat( iao, jao ) = ao_mat(iao,jao) + rotmat(iao,p)*mo_mat(p+nrorb*(1+q))*rotmat(jao,q)
+    end do
+  end do
+
+  ! Get triangular index
+  ij  = iao*(iao-1)/2 + jao
+  if (jao.gt.iao) ij = jao*(jao-1)/2 + iao
+
+  write(iout, *) "MO2AO TEST: ",iao, jao, ij, shape(ao_mat_test), ao_mat(iao,jao), ao_mat_test(ij)
+
+ 
+
+end subroutine mo2ao_test_old
 
 
 
+! Accepts triangular ao_mat to test against
+subroutine mo2ao_test(nbasis,noa,nea,mo_mat,ao_mat_test,rotmat)
+  implicit none
+  
+  integer(8), intent(in) :: nbasis, noa, nea
+  real(8),    intent(in) :: mo_mat(nrorb*nrorb)
+  real(8), intent(in) :: ao_mat_test(nbasis*nbasis)
+  !real(8),    intent(in) :: rotmat(nrorb,nbasis)
+  real(8),    intent(in) :: rotmat(nbasis,nrorb)
+
+  integer(8), parameter :: iout = 42
+  real(8), dimension(nbasis,nbasis) :: ao_mat
+  real(8), dimension(nbasis, nrorb) :: temp_mat
+  integer(8) :: i, j, k, kk
+  integer(8) :: ij, iao, jao
+
+  temp_mat = 0.d0
+  do i = 1,nbasis
+    do j = 1,nrorb
+      do k = 1,nrorb
+        !kk = (k+nea-noa-1)*nbasis
+        kk = (k+nea-1)*nbasis
+        !write(iout, *) (kk+i), " < ", nbasis*nrorb
+        !flush(iout)
+        temp_mat((i-1)*nrorb+j) = temp_mat((i-1)*nrorb+j) &
+          + rotmat(kk+i) * mo_mat((k-1)*nrorb+j)
+      enddo
+    enddo
+  enddo
+  ao_mat = 0.d0
+  do i = 1,nbasis
+    do j = 1,nbasis
+      do k = 1,nrorb
+        !kk = (k+nea-noa-1)*nbasis
+        kk = (k+nea-1)*nbasis
+        ao_mat((i-1)*nbasis+j) = ao_mat((i-1)*nbasis+j) &
+          + temp_mat((i-1)*nrorb+k) * rotmat(kk+j)
+      enddo
+    enddo
+  enddo
+
+
+  iao = 5
+  jao = 6
+  ! Get triangular index
+  ij  = iao*(iao-1)/2 + jao
+  if (jao.gt.iao) ij = jao*(jao-1)/2 + iao
+
+  write(iout, *) "MO2AO TEST: ",iao, jao, ij, shape(ao_mat_test), ao_mat(iao,jao), ao_mat_test(ij)
+  
+
+end subroutine mo2ao_test
 
 
 

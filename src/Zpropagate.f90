@@ -161,7 +161,7 @@ contains
     !$OMP norm, norm0, normV, mux, muy, muz, rate, efieldx, efieldy, efieldz, &
     !$OMP pop1, ion, ion_coeff, rate_a, rate_b, rate_aa, rate_ab, rate_ba, rate_bb, psi_det0,  &
     !$OMP hp1, hp2, psi, psi1, scratch, rwork, iwork, tdvals1, tdvals2, Zion_coeff ),  &
-    !$OMP SHARED( Mol, jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
+    !$OMP SHARED( Mol, jobtype, nbasis, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
     !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
     !$OMP Zabp, Zcis_vec, Zexp_abp, exphel, fvect1, fvect2, psi0, tdciresults, Ztdx, Ztdy, Ztdz, &
     !$OMP noa, nob, nva, nvb, norb, hole_index, part_index, &
@@ -519,12 +519,12 @@ contains
                 call get_norm( norm, nstuse, psi )
                 call get_Zpsid( nstuse, nstates, Zcis_vec, norm, psi, psi_det0 )
                 if ( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip ) then
-                  call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+                  call pop_rate_ip(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
                     psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,rwork,au2fs)
                 else
-                  call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+                  call pop_rate(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
                     Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork,au2fs)
@@ -828,7 +828,7 @@ contains
     !$OMP norm, norm0, normV, mux, muy, muz, rate, efieldx, efieldy, efieldz, &
     !$OMP pop1, ion, ion_coeff, rate_a, rate_b, rate_aa, rate_ab, rate_ba, rate_bb, psi_det0,  &
     !$OMP hp1, hp2, psi, psi1, scratch, rwork, iwork, tdvals1, tdvals2, Zion_coeff ),  &
-    !$OMP SHARED( Mol, jobtype, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
+    !$OMP SHARED( Mol, jobtype, nbasis, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
     !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
     !$OMP Zabp, Zcis_vec, Zexp_abp, exphel, fvect1, fvect2, psi0, tdciresults, Ztdx, Ztdy, Ztdz, &
     !$OMP noa, nob, nva, nvb, norb, hole_index, part_index, &
@@ -1137,12 +1137,12 @@ contains
                 call get_norm( norm, nstuse, psi )
                 call get_Zpsid( nstuse, nstates, Zcis_vec, norm, psi, psi_det0 )
                 if ( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip ) then
-                  call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+                  call pop_rate_ip(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
                     psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,rwork,au2fs)
                 else
-                  call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+                  call pop_rate(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
                     Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork,au2fs)
@@ -1724,12 +1724,12 @@ contains
                 call get_norm( norm, nstuse, psi )
                 call get_Zpsid( nstuse, nstates, Zcis_vec, norm, psi, psi_det0 )
                 if ( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip ) then
-                  call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+                  call pop_rate_ip(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
                     psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,rwork,au2fs)
                 else
-                  call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+                  call pop_rate(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
                     Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork,au2fs)
@@ -2278,12 +2278,12 @@ contains
                 call get_norm( norm, nstuse, psi )
                 call get_Zpsid( nstuse, nstates, Zcis_vec, norm, psi, psi_det0 )
                 if ( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip ) then
-                  call pop_rate_ip(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+                  call pop_rate_ip(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
                     psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,rwork,au2fs)
                 else
-                  call pop_rate(iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+                  call pop_rate(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
                     hole_index,part_index,state_ip_index,ip_states, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
                     Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork,au2fs)
