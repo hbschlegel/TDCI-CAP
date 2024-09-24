@@ -412,20 +412,20 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
                             Priv%rate, noa, nva, scratch, Mol%vabsmoa, Priv%funit(7) )
 
 
-    density_filename = trim("")
-    write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/MO_density-e", trim(Priv%emaxstr), &
-           "-d", trim(Priv%dirstr), ".", itime, ".diff.bin"
-    
-    call write_density_difference_bin( density_filename, dble(itime)*dt*au2fs, &
-                                 Priv%rate, noa, nva, scratch, Mol%vabsmoa, Priv%funit(7) )
+    !density_filename = trim("")
+    !write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/MO_density-e", trim(Priv%emaxstr), &
+    !       "-d", trim(Priv%dirstr), ".", itime, ".diff.bin"
+    !
+    !call write_density_difference_bin( density_filename, dble(itime)*dt*au2fs, &
+    !                             Priv%rate, noa, nva, scratch, Mol%vabsmoa, Priv%funit(7) )
 
 
-    density_filename = trim("")
-    write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/MO_density-e", trim(Priv%emaxstr), &
-           "-d", trim(Priv%dirstr), ".", itime, ".vdens.bin"
-    
-    call write_vdens_diff_bin( density_filename, dble(itime)*dt*au2fs, &
-                               Priv%rate, noa, nva, scratch, Mol%vabsmoa, Priv%funit(7) )
+    !density_filename = trim("")
+    !write( density_filename, '(A,A,A,A,A,I0,A)') "matrices/MO_density-e", trim(Priv%emaxstr), &
+    !       "-d", trim(Priv%dirstr), ".", itime, ".vdens.bin"
+    !
+    !call write_vdens_diff_bin( density_filename, dble(itime)*dt*au2fs, &
+    !                           Priv%rate, noa, nva, scratch, Mol%vabsmoa, Priv%funit(7) )
 
   end if ! write_matrices
 
@@ -2863,11 +2863,11 @@ subroutine write_density_bin(filename, time, rate, noa, nva, density, vabs, funi
   !  write(*,*) " "
   !end do
   if (present(funit)) then
-    !call write_dbin_safe(temp_density, nrorb*nrorb, trim(filename), funit)
-    call write_dbin(temp_density, nrorb*nrorb, trim(filename), funit)
+    call write_dbin_safe(temp_density, nrorb*nrorb, trim(filename), funit)
+    !call write_dbin(temp_density, nrorb*nrorb, trim(filename), funit)
   else
-    !call write_dbin_safe(temp_density, nrorb*nrorb, trim(filename))
-    call write_dbin(temp_density, nrorb*nrorb, trim(filename))
+    call write_dbin_safe(temp_density, nrorb*nrorb, trim(filename))
+    !call write_dbin(temp_density, nrorb*nrorb, trim(filename))
   end if
 
 end subroutine write_density_bin
@@ -2910,11 +2910,11 @@ subroutine write_density_difference_bin(filename, time, rate, noa, nva, density,
   !end do
 
   if (present(funit)) then
-    !call write_dbin_safe(temp_density, ndim2, trim(filename), funit)
-    call write_dbin(temp_density, ndim2, trim(filename), funit)
+    call write_dbin_safe(temp_density, ndim2, trim(filename), funit)
+    !call write_dbin(temp_density, ndim2, trim(filename), funit)
   else
-    !call write_dbin_safe(temp_density, ndim2, trim(filename))
-    call write_dbin(temp_density, ndim2, trim(filename))
+    call write_dbin_safe(temp_density, ndim2, trim(filename))
+    !call write_dbin(temp_density, ndim2, trim(filename))
   end if
 
 end subroutine write_density_difference_bin
@@ -3024,11 +3024,11 @@ subroutine write_vdens_diff_bin(filename, time, rate, noa, nva, density, vabs, f
   !end do
 
   if (present(funit)) then
-    !call write_dbin_safe(temp_density, ndim2, trim(filename), funit)
-    call write_dbin(temp_density, ndim2, trim(filename), funit)
+    call write_dbin_safe(temp_density, ndim2, trim(filename), funit)
+    !call write_dbin(temp_density, ndim2, trim(filename), funit)
   else
-    !call write_dbin_safe(temp_density, ndim2, trim(filename))
-    call write_dbin(temp_density, ndim2, trim(filename))
+    call write_dbin_safe(temp_density, ndim2, trim(filename))
+    !call write_dbin(temp_density, ndim2, trim(filename))
   end if
 
 end subroutine write_vdens_diff_bin

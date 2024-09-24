@@ -26,9 +26,7 @@ $(info OBJECTS: $(OBJECTS))
 #FC = pgf95
 FC = nvfortran
 FFLAGS = -tp px -O3 -g
-#LIBDIR = /wsu/el7/pgi/2018-187/linux86-64/18.7/lib/
-LIBDIR = /wsu/el7/nvhpc-cuda/24.1/Linux_x86_64/24.1/compilers/lib/
-LAPACK_LIBS = -L${LIBDIR} -llapack -lblas
+LAPACK_LIBS = -llapack -lblas
 OPT_FLAGS = -Minfo -Mneginfo -time -fast -Mconcur=allcores -mp=allcores -Munroll -Mvect
 O_FLAGS = -module $(MOD) -I$(MOD)
 
@@ -79,7 +77,7 @@ $(OBJ)/getfield.o : $(SRC)/getfield.f90 $(OBJ)/variables_global.o $(OBJ)/util.o
 $(OBJ)/initialize.o : $(SRC)/initialize.f90 $(OBJ)/readintegrals.o $(OBJ)/variables_global.o $(OBJ)/util.o
 	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-$(OBJ)/readintegrals.o : $(SRC)/readintegrals.f90 $(OBJ)/variables_global.o $(OBJ)/qcmatrixio.o
+$(OBJ)/readintegrals.o : $(SRC)/readintegrals.f90 $(OBJ)/io_binary.o $(OBJ)/variables_global.o $(OBJ)/qcmatrixio.o
 	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
 $(OBJ)/write_info.o : $(SRC)/write_info.f90 $(OBJ)/variables_units.o $(OBJ)/variables_setup.o $(OBJ)/variables_control.o $(OBJ)/variables_global.o $(OBJ)/util.o

@@ -24,8 +24,8 @@ class Proctor:
       if os.path.isdir(dp) and d.endswith(".ref"):
         self.refdirs.append(dp)
 
-    #self.binpath = self.testroot+"/../bin/tdci"
-    self.binpath = "/wsu/home/gg/gg38/gg3895/tdci-test/TDCI-CAP_2/bin/tdci"
+    self.binpath = self.testroot+"/../bin/tdci"
+    #self.binpath = "/wsu/home/gg/gg38/gg3895/tdci-test/TDCI-CAP_2/bin/tdci"
     print(self.refdirs)
 
   def RunTests(self):

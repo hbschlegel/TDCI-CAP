@@ -9,6 +9,7 @@
 
 import numpy as np
 import struct, sys, re, os, csv, random
+import scipy
 np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(formatter={'float': lambda x: "{0:0.4e}".format(x)})
 
@@ -20,6 +21,7 @@ import matplotlib.ticker as plticker
 
 # globals
 au2fs = 0.0241888432650900
+fs2au = (1/au2fs)
 
 # WARNING: BIN FILES ARE NOT PORTABLE BETWEEN COMPUTERS
 #          WITH DIFFERENT DOUBLE IMPLEMENTATIONS  
@@ -39,17 +41,22 @@ def write_bin_array(array, filepath):
   f.close(); del f
 
 # Parses the file 'input' for the theta/phi of each direction
-def parse_tdci_input_directions():
+def parse_tdci_input():
   polar_coords = []
   f = open('input', 'r')
+  lines = []
   l = f.readline()
+  lines.append(l)
   while l.strip() != "&FIELD_directions":
     l = f.readline()
+    lines.append(l)
     if l == "":
       print("Can't find &FIELD_directions !!!")
   l = f.readline()
+  lines.append(l)
   nemax = int(l.split()[-1])
   l = f.readline()
+  lines.append(l)
   while l.strip() != "/":
     if l == "":
       print("Can't find end of directions !!!")
@@ -57,10 +64,29 @@ def parse_tdci_input_directions():
     index, theta, phi = parse_tdci_input_line(l)
     polar_coords.append( (theta,phi) )
     l = f.readline()
+    lines.append(l)
   #print("Polar coords:")
   #print( (nemax, len(polar_coords)) )
   #print(polar_coords)
-  return polar_coords
+
+  while l != "": # Finish reading file
+    l = f.readline()
+    lines.append(l)
+
+  nsteps = 0
+  nprintstep = 0
+  for line in lines:
+    if len(line.split()) > 1:
+      #print(line.split()[0])
+      if line.split()[0] == 'nstep':
+        nsteps = int(line.split()[-1])
+      if line.split()[0] == 'outstep':
+        nprintstep = int(line.split()[-1])
+  assert nsteps != 0
+  assert nprintstep != 0
+      
+
+  return polar_coords, nsteps, nprintstep
   
   
 # Get ndirs and the theta,phi for each direction
@@ -78,12 +104,30 @@ def parse_tdci_input_line(line):
   sys.exit()
 
 
+def get_word_from_last_line(file_path, number):
+  with open(file_path, 'r') as f:
+    return f.readlines()[-1].split()[number]
+
+
 def matrix2csv(mat,n, outname):
   f = open(outname,'w')
   i, j = 0,0
   while i<n:
     j=0
     while j<n:
+      f.write(f"{mat[i][j]:.10E},")
+      j+=1
+    f.write("\n")
+    i+=1
+  f.close()
+  return 0
+
+def matrix2csvRECT(mat,n,m, outname):
+  f = open(outname,'w')
+  i, j = 0,0
+  while i<n:
+    j=0
+    while j<m:
       f.write(f"{mat[i][j]:.10E},")
       j+=1
     f.write("\n")
@@ -361,16 +405,22 @@ class gdvlog_parser:
 
   def parse_gdv_params(self):
     self.nea = 0
+    self.nbasis = 0
+    self.nbsuse = 0
     Ra = []
     Rb = []
     f = open(self.filename, 'r')
     line = f.readline()
     while line != "":
       ls = line.split()
+      if "NBasis=" in line:
+        self.nbasis = int( line.split()[1] )
+      if "NBsUse=" in line:
+        self.nbsuse = int( line.split()[1] )
       if "alpha electrons" in line:
         self.nea = int( line.split()[0] )
       if "IAtom   RA        RB" in line:
-        print("FOUND VABS RA RB")
+        #print("FOUND VABS RA RB")
         line = f.readline()
         ls = line.split()
         # in my jobs the line after this section is:
@@ -383,7 +433,7 @@ class gdvlog_parser:
       line = f.readline()
     self.Ra = Ra
     self.Rb = Rb
-    print(Ra)
+    #print(Ra)
 
 
     
@@ -514,6 +564,43 @@ class ratechecker:
     CMO = read_bin_array( "matrices/CMO.bin", nmo*nao)
     CMO.resize((nmo,nao))
     self.CMO = CMO
+    matrix2csvRECT(CMO,nmo,nao, "CMO.csv")
+
+    """
+    # Check orthonormality of CMO
+    print(f"Checking orthonormality of CMO")
+    good = True
+    for i in range(0,nmo):
+      if (np.abs( np.dot(CMO[i],CMO[i]) -1) < 1E-6):
+        print(f"CMO vector {i} normalization bad: {np.dot(CMO[i],CMO[i])}")
+        good = False
+      for j in range(0,nmo):
+        if ( i!=j and (np.abs(np.dot(CMO[i],CMO[j])) > 1E-6) ):
+          print(f"CMO vectors {i},{j} orthogonality bad: {np.dot(CMO[i],CMO[j])}")
+          good = False
+    if good:
+      print("CMO orthonormality passed!")
+    else:
+      print("CMO orthonormality failed!")
+
+
+    # Check orthonormality of CMO.T
+    print(f"Checking orthonormality of CMO.T")
+    good = True
+    for i in range(0,nmo):
+      if (np.abs( np.dot(CMO.T[i],CMO.T[i]) -1) < 1E-6):
+        print(f"CMO.T vector {i} normalization bad: {np.dot(CMO.T[i],CMO.T[i])}")
+        good = False
+      for j in range(0,nmo):
+        if ( i!=j and (np.abs(np.dot(CMO.T[i],CMO.T[j])) > 1E-6) ):
+          print(f"CMO.T vectors {i},{j} orthogonality bad: {np.dot(CMO.T[i],CMO.T[j])}")
+          good = False
+    if good:
+      print("CMO.T orthonormality passed!")
+    else:
+      print("CMO.T orthonormality failed!")
+    """
+        
 
     # Unpack triangular matrix
     vabs_AO = np.zeros((nao,nao))
@@ -529,18 +616,32 @@ class ratechecker:
 
     self.Vabs_AO = vabs_AO
     self.Vabs_MO = test_vabs_MO
+    matrix2csv(vabs_AO, nao, f"Vabs_AO.csv")
 
     return 0
 
-  def make_vdens(self,timestep,e,d):
+  # Expect timestep and d to be 1-indexed
+  def make_vdens(self,timestep,e,d,writecsv=False,prevtime=0):
     nao, nmo = self.nao, self.nmo
     CMO = self.CMO
-    dens_MO = read_bin_array( f"matrices/MO_density-e{e}-d{d}.{timestep}00.bin", nmo**2)
+    dens_MO = None
+    if os.path.isfile(f"matrices/MO_density-e{e}-d{d}.{timestep}.bin"):
+      dens_MO = read_bin_array( f"matrices/MO_density-e{e}-d{d}.{timestep}.bin", nmo**2)
+    else: # dirty hack for missing files
+      dens_MO = read_bin_array( f"matrices/MO_density-e{e}-d{d}.{prevtime}.bin", nmo**2)
     dens_MO.resize((nmo,nmo))
     mm = np.matmul
     dens_AO = mm(CMO.T, mm(dens_MO, CMO))
+
+    # Test trace
+    #MOtr = np.trace(dens_MO)
+    #AOtr = np.trace(dens_AO)
+    #print(f"Dir{d}, Step {timestep}, MOtr={MOtr:.3f}, AOtr={AOtr:.3f}")
+
     #CMO_pinv = self.CMO_pinv
     #dens_AO = CMO_pinv @ dens_MO @ CMO_pinv.T
+    if writecsv:
+      matrix2csv(dens_AO, nao, f"DensityAO-d{d}-{timestep}.csv")
 
     dens_AO.resize((nao**2))
     self.Vabs_AO.resize((nao**2))
@@ -574,17 +675,39 @@ class ratechecker:
 
 
 class RateTrajectoryData:
-  def __init__(self, nsteps, natoms, lmax, norbs):
-    self.rate = np.zeros(nsteps)
-    self.atomsum = np.zeros((nsteps,natoms))
-    self.lsum = np.zeros((nsteps,natoms,lmax))
-    self.totsum = np.zeros(nsteps) # Sanity check for rate
-    self.orbrate = np.zeros((nsteps,norbs))
+  def __init__(self, nsteps, nprintstep, natoms, lmax, norbs, direction):
+    self.npts = nsteps//nprintstep
+    npts = self.npts
+    self.nsteps = nsteps
+    self.rate = np.zeros(npts)
+    self.norm2 = np.zeros(npts)
+    self.atomsum = np.zeros((npts,natoms))
+    self.lsum = np.zeros((npts,natoms,lmax))
+    self.totsum = np.zeros(npts) # Sanity check for rate
+    self.orbrate = np.zeros((npts,norbs))
     self.maxrate = 0
-    self.direction = 0
+    self.direction = direction
+    self.set_norm2()
+
+  def set_norm2(self):
+    f = open(f"RESULTS-e1-d{self.direction+1}.dat", 'r')
+    f.readline() ; f.readline() ; f.readline()
+    line = f.readline() #first data line, step 1
+    for i in range(self.npts):
+      self.norm2[i] = float( line.split()[9] ) 
+      line = f.readline()
+    f.close()
+    return 0
+
 
 class RatePlotter:
-  def  __init__(self, gdvlog ):
+  def  __init__(self, gdvlog, plotname=None ):
+    if plotname is None:
+      try:
+        plotname =  os.path.dirname(gdvlog).split("_")[-1] # Attempt at autogenerating name
+      except:
+        plotname = ""
+    self.plotname = plotname
     self.gaussdir = os.path.dirname(gdvlog)+"/"
     self.parser = gdvlog_parser(gdvlog)
     parser = self.parser
@@ -592,17 +715,17 @@ class RatePlotter:
     parser.parse_prims()
     parser.parse_gdv_params()
 
-    self.polar_coords = parse_tdci_input_directions()
+    self.polar_coords, self.nsteps, self.nprintstep = parse_tdci_input()
     self.dataset = [] # RateTrajectoryData indexed by direction index.
     self.ndir = len(self.polar_coords)
     print("ndir: "+str(self.ndir))
 
     self.nao, self.nmo, self.natoms, self.nocc = parser.nao, parser.nmo, parser.natoms, parser.nocc
     nao, nmo, natoms = self.nao, self.nmo, self.natoms
-    self.nsteps = 160
-    self.lmax = 6
+    self.lmax = 4
     nsteps = self.nsteps
     lmax = self.lmax
+    self.npts = self.nsteps//self.nprintstep
    
     e_idx = 1 # Field number
     d_idx = 1 # Direction
@@ -617,13 +740,13 @@ class RatePlotter:
         expdict_max[ (orb.atom_index, l_, exp_) ] = 0.0
 
     for d in range(0,self.ndir):
-      d_data = RateTrajectoryData(self.nsteps, self.natoms, self.lmax, len(parser.orbs))
+      d_data = RateTrajectoryData(self.nsteps, self.nprintstep, self.natoms, self.lmax, len(parser.orbs), d)
       rate = d_data.rate
       atomsum = d_data.atomsum
       lsum = d_data.lsum
       totsum = d_data.totsum
       orbrate = d_data.orbrate
-      d_data.direction = d
+      norm2 = d_data.norm2
       expdict = {}
 
 
@@ -632,33 +755,39 @@ class RatePlotter:
         if len(orb.prim_expon)>0:
           l_ = orb.l
           exp_ = orb.prim_expon[0]
-          expdict[ (orb.atom_index, l_, exp_) ] = np.zeros(self.nsteps)
+          expdict[ (orb.atom_index, l_, exp_) ] = np.zeros(self.npts)
 
       # Generate density*vabs in AO basis and partition by atom and L
-      for time in range(0, nsteps):
-        vdens = self.rc.make_vdens(time+1,e_idx,d+1)
+      # for nstep=20 and nprintstep=5, [5,10,15,20]
+      prevtime = 0
+      for time in range(self.nprintstep, self.nsteps+self.nprintstep, self.nprintstep):
+        writecsv = False
+        if time in [self.nprintstep, self.nsteps]: writecsv = True
+        vdens = self.rc.make_vdens(time,e_idx,d+1, writecsv, prevtime)
         #print("in __init__")
         #print(vdens[:2,:5])
         #print(np.sum(vdens))
         #rate[time] = np.trace(vdens)
-        rate[time] = 0.0
-        rate[time] = np.sum(vdens) # sum all elements
-        if (time == nsteps-1) or (time == 0):
-          print(f"rate for step={time+1} d={d+1} : {rate[time]} au | {(1/au2fs)*rate[time]:.10f} fs")
-          matrix2csv(vdens, nao, f"vdens-d{d+1}-{time+1}.csv")
+        t_idx_max = (self.nsteps//self.nprintstep)-1
+        t_idx = (time//self.nprintstep)-1
+        rate[t_idx] = 0.0
+        rate[t_idx] = np.sum(vdens) # sum all elements
+        if (t_idx == t_idx_max ) or (t_idx == 0):
+          print(f"rate for step={time} d={d+1} : {rate[t_idx]} au | {(1/au2fs)*rate[t_idx]:.10f} fs")
+          matrix2csv(vdens, nao, f"vdens-d{d+1}-{time}.csv")
         # Atoms/orbitals are 1-indexed!
         #print("Breakdown of rate by atom and angular momentum")
 
         for orb in parser.orbs:
           idx = orb.orb_index-1
           #orbrate[time][idx] = vdens[idx][idx]
-          orbrate[time][idx] = np.sum(vdens[idx])
+          orbrate[t_idx][idx] = np.sum(vdens[idx])
           if len(orb.prim_expon)>0:
             key = (orb.atom_index, orb.l, orb.prim_expon[0])
             #expdict[ (orb.atom_index, orb.l, orb.prim_expon[0]) ][time] += vdens[idx][idx]
-            expdict[ key ][time] += np.sum(vdens[idx])
+            expdict[ key ][t_idx] += np.sum(vdens[idx])
             expdict_max[key] = max( expdict_max[key], np.sum(vdens[idx]) )
-          
+
 
         for iatom in range(0,self.natoms):
           for l_ in range(0, lmax):
@@ -669,14 +798,15 @@ class RatePlotter:
                 idx = orb.orb_index-1 # orb_index is 1-indexed
                 #lsum[time][iatom][l_] += vdens[idx][idx]
                 #atomsum[time][iatom] += vdens[idx][idx]
-                lsum[time][iatom][l_] += np.sum(vdens[idx])
-                atomsum[time][iatom]  += np.sum(vdens[idx])
-          totsum[time] += atomsum[time][iatom]
-        if np.abs(totsum[time]-rate[time])>1e-3:
-          #print(f"totsum doesnt match rate: totsum={totsum[time]} , rate={rate[time]}")
+                lsum[t_idx][iatom][l_] += np.sum(vdens[idx])
+                atomsum[t_idx][iatom]  += np.sum(vdens[idx])
+          totsum[t_idx] += atomsum[t_idx][iatom]
+        if np.abs(totsum[t_idx]-rate[t_idx])>1e-3:
+          print(f"totsum doesnt match rate: totsum={totsum[t_idx]} , rate={rate[t_idx]}")
           pass
+        prevtime = time # dirty hack for missing files
       self.dataset.append(d_data)
-      #self.rate_by_time_plots(d_data)
+      self.rate_by_time_plots(d_data)
       #self.individual_orb_plot(d_data, parser)
       self.AtomLExp_plot(d_data, parser, expdict)
       self.RateCheck_CSV(d_data, parser)
@@ -688,6 +818,7 @@ class RatePlotter:
 
 
   def RmaxRaRbPlot(self, expdict_max):
+    from adjustText import adjust_text
     parser = self.parser
     Ra = self.parser.Ra
     Rb = self.parser.Rb
@@ -713,7 +844,7 @@ class RatePlotter:
       fig = plt.figure()
       ax = fig.add_subplot(1,1,1)
       # Create data and plot for each angular momentum
-      #texts = []
+      texts = []
       X_tot = []
       Y_tot = []
       label_tot = []
@@ -726,7 +857,7 @@ class RatePlotter:
           if ( i, l_, exp_ ) not in expdict_max.keys():
             #print(f"missing: {(i,l_,exp_)}")
             continue # Skip
-          print(f"hit: {(i,l_,exp_)}")
+          #print(f"hit: {(i,l_,exp_)}")
           Rmax = np.sqrt((l_+1)/exp_)
           X.append(Rmax)
           X_tot.append(Rmax)
@@ -737,19 +868,20 @@ class RatePlotter:
           for orb in parser.orbs:
             if ( (i==orb.atom_index) and (l_==orb.l) and (exp_==orb.prim_expon[0]) ):
               idxlist.append( orb.orb_index )
-          label_tot.append( str(f"({idxlist}:{exp_:.4f})") )
-        ax.scatter(X,Y, label=l_str, s=48 )
+          label_tot.append( str(f"{exp_:.4f}") )
+        ax.plot(X,Y, marker='o', label=l_str, markersize=16 )
       for j, (x, y, label_) in enumerate(zip(X_tot, Y_tot, label_tot)):
-        #texts.append(ax.text(x,y,f"{exp_:.4f}"))
-        offset = random.uniform(0,1)*5+(2*(j%2))
+        text = ax.text(x,y,label_)
+        texts.append(ax.text(x,y,label_))
+        #offset = random.uniform(0,1)*5+(2*(j%2))
         #offset = 5 + (j%3)*5
         #angle = ((j%5)-2)*20
-        angle = 0
+        #angle = 0
         #ax.annotate(f"{exp_:.4f}", (x,y), xytext=(0,5), textcoords='offset points')
-        ax.annotate(label_, (x,y), fontsize=6, xytext=(0,offset),
-                    textcoords='offset points', rotation=angle, ha='center', va='bottom')
+        #ax.annotate(label_, (x,y), fontsize=6, xytext=(0,offset),
+        #            textcoords='offset points', rotation=angle, ha='center', va='bottom')
       ax.legend()
-      #adjust_text(texts, arrowprops=dict(arrowstyle='->', color='red'))
+      #adjust_text(texts, x=X_tot, y=Y_tot, horizontalalignment='center', autoalign='xy', arrowprops=dict(arrowstyle='->', color='red'))
       basisname = (os.getcwd()).split('_')[-1]
       ax.title.set_text(f"Rmax for {parser.atomtypes[i]}, basis: {basisname}")
       ax.set_ylabel("Max Rate Contribution ($fs^{-1}$)")
@@ -768,8 +900,6 @@ class RatePlotter:
       plt.savefig(f"Rmax{parser.atomtypes[i]}.png", dpi=400)
       plt.close()
       
-        
-    
     
   # Compare rate calculated from AO density * Vabs_AO
   #   with the rate in RESULTS.dat files
@@ -781,7 +911,7 @@ class RatePlotter:
     line = f.readline() #first data line, step 1
     rate = d_data.rate
     g.write("step,rate python,rate RESULTS\n")
-    for i in range(self.nsteps):
+    for i in range(self.nsteps//self.nprintstep):
       RESULTSrate = float( line.split()[10] )
       g.write(f"{i},{(1/au2fs)*rate[i]:.10f},{RESULTSrate:.10f}\n")
       line = f.readline()
@@ -792,7 +922,7 @@ class RatePlotter:
 
   def AtomLExp_plot(self,d_data, parser, expdict):
     orbs = parser.orbs
-    nsteps = self.nsteps
+    npts = self.npts
     norbs = len(orbs)
     #maxrates = np.max(d_data.orbrate, axis=0)
     maxrates = np.zeros( len(expdict) )
@@ -802,13 +932,13 @@ class RatePlotter:
       keys.append(key)
       data.append(val)
     data = np.array(data)
-    maxrates = np.max(data, axis=1)
+    maxrates = np.max(data, axis=1) # Max across time axis
     #print("maxrates:")
     #print(maxrates)
     orb_idx_ratesorted = np.argsort(maxrates)[::-1]
     MAX_LINES = 10 # max number of lines to plot
 
-    X = np.array(list(range(1,nsteps+1)))
+    X = np.array(list(range(1,npts+1)))
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
 
@@ -820,7 +950,8 @@ class RatePlotter:
       atype = parser.atomtypes[key[0] ] 
       ax.plot( X, (1/au2fs)*data[idx],
         label=f"{atype}{key[0]}, {l_str}, {key[2]}, {(1/au2fs)*maxrates[idx]:0.3f}")
-    ax.legend(title=f"Atom, L, Exp, MaxRate")
+        #label=f"{atype}{key[0]}, {l_str}, {key[2]}, {(1/au2fs)*maxrates[idx]:0.3f}")
+    ax.legend(title=f"Atom, L, Exp, MaxRate", loc='upper right')
     ax.set_ylabel("Rate $fs^{-1}$")
     ax.set_xlabel("Timestep")
     ax.title.set_text(f"Top 10 orbitals, Dir: {d_data.direction+1}")
@@ -855,8 +986,8 @@ class RatePlotter:
 
     # Write CSV
     f = open(f"AtomLExp_FinalRate{d_data.direction+1}.csv", 'w')
-    f.write(f"Direction,{d_data.direction+1},,,\n")
-    f.write("AtomIdx,AtomType,OrbIdxList,L,Exponent,FinalRate(fs^-1)\n")
+    f.write(f"Direction,{d_data.direction+1},,FinalNorm2,{d_data.norm2[-1]},\n")
+    f.write("AtomIdx,AtomType,OrbIdxList,L,Exponent,FinalRate(fs^-1),Norm2 Adj. FinalRate(fs^-1)\n")
     for i in range(0,len(maxrates)):
       idx = orb_idx_ratesorted[i]
       # key is ( atomidx, l, exponent )
@@ -871,7 +1002,8 @@ class RatePlotter:
           idxlist.append( orb.orb_index )
       idxliststr = str(idxlist).replace(" ","").replace("[","").replace("]","").replace(","," ")
       finalrate = expdict[key][-1]
-      outstr = f"{key[0]},{atype},{idxliststr},{l_str},{key[2]},{(1/au2fs)*finalrate}\n"
+      finalrate_norm2 = d_data.norm2[-1] * expdict[key][-1]
+      outstr = f"{key[0]},{atype},{idxliststr},{l_str},{key[2]},{(1/au2fs)*finalrate:.10E},{(1/au2fs)*finalrate_norm2:.10E}\n"
       #print(outstr)
       f.write(outstr)
     f.close()
@@ -890,6 +1022,7 @@ class RatePlotter:
       atype = parser.atomtypes[key[0]]
       if atype not in atype_list: atype_list.append(atype)
     exponent_list.sort(reverse=True) # sort our exponents descending
+
       
     #header = f"orbital,exponent{','+f for f in atype_list}"
     header = "orbital,exponent"
@@ -929,6 +1062,7 @@ class RatePlotter:
   # Combines the CSV files 
   def AtomLExp_DirAvgCSV(self):
     csv_files = [f"AtomLExp_AvgRate{d}.csv" for d in range(1,self.ndir+1)]
+
     
     # Read the first file to get dimensions
     with open(csv_files[0], 'r') as f:
@@ -965,6 +1099,7 @@ class RatePlotter:
 
     # Write output to new CSV file
     with open("RateBasis_Summary.csv", 'w', newline='') as f:
+      
       writer = csv.writer(f)
       writer.writerows(output_data)
 
@@ -972,13 +1107,13 @@ class RatePlotter:
 
   def individual_orb_plot(self,d_data, parser):
     orbs = parser.orbs
-    nsteps = self.nsteps
+    npts = self.npts
     norbs = len(orbs)
     maxrates = np.max(d_data.orbrate, axis=0)
     orb_idx_ratesorted = np.argsort(maxrates)[::-1]
     MAX_LINES = 10 # max number of lines to plot
 
-    X = np.array(list(range(1,nsteps+1)))
+    X = np.array(list(range(1,self.npts+1)))
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
 
@@ -999,7 +1134,7 @@ class RatePlotter:
       
 
   def rate_by_time_plots(self,d_data):
-    nsteps = self.nsteps
+    npts = self.npts
     lmax = self.lmax
     parser = self.parser
     natoms = self.natoms
@@ -1008,7 +1143,7 @@ class RatePlotter:
       for l_ in range(0,lmax):
         maxrate = max( max(d_data.lsum[:,iatom,l_]), maxrate)
     # Plot by Atom and Angular momentum
-    X = np.array(list(range(1,nsteps+1)))
+    X = np.array(list(range(1,self.npts+1)))
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     for iatom in range(0,natoms):
@@ -1024,7 +1159,7 @@ class RatePlotter:
     ax.title.set_text(f"Rate by Atom:Angular Momentum. Dir: {d_data.direction+1}")
     
     plt.tight_layout()
-    plt.savefig(f"atomangular{d_data.direction+1}.png", dpi=200)
+    plt.savefig(f"atomangular{d_data.direction+1}.png", dpi=300)
     plt.close()
 
     # Plot by angular momentum, no atoms
@@ -1036,15 +1171,26 @@ class RatePlotter:
       #if max(l_noatom[:,l_]) < 0.1*maxrate:
       #  continue # Skip low contributions to avoid clutter
       l_str = parser.inv_l_map[l_]
-      ax.plot( X , (1/au2fs)*l_noatom[:, l_], label=f"{l_str}" )
+      Y = (1/au2fs)* (d_data.norm2 * l_noatom[:, l_])
+      ax.plot( X , Y, label=f"{l_str}" )
 
     ax.legend()
     ax.title.set_text(f"Rate by Angular Momentum. Dir:{d_data.direction+1}")
     
     plt.tight_layout()
-    plt.savefig(f"angular{d_data.direction+1}.png", dpi=200)
+    plt.savefig(f"angular{d_data.direction+1}.png", dpi=300)
     plt.close()
 
+    # CSV angular momentum, no atoms
+    f = open(f"angular{d_data.direction+1}.csv",'w')
+    f.write("step,S,P,D,F,G,H\n")
+    for time in X:
+      writestr = f"{time}"
+      for l_ in range(0, lmax):
+        Y = (1/au2fs)* (d_data.norm2[time-1]*l_noatom[time-1, l_])
+        writestr += f",{Y:.12E}"
+      f.write(writestr+'\n')
+    f.close()
 
     # Plot by atom, no angular momentum
     plt.clf()
@@ -1061,7 +1207,7 @@ class RatePlotter:
     ax.title.set_text(f"Rate by Atom. Dir:{d_data.direction+1}")
     
     plt.tight_layout()
-    plt.savefig(f"atom{d_data.direction+1}.png", dpi=200)
+    plt.savefig(f"atom{d_data.direction+1}.png", dpi=300)
     plt.close()
 
     return 0 
@@ -1070,24 +1216,47 @@ class RatePlotter:
     # For now we just ignore phi i think
     #print( "Length check (dataset, polar_coords)")
     #print( (len(self.dataset), len(self.polar_coords)))
+
+
+    lmax = 0
+    for orb in self.parser.orbs:
+      if orb.l > lmax: lmax = orb.l
+    print(f"lmax: {lmax}, {self.parser.inv_l_map[lmax]}")
+
     ndir = len(self.polar_coords)
     X_theta = []
     for x in self.polar_coords:
       X_theta.append( x[0] * (np.pi/180.)  )
-    Y_L = [ [] for _ in range(self.lmax) ]
-    time = (self.nsteps-1)
+    Y_L = [ [] for _ in range(lmax+1) ]
+    Y_tot = []
+    nva99 = []
+
+    #ymin = -0.15
+    #ymax = 0.12
+    ymin = 0.0
+    ymax = 0.001
+
+    time = (self.npts-1)
     for d in range(0,ndir):
-      for l_ in range(0,self.lmax):
+      ddat = self.dataset[d]
+      nva99.append(get_word_from_last_line(f"RESULTS-e1-d{d+1}.dat",3))
+      #Y_tot.append( ddat.rate[time] )
+      Y_tot.append( ddat.norm2[time] * ddat.rate[time] )
+      for l_ in range(0,lmax+1):
         rate_l = 0.0
         for iatom in range(0,self.natoms):
-          rate_l += self.dataset[d].lsum[time][iatom][l_]
+          #rate_l += ddat.lsum[time][iatom][l_]
+          rate_l += ddat.norm2[time] * ddat.lsum[time][iatom][l_]
         Y_L[l_].append(rate_l)
+        if (1./au2fs)*rate_l>ymax: ymax = (1./au2fs)*rate_l
+        #if (1./au2fs)*rate_l<ymin: ymin = (1./au2fs)*rate_l
+    # Get NBasis, NBSUse, and final NVA99
 
     plt.clf()
     fig, ax = plt.subplots( subplot_kw={'projection':'polar'})
-    for l_ in range(0,self.lmax):
+    for l_ in range(0,lmax+1):
       l_str = self.parser.inv_l_map[l_]
-      print(X_theta)
+      #print(X_theta)
       #print(Y_L[l_])
       #ax.plot(X_theta, Y_L[l_], label=f"{l_str}") 
       # 180 degree symmetry
@@ -1096,12 +1265,48 @@ class RatePlotter:
       Y = Y_L[l_] + (Y_L[l_][1:-1][::-1])
       X = np.array(X)
       Y = (1/au2fs)*np.array(Y)
-      ax.plot(X,Y, label=f"{l_str}") 
+      ax.plot(X,Y, label=f"{l_str}", zorder=2) 
+
+    # Plot total rate
+    X_theta_neg = list(-1.0*np.array(X_theta))
+    X = X_theta + (X_theta_neg[1:-1][::-1])
+    X = np.array(X)
+
+    Y_ = Y_tot + (Y_tot[1:-1][::-1])
+    Y_ = (1/au2fs)*np.array(Y_)
+
+    # Manually set the limits
+    #ax.set_rlim(ymin, ymax)
+    ax.set_rlim(ymin, ymax)
+    ax.set_ylabel("Norm Adj. Rate")
+
+    # I think Magenta is a good color for contrast with the default mpl colors
+    ax.plot(X, Y_, color="m", label="Total",zorder=3)
+
+    # Draw a bold circle at radius 0
+    #print(f"rmin: {ax.get_rmin()}")
+    zero_circle = plt.Circle((0, 0), -1*ax.get_rmin(), transform=ax.transData._b, color='black', linewidth=2.5, fill=False, zorder=3)
+    ax.add_artist(zero_circle)
+
+    for label in ax.get_yticklabels():
+        label.set_zorder(4)  # Set a high z-order for the tick labels
+
+    # Decrease font size of radial ticks if needed
+    ax.tick_params(axis='y', which='major', labelsize=10)
     ax.grid(True)
     ax.legend()
-    ax.set_title("Incident light angle and Angular rate dependence")
+    ax.set_title(f"Incident light angle and Angular rate dependence\n"+self.plotname)
     plt.savefig("polar_angular.png",dpi=600)
     plt.close()
+
+
+    # Write CSV
+    f = open("polar.csv",'w')
+    f.write(f"nbasis,{self.parser.nbasis},nbsuse,{self.parser.nbsuse}\n")
+    f.write("d,theta,nva99,Total Rate,S,P,D,F\n")
+    for i in range(len(X_theta)):
+      f.write(f"{i+1},{X_theta[i]},{nva99[i]},{fs2au*Y_tot[i]},{fs2au*Y_L[0][i]},{fs2au*Y_L[1][i]},{fs2au*Y_L[2][i]},{fs2au*Y_L[3][i]}\n")
+    f.close()
         
 
 
@@ -1141,7 +1346,10 @@ def combine_csv_files(ndir):
 
 def __main__():
   gdvlog = sys.argv[1]
-  rateplotter = RatePlotter(sys.argv[1])
+  if len(sys.argv)>2:
+    rateplotter = RatePlotter(sys.argv[1], sys.argv[2])
+  else:
+    rateplotter = RatePlotter(sys.argv[1])
 
 if __name__ == "__main__":  
   __main__()

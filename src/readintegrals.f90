@@ -2,6 +2,7 @@ module readintegrals
 
 
   use variables_global
+  use io_binary
   implicit none
 
   
@@ -178,6 +179,12 @@ contains
               Mol%soczao(j,i) = dconjg(Mol%soczao(i,j))
               end do
             end do
+        case ( trim(' File   514'), trim('FILE 514 REALS') )
+          write(iout,*) "Reading overlap!"
+          ! Triangular
+          allocate( Mol%overlap(ntt) )
+          Call Rd_RBuf(IU,NTot,LenBuf,Mol%overlap)
+          call write_dbin(Mol%overlap, ntt, trim("matrices/overlap.bin"))
         case ( trim(' File   828'), trim('FILE 828 REALS'), trim('FILE 870 REALS') )
           allocate( Mol%vabsao(ntt) )
           Call Rd_RBuf(IU,NTot,LenBuf,Mol%vabsao)

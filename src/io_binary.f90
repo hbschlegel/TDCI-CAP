@@ -125,7 +125,7 @@ subroutine write_dbin_safe(array, n, filename, funit)
       end if
     end if
     if (.not. verify_correct) then
-      ! if something screwed up, try again!
+      ! if something messed up, try again!
       call sleep(wait_time)
       if (present(funit)) then
         call write_dbin(array, n, filename, funit)

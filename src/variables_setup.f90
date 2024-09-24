@@ -29,7 +29,9 @@ module variables_setup
          dipyao(:), & !: y dipole matrix elements in AO basis
          dipzao(:), & !: z dipole matrix elements in AO basis
          cmo_a(:),  & !: MO-LCAO coefficients for alpha 
-         cmo_b(:)     !: MO-LCAO coefficients for beta       
+         cmo_b(:),  & !: MO-LCAO coefficients for beta       
+         overlap(:)   !: AO overlap matrix
+ 
 
     complex(8), allocatable :: &
          socxao(:,:), socyao(:,:), soczao(:,:) !: move to variables_setup module later

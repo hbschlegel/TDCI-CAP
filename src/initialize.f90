@@ -1225,7 +1225,7 @@ contains
           write(iout,'(A)') ' - Maya Angelous'
           write(iout,'(A)') divide
        case( 'date' )          
-          write(iout,'(A)') ' I WAS COMPILED ON Wed Aug  7 09:16:02 EDT 2024 '
+          write(iout,'(A)') ' I WAS COMPILED ON Mon Sep 23 22:11:23 EDT 2024 '
           write(iout,'(A)') ' I AM A REVISED CODE FOR CW PULSE GENERATION '
           write(iout,'(A)') ' RAMPING PARAMETER SET TO RAMP_STEP=16000, NOT NSTEP'
           call dnt(iout)          
