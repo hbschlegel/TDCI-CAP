@@ -704,7 +704,7 @@ class RatePlotter:
   def  __init__(self, gdvlog, plotname=None ):
     if plotname is None:
       try:
-        plotname =  os.path.dirname(gdvlog).split("_")[-1] # Attempt at autogenerating name
+        plotname =  os.path.dirname(gdvlog).replace("_"," ") # Attempt at autogenerating name
       except:
         plotname = ""
     self.plotname = plotname
@@ -786,7 +786,9 @@ class RatePlotter:
             key = (orb.atom_index, orb.l, orb.prim_expon[0])
             #expdict[ (orb.atom_index, orb.l, orb.prim_expon[0]) ][time] += vdens[idx][idx]
             expdict[ key ][t_idx] += np.sum(vdens[idx])
-            expdict_max[key] = max( expdict_max[key], np.sum(vdens[idx]) )
+            if abs(expdict_max[key]) < abs(np.sum(vdens[idx])):
+              expdict_max[key] = np.sum(vdens[idx])
+            expdict_max[key] = max( abs(expdict_max[key]), abs(np.sum(vdens[idx])) )
 
 
         for iatom in range(0,self.natoms):
@@ -882,8 +884,19 @@ class RatePlotter:
         #            textcoords='offset points', rotation=angle, ha='center', va='bottom')
       ax.legend()
       #adjust_text(texts, x=X_tot, y=Y_tot, horizontalalignment='center', autoalign='xy', arrowprops=dict(arrowstyle='->', color='red'))
-      basisname = (os.getcwd()).split('_')[-1]
-      ax.title.set_text(f"Rmax for {parser.atomtypes[i]}, basis: {basisname}")
+        
+      # translate directory naming convention
+      names = (os.getcwd()).split('_')[-2:]
+      basisname = ""
+      paramname = ""
+      for name in names:
+        if "basis" in name:
+          basisname = name
+        else:
+          paramname = name
+
+      #ax.title.set_text(f"Rmax for {parser.atomtypes[i]}, {basisname}, {paramname}")
+      ax.title.set_text(f"Rmax for {parser.atomtypes[i]}, {self.plotname}")
       ax.set_ylabel("Max Rate Contribution ($fs^{-1}$)")
       ax.set_xlabel("Rmax Distance (bohr)")
       ax.set_ylim( 0.0, np.max(Y_tot)+0.005 )
@@ -954,7 +967,7 @@ class RatePlotter:
     ax.legend(title=f"Atom, L, Exp, MaxRate", loc='upper right')
     ax.set_ylabel("Rate $fs^{-1}$")
     ax.set_xlabel("Timestep")
-    ax.title.set_text(f"Top 10 orbitals, Dir: {d_data.direction+1}")
+    ax.title.set_text(f"Top 10 orbitals, Dir: {d_data.direction+1}\n{self.plotname}")
     
     plt.tight_layout()
     plt.savefig(f"AtomLExp{d_data.direction+1}.png", dpi=200)
@@ -1124,7 +1137,7 @@ class RatePlotter:
       ax.plot( X, (1/au2fs)*d_data.orbrate[:,idx],
         label=f"{orb.atom_type}, {l_str}, {orb.prim_expon}, {(1/au2fs)*maxrates[idx]:0.3f}")
     ax.legend(title=f"Atom, L, Exp, MaxRate")
-    ax.title.set_text(f"Top 10 orbitals, Dir: {d_data.direction+1}")
+    ax.title.set_text(f"Top 10 orbitals, Dir: {d_data.direction+1}\n{self.plotname}")
     
     plt.tight_layout()
     plt.savefig(f"orbsort{d_data.direction+1}.png", dpi=200)
@@ -1156,7 +1169,7 @@ class RatePlotter:
         ax.plot( X , (1/au2fs)*d_data.lsum[:, iatom, l_], label=f"{atomstr}: {l_str}" )
 
     ax.legend()
-    ax.title.set_text(f"Rate by Atom:Angular Momentum. Dir: {d_data.direction+1}")
+    ax.title.set_text(f"Rate by Atom:Angular Momentum. Dir: {d_data.direction+1}\n{self.plotname}")
     
     plt.tight_layout()
     plt.savefig(f"atomangular{d_data.direction+1}.png", dpi=300)
@@ -1171,11 +1184,18 @@ class RatePlotter:
       #if max(l_noatom[:,l_]) < 0.1*maxrate:
       #  continue # Skip low contributions to avoid clutter
       l_str = parser.inv_l_map[l_]
-      Y = (1/au2fs)* (d_data.norm2 * l_noatom[:, l_])
+      #Y = (1/au2fs)* (d_data.norm2 * l_noatom[:, l_])
+      #Y = (1/au2fs)* (l_noatom[:, l_]/d_data.norm2)
+      #Y = []
+      #for jj in range(0,len(X)):
+      #  print( l_noatom[jj, l_] , d_data.norm2[jj],  ( (1/au2fs)* (l_noatom[jj, l_]*d_data.norm2[jj])) , ( (1/au2fs)* (l_noatom[jj, l_]/d_data.norm2[jj]))  )
+      #  Y.append( (1/au2fs)* (l_noatom[jj, l_]/d_data.norm2[jj]))
+      #  #Y.append( (1/au2fs)* (l_noatom[jj, l_]*d_data.norm2[jj]))
+      Y = (1/au2fs)* (l_noatom[:, l_])
       ax.plot( X , Y, label=f"{l_str}" )
 
     ax.legend()
-    ax.title.set_text(f"Rate by Angular Momentum. Dir:{d_data.direction+1}")
+    ax.title.set_text(f"Rate by Angular Momentum. Dir:{d_data.direction+1}\n{self.plotname}")
     
     plt.tight_layout()
     plt.savefig(f"angular{d_data.direction+1}.png", dpi=300)
@@ -1187,7 +1207,8 @@ class RatePlotter:
     for time in X:
       writestr = f"{time}"
       for l_ in range(0, lmax):
-        Y = (1/au2fs)* (d_data.norm2[time-1]*l_noatom[time-1, l_])
+        #Y = (1/au2fs)* (d_data.norm2[time-1]*l_noatom[time-1, l_])
+        Y = (1/au2fs)* (l_noatom[time-1, l_])
         writestr += f",{Y:.12E}"
       f.write(writestr+'\n')
     f.close()
@@ -1204,7 +1225,7 @@ class RatePlotter:
       ax.plot( X , (1/au2fs)*d_data.atomsum[:, iatom], label=f"{atomstr}" )
 
     ax.legend()
-    ax.title.set_text(f"Rate by Atom. Dir:{d_data.direction+1}")
+    ax.title.set_text(f"{self.plotname} Dir:{d_data.direction+1}")
     
     plt.tight_layout()
     plt.savefig(f"atom{d_data.direction+1}.png", dpi=300)

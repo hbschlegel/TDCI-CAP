@@ -694,7 +694,8 @@ subroutine trotter_linear
      Priv%temp = -0.5d0 * cis_eig(i) * dt
      exphel(i) = dcmplx( dcos(Priv%temp) , dsin(Priv%temp) )
   end do
-  write(iout, '(A,F22.16)') "au2fs= ", au2fs
+
+  call write_vabsmo_table(nrorb, Mol%vabsmoa, Mol%orben )
 
 
   !: Start loop over directions.  Counters need to be passed in as non-derived datatype
@@ -769,12 +770,12 @@ subroutine trotter_linear
       Priv%emax1 = tdciresults(1+(iemax-1)*ndir)%fstrength0
 
 
-      !$OMP CRITICAL (PropThreadOutput)
+      !$OMP CRITICAL (IO_LOCK)
       call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff, 0)
       if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
       write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
       flush( iout )
-      !$OMP END CRITICAL (PropThreadOutput)
+      !$OMP END CRITICAL (IO_LOCK)
                   
       !: initialize psi
       call cpu_time(start3)
@@ -910,6 +911,7 @@ subroutine trotter_linear
 
           analysis : if ( mod(itime,outstep).eq.0 ) then                
               
+            !$OMP CRITICAL (IO_LOCK)
             idata = int( itime/outstep)  
               
             call get_norm( Priv%norm, nstuse, psi )
@@ -938,7 +940,6 @@ subroutine trotter_linear
                     Priv%nva95max_debug, Priv%nva99max_debug, Priv%rate_debug, Priv%rate_raw, &
                     Prop%opdm_avg, Prop%U_NO_input, Mol%vabsmoa )
 
-            !$OMP CRITICAL (prop_add_opdm_avg_lock)
             !: Add 1-RDM (opdm) to 1-RDM average for Natural Orbital generation.
               
             call add_opdm_average( Prop%opdm_avg, scratch, Prop%opdm_avg_N )
@@ -963,7 +964,7 @@ subroutine trotter_linear
             call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
                                scratch, itime, idata, pop1, ion)
 
-            !$OMP END CRITICAL (prop_add_opdm_avg_lock)
+            !$OMP END CRITICAL (IO_LOCK)
 
           end if analysis
            
@@ -1014,7 +1015,7 @@ subroutine trotter_linear
         !  write(iout,"(' psi ',9f12.8)") Priv%norm,(scratch(j+(noa+nob)),j=1,noa+nob)
         !end do
 
-        !$OMP CRITICAL (prop_final_timestep_lock)
+        !$OMP CRITICAL (IO_LOCK)
         !: record data at last timestep
         tdciresults( idir + (iemax-1)*ndir)%norm0 = Priv%norm**2
         tdciresults( idir + (iemax-1)*ndir)%dipx  = Priv%mux
@@ -1066,7 +1067,7 @@ subroutine trotter_linear
 
         flush(iout)
 
-        !$OMP END CRITICAL (prop_final_timestep_lock)
+        !$OMP END CRITICAL (IO_LOCK)
      end do emax_loop
 
     call Priv%deconstruct()
@@ -3097,6 +3098,31 @@ subroutine write_density_difference(funit, time, rate, noa, nva, density, vabs)
 
 end subroutine write_density_difference
 
+
+subroutine write_vabsmo_table(nrorb, Vabs_MO, orben)
+  implicit none
+  integer(8), intent(in) :: nrorb
+  real(8), intent(in) :: Vabs_MO(nrorb*nrorb), orben(2*nrorb)
+
+  integer(8), parameter :: iout = 42
+  integer(8) :: i,j
+  real(8) :: vabs_sum
+
+  write(iout,*) "Vabs MO summary:"
+  write(iout,*) "i, orben(i), Vabs(i,i), sum(Vabs(i)) "
+  write(iout,*) "====================================="
+  do i=1,nrorb
+    vabs_sum = 0.0
+    do j=1,nrorb
+      vabs_sum = vabs_sum + Vabs_MO((i-1)*nrorb+j)
+    end do
+    write(iout,'(I4,A2,F8.4,A2,F8.4,A2,F8.4)') i, ", ", orben(i), ", ", Vabs_MO((i-1)*nrorb+i), ", ", vabs_sum
+    !write(iout,*) i, ",", orben(i), ",", Vabs_MO((i-1)*nrorb+i), ",", vabs_sum
+  end do
+  write(iout,*) ""
+
+
+end subroutine write_vabsmo_table
 
 ! Accepts triangular ao_mat to test against
 subroutine mo2ao_test_old(nbasis,nrorb,mo_mat,ao_mat_test,rotmat)
