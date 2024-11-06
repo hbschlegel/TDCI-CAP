@@ -933,11 +933,12 @@ contains
        !   write(iout,'(A)') ' deallocated Mol%cmo_a '
        !   call track_mem( -nrorb*nbasis )
        !end if
-       if( allocated(Mol%orben) ) then
-          deallocate(Mol%orben)
-          write(iout,'(A)') ' deallocated Mol%orben '
-          call track_mem( -norb )
-       end if
+       !: Needed for write_vabsmo_table
+       !if( allocated(Mol%orben) ) then
+       !   deallocate(Mol%orben)
+       !   write(iout,'(A)') ' deallocated Mol%orben '
+       !   call track_mem( -norb )
+       !end if
        if( allocated(Mol%dipzao)) then
           deallocate(Mol%dipzao, Mol%dipyao, Mol%dipxao)
           write(iout,'(A)') ' deallocated Mol%dipzao, Mol%dipyao, Mol%dipxao '
@@ -954,24 +955,24 @@ contains
           write(iout,'(A)') ' deallocated Mol%dipzmob, Mol%dipymob, Mol%dipxmob '
           call track_mem( -3*nrorb*nrorb )
        end if
-       if( allocated(Mol%dipzmoa) ) then
-          write(iout,'(A)') ' DEALLOCATE Mol%dipzmoa, Mol%dipymoa, Mol%dipxmoa '
-          flush(iout)
-          deallocate(Mol%dipzmoa,Mol%dipymoa,Mol%dipxmoa) 
-          write(iout,'(A)') ' deallocated Mol%dipzmoa, Mol%dipymoa, Mol%dipxmoa '
-          flush(iout)
-          call track_mem( -3*nrorb*nrorb )
-       end if
-       if( allocated(Mol%vabsmob) ) then
-!:          deallocate(Mol%vabsmob)
-!:          write(iout,'(A)') ' deallocated Mol%vabsmob '
-!:          call track_mem( -nrorb*nrorb )
-       end if
-       if( allocated(Mol%vabsmoa) ) then
-!:          deallocate(Mol%vabsmoa)
-!:          write(iout,'(A)') ' deallocated Mol%vabsmoa '
-!:          call track_mem( -nrorb*nrorb )
-       end if
+       !if( allocated(Mol%dipzmoa) ) then
+       !   write(iout,'(A)') ' DEALLOCATE Mol%dipzmoa, Mol%dipymoa, Mol%dipxmoa '
+       !   flush(iout)
+       !   deallocate(Mol%dipzmoa,Mol%dipymoa,Mol%dipxmoa) 
+       !   write(iout,'(A)') ' deallocated Mol%dipzmoa, Mol%dipymoa, Mol%dipxmoa '
+       !   flush(iout)
+       !   call track_mem( -3*nrorb*nrorb )
+       !end if
+       !if( allocated(Mol%vabsmob) ) then
+       !  deallocate(Mol%vabsmob)
+       !  write(iout,'(A)') ' deallocated Mol%vabsmob '
+       !  call track_mem( -nrorb*nrorb )
+       !end if
+       !if( allocated(Mol%vabsmoa) ) then
+       !  deallocate(Mol%vabsmoa)
+       !  write(iout,'(A)') ' deallocated Mol%vabsmoa '
+       !  call track_mem( -nrorb*nrorb )
+       !end if
        if( allocated(Mol%socmoAB) ) then
           write(iout,*) " deallocating Mol%socmoAB,Mol%socmoBB,Mol%socmoAAMol%socmoAB,Mol%socmoBB,Mol%socmoAA"
           deallocate(Mol%socmoAB,Mol%socmoBB,Mol%socmoAA) 
@@ -1225,7 +1226,7 @@ contains
           write(iout,'(A)') ' - Maya Angelous'
           write(iout,'(A)') divide
        case( 'date' )          
-          write(iout,'(A)') ' I WAS COMPILED ON Mon Sep 23 22:11:23 EDT 2024 '
+          write(iout,'(A)') ' I WAS COMPILED ON Thu Oct 31 15:54:28 EDT 2024 '
           write(iout,'(A)') ' I AM A REVISED CODE FOR CW PULSE GENERATION '
           write(iout,'(A)') ' RAMPING PARAMETER SET TO RAMP_STEP=16000, NOT NSTEP'
           call dnt(iout)          

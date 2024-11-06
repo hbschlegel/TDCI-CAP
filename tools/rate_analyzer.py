@@ -7,9 +7,11 @@
 #   showing contribution to the rate based on atom/quantum numbers. 
 #
 
+import math
 import numpy as np
 import struct, sys, re, os, csv, random
 import scipy
+from scipy.optimize import curve_fit
 np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(formatter={'float': lambda x: "{0:0.4e}".format(x)})
 
@@ -18,6 +20,12 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
+
+import pickle
+from collections import defaultdict
+
+#from matplotlib.colors import ListedColormap, BoundaryNorm
+#from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 
 # globals
 au2fs = 0.0241888432650900
@@ -75,6 +83,8 @@ def parse_tdci_input():
 
   nsteps = 0
   nprintstep = 0
+  dt = 0.0 # Timestep size in au
+  Emax = -99.0 
   for line in lines:
     if len(line.split()) > 1:
       #print(line.split()[0])
@@ -82,11 +92,17 @@ def parse_tdci_input():
         nsteps = int(line.split()[-1])
       if line.split()[0] == 'outstep':
         nprintstep = int(line.split()[-1])
+      if line.split()[0] == 'dt':
+        dt = float(line.split()[-1])
+      if line.split()[0] == "read_emax(1)":
+        Emax = float(line.split()[-1])
   assert nsteps != 0
   assert nprintstep != 0
+  assert dt != 0.0
+  assert Emax != -99.0
       
 
-  return polar_coords, nsteps, nprintstep
+  return polar_coords, nsteps, nprintstep, dt, Emax
   
   
 # Get ndirs and the theta,phi for each direction
@@ -135,6 +151,19 @@ def matrix2csvRECT(mat,n,m, outname):
   f.close()
   return 0
     
+
+# Accepts OUTPUT_FIELD_SHAPE path and returns Efield(t)
+def parse_tdci_field(filename):
+  f = open(filename, 'r')
+  f.readline()
+  l = f.readline()
+  Efield = []
+  while l != "":
+    Efield.append(float(l.split()[-1]))
+    l = f.readline()
+  return Efield
+
+
 
 # Get CMO and some parameters from an fchk file
 def parse_fchk(filename):
@@ -201,7 +230,7 @@ def parse_gdv_AO_density(filename,nao):
   return density_AO_2D*2
 
 def mm_MO2AO(nbasis, norb, density_MO, CMO):
-  print("start MO2AO")
+  #print("start MO2AO")
   density_MO.resize( (norb,norb) )
   CMO.resize((norb,nbasis))
   mm = np.matmul
@@ -300,7 +329,7 @@ class gdvlog_parser:
           
       line = f.readline()
 
-    print(f"nao, nmo : {nao}, {nmo}")
+    #print(f"nao, nmo : {nao}, {nmo}")
     self.nao, self.nmo, self.natoms, self.nocc = nao, nmo, natoms, nocc
     #self.Ra = Ra
     #self.Rb = Rb
@@ -401,7 +430,7 @@ class gdvlog_parser:
         break
       elif len(line[0])==0:
         break
-    print("Done Parsing!")
+    #print("Done Parsing!")
 
   def parse_gdv_params(self):
     self.nea = 0
@@ -442,7 +471,7 @@ class gdvlog_parser:
   # This should be executed after parse(), and it assumes that the list self.orbs
   #   is properly in order ( orbs[i] == orbs[i].orb_index ), as it should be
   def parse_prims(self):
-    print("Entered parse_prims")
+    #print("Entered parse_prims")
     f = open(self.filename, 'r')
     keystr = "AO basis set (Overlap normalization)"
     line = f.readline()
@@ -688,6 +717,7 @@ class RateTrajectoryData:
     self.maxrate = 0
     self.direction = direction
     self.set_norm2()
+    self.expdict_final = {} # At final timestep.
 
   def set_norm2(self):
     f = open(f"RESULTS-e1-d{self.direction+1}.dat", 'r')
@@ -715,7 +745,8 @@ class RatePlotter:
     parser.parse_prims()
     parser.parse_gdv_params()
 
-    self.polar_coords, self.nsteps, self.nprintstep = parse_tdci_input()
+    self.polar_coords, self.nsteps, self.nprintstep, self.dt, self.Emax = parse_tdci_input()
+    self.Efield = parse_tdci_field("OUTPUT_FIELD_SHAPE")
     self.dataset = [] # RateTrajectoryData indexed by direction index.
     self.ndir = len(self.polar_coords)
     print("ndir: "+str(self.ndir))
@@ -737,6 +768,7 @@ class RatePlotter:
       if len(orb.prim_expon)>0:
         l_ = orb.l
         exp_ = orb.prim_expon[0]
+        # Maximum magnitude across directions
         expdict_max[ (orb.atom_index, l_, exp_) ] = 0.0
 
     for d in range(0,self.ndir):
@@ -747,6 +779,7 @@ class RatePlotter:
       totsum = d_data.totsum
       orbrate = d_data.orbrate
       norm2 = d_data.norm2
+      expdict_final = d_data.expdict_final
       expdict = {}
 
 
@@ -770,10 +803,9 @@ class RatePlotter:
         #rate[time] = np.trace(vdens)
         t_idx_max = (self.nsteps//self.nprintstep)-1
         t_idx = (time//self.nprintstep)-1
-        rate[t_idx] = 0.0
         rate[t_idx] = np.sum(vdens) # sum all elements
         if (t_idx == t_idx_max ) or (t_idx == 0):
-          print(f"rate for step={time} d={d+1} : {rate[t_idx]} au | {(1/au2fs)*rate[t_idx]:.10f} fs")
+          #print(f"rate for step={time} d={d+1} : {rate[t_idx]} au | {(1/au2fs)*rate[t_idx]:.10f} fs")
           matrix2csv(vdens, nao, f"vdens-d{d+1}-{time}.csv")
         # Atoms/orbitals are 1-indexed!
         #print("Breakdown of rate by atom and angular momentum")
@@ -785,10 +817,20 @@ class RatePlotter:
           if len(orb.prim_expon)>0:
             key = (orb.atom_index, orb.l, orb.prim_expon[0])
             #expdict[ (orb.atom_index, orb.l, orb.prim_expon[0]) ][time] += vdens[idx][idx]
-            expdict[ key ][t_idx] += np.sum(vdens[idx])
-            if abs(expdict_max[key]) < abs(np.sum(vdens[idx])):
+            tmpsum = np.sum(vdens[idx])
+            expdict[ key ][t_idx] += tmpsum
+            if abs(expdict_max[key]) < abs(tmpsum):
               expdict_max[key] = np.sum(vdens[idx])
             expdict_max[key] = max( abs(expdict_max[key]), abs(np.sum(vdens[idx])) )
+        if (t_idx == t_idx_max):
+          with open(f"expdict_d{d+1}-{time}.pickle", "wb") as f:
+            #pickle.dump(expdict_max, f, fix_imports=True, buffer_callback=None )
+            pickle.dump(expdict_max, f, fix_imports=True )
+          tempdict = defaultdict(float)
+          for (atomidx, l_, exp_), values in expdict.items():
+            tempdict[(l_, exp_)] += values[-1] # Only final timestep, sum over atomidx
+          d_data.expdict_final = dict(tempdict)
+          
 
 
         for iatom in range(0,self.natoms):
@@ -808,19 +850,27 @@ class RatePlotter:
           pass
         prevtime = time # dirty hack for missing files
       self.dataset.append(d_data)
-      self.rate_by_time_plots(d_data)
-      #self.individual_orb_plot(d_data, parser)
-      self.AtomLExp_plot(d_data, parser, expdict)
-      self.RateCheck_CSV(d_data, parser)
-      self.AtomLExp_AvgCSV(d_data, parser, expdict)
+      #self.rate_by_time_plots(d_data)
+      ##self.individual_orb_plot(d_data, parser)
+      #self.AtomLExp_plot(d_data, parser, expdict)
+      ##self.RateCheck_CSV(d_data, parser)
+      #self.AtomLExp_AvgCSV(d_data, parser, expdict)
+      #self.RmaxRaRbPlot(expdict, ADDLABELS=True, DIRSTRING=str(d_data.direction+1))
+      #self.RmaxRaRbPlot(expdict, ADDLABELS=False, DIRSTRING=str(d_data.direction+1))
+    self.polar_cmap()
     self.polar_angular_plot()
     ##combine_csv_files(self.ndir)
     self.AtomLExp_DirAvgCSV()
+    print(f"min(expdict_max) : {min(expdict_max)}")
+    with open(f"expdict_max.pickle", "wb") as f:
+      #pickle.dump(expdict_max, f, fix_imports=True, buffer_callback=None )
+      pickle.dump(expdict_max, f, fix_imports=True )
     self.RmaxRaRbPlot(expdict_max)
+    self.RmaxRaRbPlot(expdict_max, ADDLABELS=False)
 
 
-  def RmaxRaRbPlot(self, expdict_max):
-    from adjustText import adjust_text
+  def RmaxRaRbPlot(self, expdict_max, ADDLABELS=True, DIRSTRING=None):
+    #from adjustText import adjust_text
     parser = self.parser
     Ra = self.parser.Ra
     Rb = self.parser.Rb
@@ -835,16 +885,32 @@ class RatePlotter:
     exponent_list.sort(reverse=True) # sort our exponents descending
 
     atoms_plotted = []
-    print("Ra:")
-    print(Ra)
+    #print("Ra:")
+    #print(Ra)
     for i in range(1,len(Ra)+1):
       if parser.atomtypes[i] in atoms_plotted:
         continue
       else:
         atoms_plotted.append(parser.atomtypes[i])
-      print(f"plotting {parser.atomtypes[i]}!")
+      #print(f"plotting {parser.atomtypes[i]}!")
       fig = plt.figure()
       ax = fig.add_subplot(1,1,1)
+
+      # Plot the absorbing potential
+      ax2 = ax.twinx()
+      X_abs = np.linspace(0,50,500)
+      Y_abs = np.zeros(len(X_abs))
+      for idx_, x_ in enumerate(X_abs):
+        if x_ < Ra[i-1]:
+          Y_abs[idx_] = 0.0
+        elif x_ > Rb[i-1]:
+          Y_abs[idx_] = 1.0
+        else:
+          Y_abs[idx_] = np.sin( (np.pi/2.)*(X_abs[idx_]-Ra[i-1])/(Rb[i-1]-Ra[i-1])  )**2
+      ax2.plot(X_abs, Y_abs, color="black", linestyle="--", label=r"$V_{abs}(r)$")
+      ax2.set_ylim(0, 1.1)
+      ax2.get_yaxis().set_visible(False)
+
       # Create data and plot for each angular momentum
       texts = []
       X_tot = []
@@ -863,26 +929,32 @@ class RatePlotter:
           Rmax = np.sqrt((l_+1)/exp_)
           X.append(Rmax)
           X_tot.append(Rmax)
-          Y.append( (1/au2fs)*expdict_max[ (i,l_,exp_) ] )
-          Y_tot.append( (1/au2fs)*expdict_max[ (i,l_,exp_) ] )
+          if DIRSTRING is None:
+            Y.append( (1/au2fs)*expdict_max[ (i,l_,exp_) ] )
+            Y_tot.append( (1/au2fs)*expdict_max[ (i,l_,exp_) ] )
+          else: # Using directional expdict which has an extra time index
+            Y.append( abs((1/au2fs)*expdict_max[ (i,l_,exp_) ][-1]) )
+            Y_tot.append( abs((1/au2fs)*expdict_max[ (i,l_,exp_) ][-1]) )
           exponent.append( exp_ )
           idxlist = []
           for orb in parser.orbs:
             if ( (i==orb.atom_index) and (l_==orb.l) and (exp_==orb.prim_expon[0]) ):
               idxlist.append( orb.orb_index )
           label_tot.append( str(f"{exp_:.4f}") )
-        ax.plot(X,Y, marker='o', label=l_str, markersize=16 )
-      for j, (x, y, label_) in enumerate(zip(X_tot, Y_tot, label_tot)):
-        text = ax.text(x,y,label_)
-        texts.append(ax.text(x,y,label_))
-        #offset = random.uniform(0,1)*5+(2*(j%2))
-        #offset = 5 + (j%3)*5
-        #angle = ((j%5)-2)*20
-        #angle = 0
-        #ax.annotate(f"{exp_:.4f}", (x,y), xytext=(0,5), textcoords='offset points')
-        #ax.annotate(label_, (x,y), fontsize=6, xytext=(0,offset),
-        #            textcoords='offset points', rotation=angle, ha='center', va='bottom')
-      ax.legend()
+        #ax.plot(X,Y, marker='o', label=l_str, markersize=14 )
+        ax.plot(X,Y, marker='o', label=l_str, markersize=14 )
+      if ADDLABELS:
+        for j, (x, y, label_) in enumerate(zip(X_tot, Y_tot, label_tot)):
+          ax.annotate(label_, (x,y), fontsize=8, xytext=(0,0),
+                      textcoords='offset points', ha='center', va='bottom')
+      # Go to the next 5-bohr mark after the last basis function, or Rb.
+      xlim_max = max( math.ceil((max(X_tot)+1)/5)*5  ,  math.ceil((Rb[i-1]+1)/5)*5 )
+      ax.set_xlim(0.0,xlim_max)
+
+      lines_1, labels_1 = ax.get_legend_handles_labels()
+      lines_2, labels_2 = ax2.get_legend_handles_labels()
+      ax.legend(lines_1 + lines_2, labels_1 + labels_2)
+
       #adjust_text(texts, x=X_tot, y=Y_tot, horizontalalignment='center', autoalign='xy', arrowprops=dict(arrowstyle='->', color='red'))
         
       # translate directory naming convention
@@ -896,21 +968,34 @@ class RatePlotter:
           paramname = name
 
       #ax.title.set_text(f"Rmax for {parser.atomtypes[i]}, {basisname}, {paramname}")
-      ax.title.set_text(f"Rmax for {parser.atomtypes[i]}, {self.plotname}")
+      if DIRSTRING is None:
+        ax.title.set_text(f"Rmax for {parser.atomtypes[i]}, {self.plotname}")
+      else:
+        ax.title.set_text(f"Rmax for {parser.atomtypes[i]}, d{DIRSTRING}, {self.plotname}")
       ax.set_ylabel("Max Rate Contribution ($fs^{-1}$)")
       ax.set_xlabel("Rmax Distance (bohr)")
-      ax.set_ylim( 0.0, np.max(Y_tot)+0.005 )
+      ax.set_ylim( 0.0, np.max(Y_tot)*1.05 )
 
       # Vertical lines for Ra and Rb
       ax.axvline(x=Ra[i-1], color='r', linestyle='--')
-      ypos = ax.get_ylim()[0] - 0.015 * (ax.get_ylim()[1] - ax.get_ylim()[0])
-      ax.text(Ra[i-1], ypos, "Ra", va='bottom', ha='center')
+      #ypos = ax.get_ylim()[0] - 0.015 * (ax.get_ylim()[1] - ax.get_ylim()[0])
+      #ax.text(Ra[i-1], -0.03, "Ra", va='top', ha='center', transform=ax.get_xaxis_transform())
       ax.axvline(x=Rb[i-1], color='r', linestyle='--')
-      ax.text(Rb[i-1], ypos, "Rb", va='bottom', ha='center')
+      #ax.text(Rb[i-1], -0.03, "Rb", va='top', ha='center', transform=ax.get_xaxis_transform())
 
+      # This is causing a very weird crash...
+      #plt.tight_layout()
 
-      plt.tight_layout()
-      plt.savefig(f"Rmax{parser.atomtypes[i]}.png", dpi=400)
+      if ADDLABELS:
+        if DIRSTRING is None:
+          plt.savefig(f"Rmax{parser.atomtypes[i]}.png", dpi=400)
+        else:
+          plt.savefig(f"Rmax{parser.atomtypes[i]}-d{DIRSTRING}.png", dpi=400)
+      else:
+        if DIRSTRING is None:
+          plt.savefig(f"Rmax{parser.atomtypes[i]}_nolabels.png", dpi=400)
+        else:
+          plt.savefig(f"Rmax{parser.atomtypes[i]}-d{DIRSTRING}_nolabels.png", dpi=400)
       plt.close()
       
     
@@ -1015,7 +1100,7 @@ class RatePlotter:
           idxlist.append( orb.orb_index )
       idxliststr = str(idxlist).replace(" ","").replace("[","").replace("]","").replace(","," ")
       finalrate = expdict[key][-1]
-      finalrate_norm2 = d_data.norm2[-1] * expdict[key][-1]
+      finalrate_norm2 = expdict[key][-1]/d_data.norm2[-1]
       outstr = f"{key[0]},{atype},{idxliststr},{l_str},{key[2]},{(1/au2fs)*finalrate:.10E},{(1/au2fs)*finalrate_norm2:.10E}\n"
       #print(outstr)
       f.write(outstr)
@@ -1155,8 +1240,13 @@ class RatePlotter:
     for iatom in range(0,natoms):
       for l_ in range(0,lmax):
         maxrate = max( max(d_data.lsum[:,iatom,l_]), maxrate)
+    maxrate = maxrate
+
+    #######################################
     # Plot by Atom and Angular momentum
-    X = np.array(list(range(1,self.npts+1)))
+    #######################################
+    X = (self.dt*au2fs*self.nprintstep)*np.array(list(range(1,self.npts+1)))
+    print(f"X[0], X[-1]: {(X[0], X[-1])}")
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     for iatom in range(0,natoms):
@@ -1166,16 +1256,23 @@ class RatePlotter:
         l_str = parser.inv_l_map[l_]
         #print(parser.atomtypes, flush=True)
         atomstr = str(iatom+1)+parser.atomtypes[iatom+1]
-        ax.plot( X , (1/au2fs)*d_data.lsum[:, iatom, l_], label=f"{atomstr}: {l_str}" )
+        Y = fs2au * (d_data.lsum[:, iatom, l_] - d_data.lsum[0, iatom, l_])
+        ax.plot( X , Y, label=f"{atomstr}: {l_str}" )
+
+    # Plot total rate
+    ax.plot(X, fs2au*d_data.rate, color='black', label="Total Rate")
 
     ax.legend()
     ax.title.set_text(f"Rate by Atom:Angular Momentum. Dir: {d_data.direction+1}\n{self.plotname}")
+    ax.set_xlabel("Time (fs)")
     
     plt.tight_layout()
     plt.savefig(f"atomangular{d_data.direction+1}.png", dpi=300)
     plt.close()
 
-    # Plot by angular momentum, no atoms
+    ###########################################
+    # Plot by angular momentum, atoms summed
+    ###########################################
     plt.clf()
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -1184,15 +1281,11 @@ class RatePlotter:
       #if max(l_noatom[:,l_]) < 0.1*maxrate:
       #  continue # Skip low contributions to avoid clutter
       l_str = parser.inv_l_map[l_]
-      #Y = (1/au2fs)* (d_data.norm2 * l_noatom[:, l_])
-      #Y = (1/au2fs)* (l_noatom[:, l_]/d_data.norm2)
-      #Y = []
-      #for jj in range(0,len(X)):
-      #  print( l_noatom[jj, l_] , d_data.norm2[jj],  ( (1/au2fs)* (l_noatom[jj, l_]*d_data.norm2[jj])) , ( (1/au2fs)* (l_noatom[jj, l_]/d_data.norm2[jj]))  )
-      #  Y.append( (1/au2fs)* (l_noatom[jj, l_]/d_data.norm2[jj]))
-      #  #Y.append( (1/au2fs)* (l_noatom[jj, l_]*d_data.norm2[jj]))
       Y = (1/au2fs)* (l_noatom[:, l_])
       ax.plot( X , Y, label=f"{l_str}" )
+
+    # Plot total rate
+    ax.plot(X, (1/au2fs)*d_data.rate, color='black', label="Total Rate")
 
     ax.legend()
     ax.title.set_text(f"Rate by Angular Momentum. Dir:{d_data.direction+1}\n{self.plotname}")
@@ -1204,16 +1297,87 @@ class RatePlotter:
     # CSV angular momentum, no atoms
     f = open(f"angular{d_data.direction+1}.csv",'w')
     f.write("step,S,P,D,F,G,H\n")
-    for time in X:
+    for i, time in enumerate(X):
       writestr = f"{time}"
       for l_ in range(0, lmax):
-        #Y = (1/au2fs)* (d_data.norm2[time-1]*l_noatom[time-1, l_])
-        Y = (1/au2fs)* (l_noatom[time-1, l_])
+        #Y = (1/au2fs)*l_noatom[time-1, l_]/d_data.norm2[time-1]
+        Y = (1/au2fs)* (l_noatom[i, l_])
         writestr += f",{Y:.12E}"
       f.write(writestr+'\n')
     f.close()
 
+
+    #######################
+    # Figure 1            #
+    #######################
+    plt.clf()
+    fig, ax1 = plt.subplots()
+
+    Y_Efield = self.Emax * np.array( self.Efield[:-1:self.nprintstep] )
+    Y_rate = fs2au * (d_data.rate - d_data.rate[0]) 
+
+    for l_ in range(0, lmax):
+      l_str = parser.inv_l_map[l_]
+      Y = fs2au* (l_noatom[:, l_] - l_noatom[0, l_]) # Subtract time=0 tunneling value
+      ax1.plot(X, Y, label=f"{l_str}")
+
+    # Plot total rate
+    ax1.plot(X, Y_rate, color='black', label="Total Rate")
+    #print(f"max rate : {max(d_data.rate)}")
+
+    ax2 = ax1.twinx() # second y-axis sharing x
+    #print(f"size X, Efield: {len(X), len(Y_Efield)}")
+    ax2.plot(X, Y_Efield, color='black', label=r"$\overrightarrow{E}$", linestyle='dashdot', linewidth=2)
+    #print(f"max Efield: {max(Y_Efield)}")
+
+    ax3 = ax1.twinx()
+    #ax3.spines['right'].set_position(('outward', 60))
+    #ax3.spines['right'].set_visible(False)
+    #ax3.spines['left'].set_visible(False)
+    ax3.get_yaxis().set_visible(False)
+    
+    exp_field_model = lambda Efield_, scale_, K_: K_*np.exp(Efield_ / scale_)
+    # Optimize scaling factor. p0 is initial guess.
+    #popt, _ = curve_fit(exp_field_model, Y_Efield, Y_rate, p0=[0.0035]) 
+    scale = 0.0035
+    K = d_data.rate[-1]/np.exp(Y_Efield[-1]/scale)
+    try:
+      popt, _ = curve_fit(exp_field_model, Y_Efield, Y_rate, p0=[0.0035, d_data.rate[-1]]) 
+      scale, K = popt
+    except:
+      pass
+       
+    #scale = popt[0]
+    exp_field = (d_data.rate[-1]/(np.exp(Y_Efield[-1]/scale)))*np.exp(Y_Efield / scale)
+
+    #print(f"max exp_field: {max(exp_field)}, scale: {scale}, scaling: {d_data.rate[-1]/np.exp(1./scale)}")
+    print(f"max exp_field: {max(exp_field)}, scale: {scale}, scaling(K): {K}")
+    
+    #ax3.plot(X, exp_field, color='red', linestyle=':', label=f"{K:0.2f}"+"exp($\overrightarrow{E}$/"+f"{scale:0.4f})", linewidth=2)
+    ax3.plot(X, exp_field, color='red', linestyle=':', label="exp($\overrightarrow{E}$/"+f"{scale:0.4f})", linewidth=2)
+
+
+    # Add legends
+    #lines_1, labels_1 = ax1.get_legend_handles_labels()
+    #lines_2, labels_2 = ax2.get_legend_handles_labels()
+    #lines_3, labels_3 = ax3.get_legend_handles_labels()
+    #ax1.legend(lines_1 + lines_2 + lines_3, labels_1 + labels_2 + labels_3)
+
+    ax1.set_ylabel("Rate Contribution ($fs^{-1}$)")
+    ax1.set_xlabel("Time (fs)")
+    ax1.title.set_text(f"{self.plotname}, d{d_data.direction+1}")
+
+    plt.tight_layout()
+    plt.savefig(f"Fig1-d{d_data.direction+1}.png", dpi=300)
+    plt.close()
+
+    # End Figure 1.
+
+
+
+    ########################################
     # Plot by atom, no angular momentum
+    ########################################
     plt.clf()
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -1222,7 +1386,10 @@ class RatePlotter:
       #  continue # Skip low contributions to avoid clutter
       #print(parser.atomtypes, flush=True)
       atomstr = str(iatom+1)+parser.atomtypes[iatom+1]
-      ax.plot( X , (1/au2fs)*d_data.atomsum[:, iatom], label=f"{atomstr}" )
+      ax.plot( X , fs2au*(d_data.atomsum[:, iatom] - d_data.atomsum[0, iatom] ), label=f"{atomstr}" )
+
+    # Plot total rate
+    ax.plot(X, fs2au*d_data.rate, color='black', label="Total Rate")
 
     ax.legend()
     ax.title.set_text(f"{self.plotname} Dir:{d_data.direction+1}")
@@ -1233,9 +1400,70 @@ class RatePlotter:
 
     return 0 
 
+
+  def polar_cmap(self):
+
+    lmax = self.lmax
+    ndir = len(self.polar_coords)
+    X_theta = []
+    ratemin = 99.99 # cmap windowing
+    ratemax = -99.99
+    for x in self.polar_coords:
+      #X_theta.append( x[0] * (np.pi/180.)  )
+      X_theta.append( x[0] )
+    Rate_L = [ [] for _ in range(lmax+1) ]
+    Rmax_L = [ [] for _ in range(lmax+1) ]
+    X_L = [ [] for _ in range(lmax+1) ]
+    for d in range(0,ndir):
+      ddat = self.dataset[d]
+      #print("items ddat")
+      #print(ddat.expdict.items())
+      tempdict = ddat.expdict_final.copy()
+
+      # Generate Rmax and data for this direction
+      for (l_, exp_), value in tempdict.items():
+        if value > ratemax: ratemax = value # cmap windowing
+        if value < ratemin: ratemin = value 
+        Rate_L[l_].append( value )
+        Rmax_L[l_].append( np.sqrt((l_+1)/exp_) )
+        X_L[l_].append(X_theta[d])
+
+    # Make plot
+    colors = ['blue','white','red']
+    #cmap = ListedColormap(colors)
+    #bounds = [ratemin, 0, ratemax]
+    #norm = BoundaryNorm(bounds, cmap.N)
+
+    bounds = [ratemin, 0, ratemax]
+    #cmap = LinearSegmentedColormap.from_list("custom_cmap", colors)
+    #norm = TwoSlopeNorm(vmin=ratemin, vcenter=0, vmax=ratemax)
+    
+
+    print(f"ratemin, ratemax : {(ratemin, ratemax)}")
+    plt.clf()
+    fig, axes = plt.subplots(1,lmax, figsize=(20,7), sharey=True)
+    for l in range(0,lmax):
+      l_label = self.parser.inv_l_map[l]
+      sc = axes[l].scatter(X_L[l], Rmax_L[l], c=Rate_L[l], cmap="Greys", vmin=ratemin, vmax=ratemax)
+      #sc = axes[l].scatter(X_L[l], Rmax_L[l], c=Rate_L[l], cmap=cmap, norm=norm, edgecolor='black')
+      axes[l].set_title(l_label)
+
+    fig.subplots_adjust(right=0.85, wspace=0.05)
+    cbar_ax = fig.add_axes([0.87, 0.15, 0.03, 0.7])
+    fig.supxlabel(r"Direction ($^\circ$)", fontsize=18)
+    #cbar = fig.colorbar(sc, ax=axes, orientation='vertical')
+    cbar = fig.colorbar(sc, ax=axes, cax=cbar_ax, orientation='vertical')
+    plt.suptitle(f"{self.plotname}", fontsize=18)
+    #plt.tight_layout(rect=[0,0,0.95,1])
+    #plt.tight_layout()
+    plt.savefig("polar_cmap.png",dpi=400)
+ 
+
+    
+  
+
   def polar_angular_plot(self):
     # For now we just ignore phi i think
-    #print( "Length check (dataset, polar_coords)")
     #print( (len(self.dataset), len(self.polar_coords)))
 
 
@@ -1249,7 +1477,10 @@ class RatePlotter:
     for x in self.polar_coords:
       X_theta.append( x[0] * (np.pi/180.)  )
     Y_L = [ [] for _ in range(lmax+1) ]
+    Y_L_norm = [ [] for _ in range(lmax+1) ]
     Y_tot = []
+    Y_tot_norm = []
+    
     nva99 = []
 
     #ymin = -0.15
@@ -1261,17 +1492,60 @@ class RatePlotter:
     for d in range(0,ndir):
       ddat = self.dataset[d]
       nva99.append(get_word_from_last_line(f"RESULTS-e1-d{d+1}.dat",3))
-      #Y_tot.append( ddat.rate[time] )
-      Y_tot.append( ddat.norm2[time] * ddat.rate[time] )
+      Y_tot.append( ddat.rate[time] )
+      #Y_tot_norm.append( ddat.rate[time]/ddat.norm2[time] )
+      #print( (d, ddat.rate[time], ddat.norm2[time], ddat.rate[time]/ddat.norm2[time] ) )
       for l_ in range(0,lmax+1):
         rate_l = 0.0
+        #rate_l_norm = 0.0
         for iatom in range(0,self.natoms):
-          #rate_l += ddat.lsum[time][iatom][l_]
-          rate_l += ddat.norm2[time] * ddat.lsum[time][iatom][l_]
+          rate_l += ddat.lsum[time][iatom][l_]
+          #rate_l_norm += ddat.lsum[time][iatom][l_]/ddat.norm2[time]
         Y_L[l_].append(rate_l)
+        #Y_L_norm[l_].append(rate_l_norm)
         if (1./au2fs)*rate_l>ymax: ymax = (1./au2fs)*rate_l
-        #if (1./au2fs)*rate_l<ymin: ymin = (1./au2fs)*rate_l
-    # Get NBasis, NBSUse, and final NVA99
+
+    Y_tot_ = (1/au2fs)*np.array(Y_tot)
+    #print(f"Y_tot_norm before au2fs")
+    #print(Y_tot_norm)
+    #Y_tot_norm = (1/au2fs)*np.array(Y_tot_norm)
+    #print(f"Y_tot_norm after au2fs")
+    #print(Y_tot_norm)
+
+    ymin, ymax = 0.0, max(Y_tot_)
+    #ymin, ymax = 0.0, max(Y_tot_norm)
+
+    # Do flat plot.
+    plt.clf()
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot( X_theta, Y_tot_, label=f"Total Rate")
+    ax.set_ylabel("Norm Adj. Rate")
+    ax.set_ylim(ymin, ymax)
+    ax.set_xlabel(r"Direction ($^\circ$)")
+    ax.set_title(f"Angular momentum contribution to rate by incident light angle\n"+self.plotname)
+    plt.savefig("polarflat_totrate.png", dpi=600)
+
+    # Do flat angular momenum plot
+    plt.clf()
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    for l_ in range(0,lmax+1):
+      l_str = self.parser.inv_l_map[l_]
+      Y = Y_L[l_]
+      #Y = Y_L_norm[l_]
+      Y = (1/au2fs)*np.array(Y)
+      ax.plot(X_theta, Y, label=f"{l_str}")
+    ax.plot( X_theta, Y_tot_, label=f"Total Rate")
+    #ax.plot( X_theta, Y_tot_norm, label=f"Total Rate")
+    ax.set_ylabel("Norm Adj. Rate")
+    ax.set_ylim(ymin, ymax)
+    ax.set_xlabel(r"Direction ($^\circ$)")
+    ax.legend()
+    ax.set_title(f"Total rate by incident light angle\n"+self.plotname)
+    plt.savefig("polarflat_totrate.png", dpi=600)
+    
+
 
     plt.clf()
     fig, ax = plt.subplots( subplot_kw={'projection':'polar'})
@@ -1283,8 +1557,9 @@ class RatePlotter:
       # 180 degree symmetry
       X_theta_neg = list(-1.0*np.array(X_theta))
       X = X_theta + (X_theta_neg[1:-1][::-1])
-      Y = Y_L[l_] + (Y_L[l_][1:-1][::-1])
       X = np.array(X)
+      Y = Y_L[l_] + (Y_L[l_][1:-1][::-1])
+      #Y = list(Y_L_norm[l_]) + list(Y_L_norm[l_][1:-1][::-1])
       Y = (1/au2fs)*np.array(Y)
       ax.plot(X,Y, label=f"{l_str}", zorder=2) 
 
@@ -1294,6 +1569,7 @@ class RatePlotter:
     X = np.array(X)
 
     Y_ = Y_tot + (Y_tot[1:-1][::-1])
+    #Y_ = list(Y_tot_norm) + list(Y_tot_norm[1:-1][::-1])
     Y_ = (1/au2fs)*np.array(Y_)
 
     # Manually set the limits
@@ -1327,6 +1603,7 @@ class RatePlotter:
     f.write("d,theta,nva99,Total Rate,S,P,D,F\n")
     for i in range(len(X_theta)):
       f.write(f"{i+1},{X_theta[i]},{nva99[i]},{fs2au*Y_tot[i]},{fs2au*Y_L[0][i]},{fs2au*Y_L[1][i]},{fs2au*Y_L[2][i]},{fs2au*Y_L[3][i]}\n")
+      #f.write(f"{i+1},{X_theta[i]},{nva99[i]},{fs2au*Y_tot_norm[i]},{fs2au*Y_L_norm[0][i]},{fs2au*Y_L_norm[1][i]},{fs2au*Y_L_norm[2][i]},{fs2au*Y_L_norm[3][i]}\n")
     f.close()
         
 

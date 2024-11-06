@@ -504,6 +504,9 @@ subroutine initialize_PropShared(Prop, ndim)
   integer(8), intent(in) :: ndim
 
   integer(8) :: info
+
+  real(8) :: min_temp, max_temp, dip_temp
+  integer(8) :: i, j, i_min, i_max, j_min, j_max
   
   !: Natural Orbital initialization
   allocate( Prop%opdm_avg(ndim*ndim) )
@@ -533,6 +536,49 @@ subroutine initialize_PropShared(Prop, ndim)
 
   call write_dbin_safe( Mol%vabsmoa, nrorb*nrorb, "matrices/Vabs_MO.bin" )
   call write_dbin_safe( Mol%cmo_a, nbasis*nrorb, "matrices/CMO.bin" )
+
+  write(iout, "('Maximum(cis_eig)=',f10.4)") maxval(cis_eig, 1)
+  write(iout, "('Minimum(cis_eig)=',f10.4)") minval(cis_eig, 1)
+  min_temp = 0.0 ; max_temp = 0.0
+  i_min = 0 ; i_max = 0 ; j_min = 0 ; j_max = 0
+  do i = 1,nrorb
+    do j = 1,nrorb
+      if (Mol%vabsmoa((i-1)*nrorb+j) > max_temp) then
+        max_temp = Mol%vabsmoa((i-1)*nrorb+j)
+        i_max = i
+        j_max = j
+      end if
+      if (Mol%vabsmoa((i-1)*nrorb+j) < min_temp) then
+        min_temp = Mol%vabsmoa((i-1)*nrorb+j)
+        i_min = i
+        j_min = j
+      end if
+    end do
+  end do
+  write(iout, "('Maximum(vabsmoa)=',i5,i5,f10.4)") i_max, j_max, max_temp
+  write(iout, "('Minimum(vabsmoa)=',i5,i5,f10.4)") i_min, j_min, min_temp
+  ! Dipole
+  min_temp = 0.0 ; max_temp = 0.0
+  i_min = 0 ; i_max = 0 ; j_min = 0 ; j_max = 0
+  do i = 1,nrorb
+    do j = 1,nrorb
+      flush(iout)
+      dip_temp = sqrt( (Mol%dipxmoa((i-1)*nrorb+j))**2 + (Mol%dipymoa((i-1)*nrorb+j))**2 + (Mol%dipzmoa((i-1)*nrorb+j))**2 )
+      if (dip_temp > max_temp) then
+        max_temp = dip_temp
+        i_max = i
+        j_max = j
+      end if
+      if ((i.eq.j) .and. (dip_temp > min_temp)) then
+        min_temp = dip_temp
+        i_min = i
+      end if
+    end do
+  end do
+  write(iout, "('Maximum(MO dipole norm                 )=',i5,i5,f10.4)") i_max, j_max, max_temp
+  write(iout, "('Maximum(MO dipole norm (diagonals only))=',i5,i5,f10.4)") i_min, i_min, min_temp
+
+
 
 end subroutine initialize_PropShared
 
@@ -774,6 +820,8 @@ subroutine trotter_linear
       call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff, 0)
       if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
       write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
+      write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
+      write( iout, "('  Minimum(tdvals1) = ',f12.4)") minval(tdvals1)
       flush( iout )
       !$OMP END CRITICAL (IO_LOCK)
                   

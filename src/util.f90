@@ -1184,6 +1184,9 @@ contains
       deallocate( iwork )
       deallocate( work )
 
+      write(iout,"('Maximum Eigenvalue = ',f12.4)") maxval(w)
+      write(iout,"('Minimum Eigenvalue = ',f12.4)") minval(w)
+
 !:    else
 !:
 !:      ! Standard Lapack eigensolver
