@@ -588,48 +588,12 @@ class ratechecker:
     nao, nmo, ntri = self.nao, self.nmo, self.ntri
     
     vabs_tri = read_bin_array( "matrices/Vabs_AO.bin", ntri )
-    #vabs_MO = read_bin_array( "matrices/Vabs_MO.bin", nmo**2)
+
 
     CMO = read_bin_array( "matrices/CMO.bin", nmo*nao)
     CMO.resize((nmo,nao))
     self.CMO = CMO
     matrix2csvRECT(CMO,nmo,nao, "CMO.csv")
-
-    """
-    # Check orthonormality of CMO
-    print(f"Checking orthonormality of CMO")
-    good = True
-    for i in range(0,nmo):
-      if (np.abs( np.dot(CMO[i],CMO[i]) -1) < 1E-6):
-        print(f"CMO vector {i} normalization bad: {np.dot(CMO[i],CMO[i])}")
-        good = False
-      for j in range(0,nmo):
-        if ( i!=j and (np.abs(np.dot(CMO[i],CMO[j])) > 1E-6) ):
-          print(f"CMO vectors {i},{j} orthogonality bad: {np.dot(CMO[i],CMO[j])}")
-          good = False
-    if good:
-      print("CMO orthonormality passed!")
-    else:
-      print("CMO orthonormality failed!")
-
-
-    # Check orthonormality of CMO.T
-    print(f"Checking orthonormality of CMO.T")
-    good = True
-    for i in range(0,nmo):
-      if (np.abs( np.dot(CMO.T[i],CMO.T[i]) -1) < 1E-6):
-        print(f"CMO.T vector {i} normalization bad: {np.dot(CMO.T[i],CMO.T[i])}")
-        good = False
-      for j in range(0,nmo):
-        if ( i!=j and (np.abs(np.dot(CMO.T[i],CMO.T[j])) > 1E-6) ):
-          print(f"CMO.T vectors {i},{j} orthogonality bad: {np.dot(CMO.T[i],CMO.T[j])}")
-          good = False
-    if good:
-      print("CMO.T orthonormality passed!")
-    else:
-      print("CMO.T orthonormality failed!")
-    """
-        
 
     # Unpack triangular matrix
     vabs_AO = np.zeros((nao,nao))
@@ -850,16 +814,16 @@ class RatePlotter:
           pass
         prevtime = time # dirty hack for missing files
       self.dataset.append(d_data)
-      #self.rate_by_time_plots(d_data)
-      ##self.individual_orb_plot(d_data, parser)
-      #self.AtomLExp_plot(d_data, parser, expdict)
-      ##self.RateCheck_CSV(d_data, parser)
-      #self.AtomLExp_AvgCSV(d_data, parser, expdict)
-      #self.RmaxRaRbPlot(expdict, ADDLABELS=True, DIRSTRING=str(d_data.direction+1))
-      #self.RmaxRaRbPlot(expdict, ADDLABELS=False, DIRSTRING=str(d_data.direction+1))
+      self.rate_by_time_plots(d_data)
+      #self.individual_orb_plot(d_data, parser)
+      self.AtomLExp_plot(d_data, parser, expdict)
+      #self.RateCheck_CSV(d_data, parser)
+      self.AtomLExp_AvgCSV(d_data, parser, expdict)
+      self.RmaxRaRbPlot(expdict, ADDLABELS=True, DIRSTRING=str(d_data.direction+1))
+      self.RmaxRaRbPlot(expdict, ADDLABELS=False, DIRSTRING=str(d_data.direction+1))
     self.polar_cmap()
     self.polar_angular_plot()
-    ##combine_csv_files(self.ndir)
+    #combine_csv_files(self.ndir)
     self.AtomLExp_DirAvgCSV()
     print(f"min(expdict_max) : {min(expdict_max)}")
     with open(f"expdict_max.pickle", "wb") as f:
@@ -942,7 +906,7 @@ class RatePlotter:
               idxlist.append( orb.orb_index )
           label_tot.append( str(f"{exp_:.4f}") )
         #ax.plot(X,Y, marker='o', label=l_str, markersize=14 )
-        ax.plot(X,Y, marker='o', label=l_str, markersize=14 )
+        ax.plot(X,Y, marker='o', label=l_str )
       if ADDLABELS:
         for j, (x, y, label_) in enumerate(zip(X_tot, Y_tot, label_tot)):
           ax.annotate(label_, (x,y), fontsize=8, xytext=(0,0),
@@ -1246,7 +1210,7 @@ class RatePlotter:
     # Plot by Atom and Angular momentum
     #######################################
     X = (self.dt*au2fs*self.nprintstep)*np.array(list(range(1,self.npts+1)))
-    print(f"X[0], X[-1]: {(X[0], X[-1])}")
+    #print(f"X[0], X[-1]: {(X[0], X[-1])}")
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     for iatom in range(0,natoms):
@@ -1349,19 +1313,18 @@ class RatePlotter:
        
     #scale = popt[0]
     exp_field = (d_data.rate[-1]/(np.exp(Y_Efield[-1]/scale)))*np.exp(Y_Efield / scale)
-
-    #print(f"max exp_field: {max(exp_field)}, scale: {scale}, scaling: {d_data.rate[-1]/np.exp(1./scale)}")
-    print(f"max exp_field: {max(exp_field)}, scale: {scale}, scaling(K): {K}")
+    #print(f"Figure1 Alpha: {(d_data.rate[-1]/(np.exp(Y_Efield[-1]/scale)))}")
+    #print(f"max exp_field: {max(exp_field)}, scale: {scale}, scaling(K): {K}")
     
     #ax3.plot(X, exp_field, color='red', linestyle=':', label=f"{K:0.2f}"+"exp($\overrightarrow{E}$/"+f"{scale:0.4f})", linewidth=2)
     ax3.plot(X, exp_field, color='red', linestyle=':', label="exp($\overrightarrow{E}$/"+f"{scale:0.4f})", linewidth=2)
 
 
     # Add legends
-    #lines_1, labels_1 = ax1.get_legend_handles_labels()
-    #lines_2, labels_2 = ax2.get_legend_handles_labels()
-    #lines_3, labels_3 = ax3.get_legend_handles_labels()
-    #ax1.legend(lines_1 + lines_2 + lines_3, labels_1 + labels_2 + labels_3)
+    lines_1, labels_1 = ax1.get_legend_handles_labels()
+    lines_2, labels_2 = ax2.get_legend_handles_labels()
+    lines_3, labels_3 = ax3.get_legend_handles_labels()
+    ax1.legend(lines_1 + lines_2 + lines_3, labels_1 + labels_2 + labels_3)
 
     ax1.set_ylabel("Rate Contribution ($fs^{-1}$)")
     ax1.set_xlabel("Time (fs)")

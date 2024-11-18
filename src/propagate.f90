@@ -332,8 +332,6 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
   end if
   flush(Priv%funit(2))
 
-
-
   if( trim(jobtype).eq.flag_ip) then
     write( Priv%funit(3),"( i5,f10.4,500(1x,f15.10))") &
            idata, dble(itime)*dt*au2fs, Priv%norm**2, &
@@ -3091,7 +3089,7 @@ subroutine write_density_difference(funit, time, rate, noa, nva, density, vabs)
   real(8), intent(in)                 :: time, rate
   integer(8), intent(in)              :: noa, nva
   real(8), intent(in)                 :: density(:)
-  real(8), allocatable, intent(in)    :: vabs(:)
+  real(8), allocatable, intent(in)    :: vabs(:,:)
 
   integer(8) :: i,j, idx, ndim, ndim2
   real(8) :: temp_density( (noa+nva)*(noa+nva) )
@@ -3100,20 +3098,23 @@ subroutine write_density_difference(funit, time, rate, noa, nva, density, vabs)
 
   ndim = (noa+nva)
   ndim2 = ndim*ndim
-  
+
   !: Prepare weighted density difference
   temp_density = density(:ndim2)
   do i=1, noa !: Density difference from HF
     temp_density(i+(i-1)*ndim) = temp_density(i+(i-1)*ndim) - 2.d0
   end do
 
-
   !: Weight density by vabs
-  !temp_density = temp_density * vabs(:ndim2)
-  !temp_density = temp_density * vabs
-  do i=1,ndim2
-    temp_density(i) = temp_density(i) * vabs(i)
+  !do i=1,ndim2
+  !  temp_density(i) = temp_density(i) * vabs(i)
+  !end do
+  do i=1,ndim
+    do j=1,ndim
+      temp_density(j+(i-1)*ndim) = temp_density(j+(i-1)*ndim) * vabs(i,j)
+    end do
   end do
+
   !: Re-normalize density matrix
   !temptrace =  sum([(temp_density(i+(i-1)*ndim), i=1,ndim)])
   !temp_density = temp_density / temptrace
