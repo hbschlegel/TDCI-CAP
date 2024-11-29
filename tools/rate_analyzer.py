@@ -9,7 +9,7 @@
 
 import math
 import numpy as np
-import struct, sys, re, os, csv, random
+import struct, sys, re, os, csv, random, shutil
 import scipy
 from scipy.optimize import curve_fit
 np.set_printoptions(threshold=sys.maxsize)
@@ -23,6 +23,8 @@ import matplotlib.ticker as plticker
 
 import pickle
 from collections import defaultdict
+
+import matplotlib.cm as cm
 
 #from matplotlib.colors import ListedColormap, BoundaryNorm
 #from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
@@ -578,6 +580,7 @@ class ratechecker:
     self.natoms, self.nocc = gdvparser.natoms, gdvparser.nocc
     self.ntri = self.nao*(self.nao+1)//2
     self.CMO = None
+    self.S_AO = None
     self.Vabs_AO = None
     self.prep_matrices()
 
@@ -587,15 +590,24 @@ class ratechecker:
     mm = np.matmul
     nao, nmo, ntri = self.nao, self.nmo, self.ntri
     
-    vabs_tri = read_bin_array( "matrices/Vabs_AO.bin", ntri )
-
 
     CMO = read_bin_array( "matrices/CMO.bin", nmo*nao)
     CMO.resize((nmo,nao))
     self.CMO = CMO
     matrix2csvRECT(CMO,nmo,nao, "CMO.csv")
 
+    #S_tri = read_bin_array( "overlap.bin", ntri )
+    #S_AO = np.zeros((nao,nao))
+    #for iao in range(0,nao):
+    #  for jao in range(0,nao):
+    #    ij = (iao+1)*(iao)//2 + jao
+    #    if (jao>iao) :
+    #      ij = (jao+1)*(jao)//2 + iao
+    #    S_AO[iao][jao] = S_tri[ij]
+    #self.S_AO = S_AO
+
     # Unpack triangular matrix
+    vabs_tri = read_bin_array( "matrices/Vabs_AO.bin", ntri )
     vabs_AO = np.zeros((nao,nao))
 
     for iao in range(0,nao):
@@ -668,10 +680,17 @@ class ratechecker:
 
 
 class RateTrajectoryData:
-  def __init__(self, nsteps, nprintstep, natoms, lmax, norbs, direction):
+  def  __init__(self, nsteps, nprintstep, natoms, lmax, norbs, nao, nmo, CMO, S_AO, direction):
     self.npts = nsteps//nprintstep
     npts = self.npts
     self.nsteps = nsteps
+    self.nprintstep = nprintstep
+    self.norbs = norbs
+    self.nao = nao
+    self.nmo = nmo
+    #print(f"norbs={norbs}, nao={nao}, nmo={nmo}")
+    self.density_AO = np.zeros((npts,norbs,norbs))
+    self.density_MO = np.zeros((npts,nmo,nmo))
     self.rate = np.zeros(npts)
     self.norm2 = np.zeros(npts)
     self.atomsum = np.zeros((npts,natoms))
@@ -681,7 +700,35 @@ class RateTrajectoryData:
     self.maxrate = 0
     self.direction = direction
     self.set_norm2()
+    self.set_density(CMO, S_AO)
     self.expdict_final = {} # At final timestep.
+    self.expdict = {}
+    self.expdict_max = {}
+
+  def set_density(self,CMO, S_AO):
+    prevtime = 0
+    e=1
+    d = self.direction
+    nao = self.nao
+    nmo = self.nmo
+    
+    for time in range(self.nprintstep, self.nsteps+self.nprintstep, self.nprintstep):
+      #print(f"nprintstep, nsteps, time: {self.nprintstep}, {self.nsteps}, {time}")
+      dens_MO = np.zeros(nmo**2)
+      if os.path.isfile(f"matrices/MO_density-e{e}-d{d+1}.{time}.bin"):
+        dens_MO = read_bin_array( f"matrices/MO_density-e{e}-d{d+1}.{time}.bin", nmo**2)
+      else: # dirty hack for missing files
+        dens_MO = read_bin_array( f"matrices/MO_density-e{e}-d{d+1}.{prevtime}.bin", nmo**2)
+      dens_MO.resize((nmo,nmo))
+      mm = np.matmul
+      dens_AO = mm(CMO.T, mm(dens_MO, CMO))
+      #print(f"maxMO({time})={np.max(dens_MO)}, maxAO({time})={np.max(dens_AO)}")
+      t_idx = (time//self.nprintstep)-1
+      self.density_AO[t_idx] = dens_AO
+      self.density_MO[t_idx] = dens_MO
+      prevtime = time
+       
+    
 
   def set_norm2(self):
     f = open(f"RESULTS-e1-d{self.direction+1}.dat", 'r')
@@ -723,10 +770,10 @@ class RatePlotter:
     self.npts = self.nsteps//self.nprintstep
    
     e_idx = 1 # Field number
-    d_idx = 1 # Direction
 
     self.rc = ratechecker(self.parser)
-    expdict_max = {}
+    self.expdict_max = {}
+    expdict_max = self.expdict_max
     # Generate index keys for angular and exponent breakdown
     for orb in parser.orbs:
       if len(orb.prim_expon)>0:
@@ -735,8 +782,13 @@ class RatePlotter:
         # Maximum magnitude across directions
         expdict_max[ (orb.atom_index, l_, exp_) ] = 0.0
 
+    if os.path.exists("densityplots"):
+      shutil.rmtree("densityplots")
+    os.makedirs("densityplots")
+
     for d in range(0,self.ndir):
-      d_data = RateTrajectoryData(self.nsteps, self.nprintstep, self.natoms, self.lmax, len(parser.orbs), d)
+      matplotlib.pyplot.close()
+      d_data = RateTrajectoryData(self.nsteps, self.nprintstep, self.natoms, self.lmax, len(parser.orbs), parser.nao, parser.nmo, self.rc.CMO, self.rc.S_AO, d)
       rate = d_data.rate
       atomsum = d_data.atomsum
       lsum = d_data.lsum
@@ -744,7 +796,7 @@ class RatePlotter:
       orbrate = d_data.orbrate
       norm2 = d_data.norm2
       expdict_final = d_data.expdict_final
-      expdict = {}
+      expdict = d_data.expdict
 
 
       # Generate index keys for angular and exponent breakdown
@@ -814,8 +866,42 @@ class RatePlotter:
           pass
         prevtime = time # dirty hack for missing files
       self.dataset.append(d_data)
+
+  def plotall(self):
+    parser = self.parser
+    nao, nmo, natoms = self.nao, self.nmo, self.natoms
+    nsteps = self.nsteps
+    lmax = self.lmax
+    e_idx = 1 # Field number
+    expdict_max = self.expdict_max
+    for d in range(0,self.ndir):
+      matplotlib.pyplot.close()
+      d_data = self.dataset[d]
+      rate = d_data.rate
+      atomsum = d_data.atomsum
+      lsum = d_data.lsum
+      totsum = d_data.totsum
+      orbrate = d_data.orbrate
+      norm2 = d_data.norm2
+      expdict_final = d_data.expdict_final
+      expdict = d_data.expdict
+      
+
+
       self.rate_by_time_plots(d_data)
       #self.individual_orb_plot(d_data, parser)
+      jorbs = self.plot_AO_density(d_data, parser)
+      for jorb in jorbs:
+        self.plot_AO_dens_offdiags(d_data, parser, jorb)
+      # plot offdiags of the f 0.512 
+      for i in range(0, len(parser.orbs)):
+        orb = parser.orbs[i]
+        if orb.l == 3 and orb.prim_expon[0] == 0.0512:
+          if d_data.direction == 0:
+            print(f"plotting (f,0.0512) idx: {i}")
+          self.plot_AO_dens_offdiags(d_data, parser, i)
+      
+      self.plot_MO_density(d_data, parser)
       self.AtomLExp_plot(d_data, parser, expdict)
       #self.RateCheck_CSV(d_data, parser)
       self.AtomLExp_AvgCSV(d_data, parser, expdict)
@@ -1165,7 +1251,92 @@ class RatePlotter:
       writer = csv.writer(f)
       writer.writerows(output_data)
 
+  def plot_MO_density(self, d_data, parser, time_select=-1, nplot=12 ):
+    orbs = parser.orbs
+    npts = self.npts
+    norbs = parser.nmo
+    nocc = parser.nocc
+    orbdiag = np.abs(np.diagonal( d_data.density_MO[time_select] ))[nocc:]
+    toporbs = ( np.argsort(orbdiag)[::-1][:nplot] ) + nocc
+    X = np.array(list(range(1,self.npts+1)))
+    #X = (self.dt*au2fs*self.nprintstep)*np.array(list(range(1,self.npts+1)))
+    Y = np.array([d_data.density_MO[:,orb,orb] for orb in toporbs] )
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    colors = cm.get_cmap('tab20', nplot)
+    
+    for i in range(0,nplot):
+      idx = toporbs[i]
+      ax.plot( X, Y[i], label=f"{idx+1}", color=colors(i) )
+    ax.set_ylim(0, np.max(Y)*1.01)
+    ax.set_ylabel("Diagonal Density Element")
+    ax.set_xlabel("timestep")
+    #ax.set_xlabel("time (fs)")
+    ax.legend(title=f"MO idx", loc='upper left', bbox_to_anchor=(1,1))
+    ax.title.set_text(f"Top {nplot} dens MOs, Dir: {d_data.direction+1}\n{self.plotname}")
+    plt.tight_layout()
+    plt.savefig(f"densityplots/MOdensity_d{d_data.direction+1}.png", dpi=240)
 
+
+  def plot_AO_density(self, d_data, parser, time_select=-1, nplot=12 ):
+    orbs = parser.orbs
+    npts = self.npts
+    norbs = len(orbs)
+    orbdiag = np.abs(np.diagonal( d_data.density_AO[time_select] ))
+    toporbs = ( np.argsort(orbdiag)[::-1][:nplot] )
+    X = np.array(list(range(1,self.npts+1)))
+    #X = (self.dt*au2fs*self.nprintstep)*np.array(list(range(1,self.npts+1)))
+    Y = np.array([d_data.density_AO[:,orb,orb] for orb in toporbs] )
+    fig = plt.figure(figsize=(12,6))
+    ax = fig.add_subplot(1,1,1)
+    colors = cm.get_cmap('tab20', nplot)
+    
+    for i in range(0,nplot):
+      idx = toporbs[i]
+      atomstr = orbs[idx].atom_type
+      l_str = parser.inv_l_map[orbs[idx].l]
+      olabel=f"{idx:4}, {orbs[idx].atom_type}{orbs[idx].atom_index}, {l_str}, {orbs[idx].prim_expon[0]:.4f}, {np.max(Y[i]):.2f}"
+      ax.plot( X, Y[i], label=olabel, color=colors(i) )
+    ax.set_ylim(0, np.max(Y)*1.01)
+    ax.set_ylabel("Diagonal Density Element")
+    ax.set_xlabel("timestep")
+    #ax.set_xlabel("time (fs)")
+    ax.legend(title=f"Idx, Atom, L, Exp, max", loc='upper left', bbox_to_anchor=(1,1))
+    ax.title.set_text(f"Top {nplot} dens AOs, Dir: {d_data.direction+1}\n{self.plotname}")
+    plt.tight_layout()
+    plt.savefig(f"densityplots/AOdensity_d{d_data.direction+1}.png", dpi=240)
+    return toporbs # Feed these to plot offdiags function
+    
+  # plots the offdiagonals of orbital J.
+  def plot_AO_dens_offdiags(self, d_data, parser, Jorb, time_select=-1, nplot=12):
+    orbs = parser.orbs
+    npts = self.npts
+    norbs = len(orbs)
+    Jrow = np.abs(d_data.density_AO[time_select, Jorb] )
+    toporbs = ( np.argsort(Jrow)[::-1][:nplot] )
+    X = np.array(list(range(1,self.npts+1)))
+    #X = (self.dt*au2fs*self.nprintstep)*np.array(list(range(1,self.npts+1)))
+    Y = np.array([d_data.density_AO[:,Jorb,orb] for orb in toporbs] )
+    fig = plt.figure(figsize=(12,6))
+    ax = fig.add_subplot(1,1,1)
+    colors = cm.get_cmap('tab20', nplot)
+    for i in range(0,nplot):
+      idx = toporbs[i]
+      atomstr = orbs[idx].atom_type
+      l_str = parser.inv_l_map[orbs[idx].l]
+      olabel=f"{idx:4}, {orbs[idx].atom_type}{orbs[idx].atom_index}, {l_str}, {orbs[idx].prim_expon[0]:.4f}, {np.max(Y[i]):.2f}"
+      ax.plot( X, Y[i], label=olabel, color=colors(i) )
+    #ax.set_ylim(0, max(Jrow)*1.01)
+    ax.set_ylim(np.min(Y)*1.01, np.max(Y)*1.01)
+    ax.set_ylabel("Density Element")
+    ax.set_xlabel("timestep")
+    #ax.set_xlabel("time (fs)")
+    ax.legend(title=f"Idx, Atom, L, Exp, max", loc='upper left', bbox_to_anchor=(1,1))
+    Jlabel=f"{orbs[Jorb].atom_type}{orbs[Jorb].atom_index}, {l_str}, {orbs[Jorb].prim_expon[0]:.4f}"
+    ax.title.set_text(f"Top {nplot} dens offdiags for AO: ({Jlabel}), Dir: {d_data.direction+1}\n{self.plotname}")
+    plt.tight_layout()
+    plt.savefig(f"densityplots/offdiag_orb{Jorb}_d{d_data.direction+1}.png", dpi=240)
+    
 
   def individual_orb_plot(self,d_data, parser):
     orbs = parser.orbs
@@ -1175,7 +1346,7 @@ class RatePlotter:
     orb_idx_ratesorted = np.argsort(maxrates)[::-1]
     MAX_LINES = 10 # max number of lines to plot
 
-    X = np.array(list(range(1,self.npts+1)))
+    X = (self.dt*au2fs*self.nprintstep)*np.array(list(range(1,self.npts+1)))
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
 
@@ -1426,6 +1597,7 @@ class RatePlotter:
   
 
   def polar_angular_plot(self):
+    print("entered polar_angular_plot()")
     # For now we just ignore phi i think
     #print( (len(self.dataset), len(self.polar_coords)))
 
@@ -1611,6 +1783,7 @@ def __main__():
     rateplotter = RatePlotter(sys.argv[1], sys.argv[2])
   else:
     rateplotter = RatePlotter(sys.argv[1])
+  rateplotter.plotall()
 
 if __name__ == "__main__":  
   __main__()

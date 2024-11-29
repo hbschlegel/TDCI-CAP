@@ -184,7 +184,7 @@ contains
           ! Triangular
           allocate( Mol%overlap(ntt) )
           Call Rd_RBuf(IU,NTot,LenBuf,Mol%overlap)
-          call write_dbin(Mol%overlap, ntt, trim("matrices/overlap.bin"))
+          call write_dbin(Mol%overlap, ntt, trim("overlap.bin"))
         case ( trim(' File   828'), trim('FILE 828 REALS'), trim('FILE 870 REALS') )
           allocate( Mol%vabsao(ntt) )
           Call Rd_RBuf(IU,NTot,LenBuf,Mol%vabsao)
