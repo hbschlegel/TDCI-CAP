@@ -899,9 +899,11 @@ class RatePlotter:
         if orb.l == 3 and orb.prim_expon[0] == 0.0512:
           if d_data.direction == 0:
             print(f"plotting (f,0.0512) idx: {i}")
-          self.plot_AO_dens_offdiags(d_data, parser, i)
+          #self.plot_AO_dens_offdiags(d_data, parser, i)
       
-      self.plot_MO_density(d_data, parser)
+      jorbs = self.plot_MO_density(d_data, parser)
+      for jorb in jorbs:
+        self.plot_MO_dens_offdiags(d_data, parser, jorb)
       self.AtomLExp_plot(d_data, parser, expdict)
       #self.RateCheck_CSV(d_data, parser)
       self.AtomLExp_AvgCSV(d_data, parser, expdict)
@@ -1251,7 +1253,7 @@ class RatePlotter:
       writer = csv.writer(f)
       writer.writerows(output_data)
 
-  def plot_MO_density(self, d_data, parser, time_select=-1, nplot=12 ):
+  def plot_MO_density(self, d_data, parser, time_select=-1, nplot=16 ):
     orbs = parser.orbs
     npts = self.npts
     norbs = parser.nmo
@@ -1276,6 +1278,34 @@ class RatePlotter:
     ax.title.set_text(f"Top {nplot} dens MOs, Dir: {d_data.direction+1}\n{self.plotname}")
     plt.tight_layout()
     plt.savefig(f"densityplots/MOdensity_d{d_data.direction+1}.png", dpi=240)
+    return toporbs # Feed each of these to plot offdiags function
+
+  # plots the offdiagonals of orbital J.
+  def plot_MO_dens_offdiags(self, d_data, parser, Jorb, time_select=-1, nplot=12):
+    orbs = parser.orbs
+    npts = self.npts
+    norbs = len(orbs)
+    Jrow = np.abs(d_data.density_MO[time_select, Jorb] )
+    toporbs = ( np.argsort(Jrow)[::-1][:nplot] )
+    X = np.array(list(range(1,self.npts+1)))
+    #X = (self.dt*au2fs*self.nprintstep)*np.array(list(range(1,self.npts+1)))
+    Y = np.array([d_data.density_MO[:,Jorb,orb] for orb in toporbs] )
+    fig = plt.figure(figsize=(12,6))
+    ax = fig.add_subplot(1,1,1)
+    colors = cm.get_cmap('tab20', nplot)
+    for i in range(0,nplot):
+      idx = toporbs[i]
+      ax.plot( X, Y[i], label=f"{idx+1}", color=colors(i) )
+    #ax.set_ylim(0, max(Jrow)*1.01)
+    ax.set_ylim(np.min(Y)*1.01, np.max(Y)*1.01)
+    ax.set_ylabel("Density Element")
+    ax.set_xlabel("timestep")
+    #ax.set_xlabel("time (fs)")
+    ax.legend(title=f"Idx", loc='upper left', bbox_to_anchor=(1,1))
+    Jlabel=f"{Jorb+1:4}"
+    ax.title.set_text(f"Top {nplot} dens offdiags for MO: ({Jlabel}), Dir: {d_data.direction+1}\n{self.plotname}")
+    plt.tight_layout()
+    plt.savefig(f"densityplots/offdiag_MO{Jorb+1}_d{d_data.direction+1}.png", dpi=240)
 
 
   def plot_AO_density(self, d_data, parser, time_select=-1, nplot=12 ):
@@ -1283,7 +1313,14 @@ class RatePlotter:
     npts = self.npts
     norbs = len(orbs)
     orbdiag = np.abs(np.diagonal( d_data.density_AO[time_select] ))
-    toporbs = ( np.argsort(orbdiag)[::-1][:nplot] )
+    toporbs_all = ( np.argsort(orbdiag)[::-1] )
+    i_orb = 0
+    toporbs = []
+    while ((i_orb < norbs) and (len(toporbs) < nplot)):
+      idx = toporbs_all[i_orb]
+      if (orbs[idx].prim_expon[0] < 0.2):
+        toporbs.append(idx)
+      i_orb+=1
     X = np.array(list(range(1,self.npts+1)))
     #X = (self.dt*au2fs*self.nprintstep)*np.array(list(range(1,self.npts+1)))
     Y = np.array([d_data.density_AO[:,orb,orb] for orb in toporbs] )
@@ -1295,7 +1332,7 @@ class RatePlotter:
       idx = toporbs[i]
       atomstr = orbs[idx].atom_type
       l_str = parser.inv_l_map[orbs[idx].l]
-      olabel=f"{idx:4}, {orbs[idx].atom_type}{orbs[idx].atom_index}, {l_str}, {orbs[idx].prim_expon[0]:.4f}, {np.max(Y[i]):.2f}"
+      olabel=f"{idx+1:4}, {orbs[idx].atom_type}{orbs[idx].atom_index}, {l_str}, {orbs[idx].prim_expon[0]:.4f}, {np.max(Y[i]):.2f}"
       ax.plot( X, Y[i], label=olabel, color=colors(i) )
     ax.set_ylim(0, np.max(Y)*1.01)
     ax.set_ylabel("Diagonal Density Element")
@@ -1305,7 +1342,7 @@ class RatePlotter:
     ax.title.set_text(f"Top {nplot} dens AOs, Dir: {d_data.direction+1}\n{self.plotname}")
     plt.tight_layout()
     plt.savefig(f"densityplots/AOdensity_d{d_data.direction+1}.png", dpi=240)
-    return toporbs # Feed these to plot offdiags function
+    return toporbs # Feed each of these to plot offdiags function
     
   # plots the offdiagonals of orbital J.
   def plot_AO_dens_offdiags(self, d_data, parser, Jorb, time_select=-1, nplot=12):
@@ -1324,7 +1361,7 @@ class RatePlotter:
       idx = toporbs[i]
       atomstr = orbs[idx].atom_type
       l_str = parser.inv_l_map[orbs[idx].l]
-      olabel=f"{idx:4}, {orbs[idx].atom_type}{orbs[idx].atom_index}, {l_str}, {orbs[idx].prim_expon[0]:.4f}, {np.max(Y[i]):.2f}"
+      olabel=f"{idx+1:4}, {orbs[idx].atom_type}{orbs[idx].atom_index}, {l_str}, {orbs[idx].prim_expon[0]:.4f}, {np.max(Y[i]):.2f}"
       ax.plot( X, Y[i], label=olabel, color=colors(i) )
     #ax.set_ylim(0, max(Jrow)*1.01)
     ax.set_ylim(np.min(Y)*1.01, np.max(Y)*1.01)
@@ -1332,10 +1369,10 @@ class RatePlotter:
     ax.set_xlabel("timestep")
     #ax.set_xlabel("time (fs)")
     ax.legend(title=f"Idx, Atom, L, Exp, max", loc='upper left', bbox_to_anchor=(1,1))
-    Jlabel=f"{orbs[Jorb].atom_type}{orbs[Jorb].atom_index}, {l_str}, {orbs[Jorb].prim_expon[0]:.4f}"
+    Jlabel=f"{Jorb+1:4}, {orbs[Jorb].atom_type}{orbs[Jorb].atom_index}, {l_str}, {orbs[Jorb].prim_expon[0]:.4f}"
     ax.title.set_text(f"Top {nplot} dens offdiags for AO: ({Jlabel}), Dir: {d_data.direction+1}\n{self.plotname}")
     plt.tight_layout()
-    plt.savefig(f"densityplots/offdiag_orb{Jorb}_d{d_data.direction+1}.png", dpi=240)
+    plt.savefig(f"densityplots/offdiag_AO{Jorb+1}_d{d_data.direction+1}.png", dpi=240)
     
 
   def individual_orb_plot(self,d_data, parser):

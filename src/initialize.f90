@@ -50,7 +50,7 @@ contains
     namelist /SYSTEM_units/     dt_units, eigmax_units
     namelist /InOutFILES/       tdcidatfile, outputfile, restartbinfile, &
                                 Qread_TDCIdata, Qwrite_ion_coeff, Qread_ion_coeff, &
-                                Qmo_dens, Qci_save, write_binaries
+                                Qmo_dens, Qci_save, write_binaries, write_orb_transitionrates
     namelist /DAVIDSON/         flag_davidson
     namelist /ReadU_NO/         flag_ReadU_NO
     
@@ -1226,7 +1226,7 @@ contains
           write(iout,'(A)') ' - Maya Angelous'
           write(iout,'(A)') divide
        case( 'date' )          
-          write(iout,'(A)') ' I WAS COMPILED ON Thu Oct 31 15:54:28 EDT 2024 '
+          write(iout,'(A)') ' I WAS COMPILED ON Tue Dec 17 07:40:29 AM EST 2024 '
           write(iout,'(A)') ' I AM A REVISED CODE FOR CW PULSE GENERATION '
           write(iout,'(A)') ' RAMPING PARAMETER SET TO RAMP_STEP=16000, NOT NSTEP'
           call dnt(iout)          

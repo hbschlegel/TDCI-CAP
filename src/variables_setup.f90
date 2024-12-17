@@ -22,6 +22,9 @@ module variables_setup
     !: <0|A|0> elements
     real(8) :: dipx00, dipy00, dipz00, vabs00
 
+    !: Hamiltonian elements in MO basis. Set in trotter_linear before propagation.
+    real(8), allocatable :: ham_mo(:)
+
     real(8), allocatable :: &
          orben(:),  & !: MO orbital energies
          vabsao(:), & !: Vabs matrix elements in AO basis
@@ -36,7 +39,7 @@ module variables_setup
     complex(8), allocatable :: &
          socxao(:,:), socyao(:,:), soczao(:,:) !: move to variables_setup module later
 
-    
+
     real(8), allocatable :: &
          dijabAA(:,:), & !: <ij||ab> AAAA BUCKET 1
          dijabAB(:,:), & !: <ij||ab> ABAB BUCKET 2

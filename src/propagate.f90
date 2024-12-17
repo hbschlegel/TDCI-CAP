@@ -21,6 +21,8 @@ type PropagationPrivate
   !complex(8) :: psi_j, psi_k
   !complex(8) :: psi(nstuse), psi1(nstates)
   real(8),allocatable :: rate_a(:),rate_b(:),rate_aa(:),rate_ab(:),rate_ba(:),rate_bb(:)
+  complex(8), allocatable :: density_complex(:)
+  real(8), allocatable :: transition_rates(:)
 
   !: file stuff
   integer(8)   :: funit(7) !: Output data file units
@@ -89,6 +91,7 @@ subroutine initialize_PropPriv(this)
   !write(iout, *) "Allocating Priv!"
   allocate( this%rate_aa(noa*noa), this%rate_ab(noa*nob), this%rate_ba(nob*noa), this%rate_bb(nob*nob) )
   allocate( this%rate_a(noa), this%rate_b(nob) )
+  allocate( this%density_complex(nrorb*nrorb), this%transition_rates(nrorb*nrorb))
   this%rate_aa = 0.d0 ; this%rate_ab = 0.d0 ; this%rate_ba = 0.d0 ; this%rate_bb = 0.d0
   this%rate_a = 0.d0 ; this%rate_b = 0.d0
 
@@ -648,6 +651,7 @@ subroutine trotter_linear
   real(8),allocatable :: pop0(:),pop1(:),ion(:)
   complex(8), allocatable :: psi_det0(:),ion_coeff(:),Zion_coeff(:)
 
+
   integer(8) :: i, j, ii, jj, k, kk
   integer(8) :: itime, idir, iemax, ndim
   integer(8) :: ithread, idata
@@ -704,6 +708,11 @@ subroutine trotter_linear
   norm0 = 1.d0
   
   call get_psid( nstuse, nstates, cis_vec, norm0, psi0, psi_det0 )
+  ! cis_vec stores hamiltonian in
+  if ( write_orb_transitionrates ) then
+    allocate(Mol%ham_mo(nrorb*nrorb))
+    call ham_cis_to_mo(hole_index,part_index,psi_det0, noa,nva,nstates,nrorb,cis_vec,Mol%ham_mo,nob,nvb)
+  end if
   select case ( trim(jobtype) ) 
   case( flag_cis ) 
     if ( unrestricted ) then
@@ -761,7 +770,7 @@ subroutine trotter_linear
   !$OMP state_ip_index, ip_states, read_states, ip_vec, Zproj_ion, Qread_ion_coeff, Qwrite_ion_coeff, &
   !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
   !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save, &
-  !$OMP flag_ReadU_NO )
+  !$OMP flag_ReadU_NO, write_orb_transitionrates )
   
   !$OMP DO  
 
@@ -975,6 +984,18 @@ subroutine trotter_linear
                    Mol%vabsmoa,Mol%vabsmob,unrestricted,scratch,au2fs,Priv%rate_direct)
             end if 
             !: 1-RDM (opdm) should be stored in scratch now.
+            ! Calculate complex density matrix and transition rates
+            if ( write_orb_transitionrates ) then
+              call make_complex_density(hole_index,part_index,psi_det0,noa,nva,nstates,Priv%density_complex)
+              call make_transition_rate((noa+nva), Mol%ham_mo, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Priv%efieldx, &
+                     Priv%efieldy, Priv%efieldz, Mol%vabsmoa, Priv%density_complex, Priv%transition_rates)
+
+              write( Priv%datafile, '(A,A,A,A,A,I0,A)') "matrices/MO_TransitionRate-e",&
+                trim(Priv%emaxstr),"-d", trim(Priv%dirstr), ".", itime, ".bin"
+
+              call write_dbin_safe(Priv%transition_rates, (noa+nva)*(noa+nva), Priv%datafile )
+            end if
+
 
             !: Check max nva for input NOs at this step.
             Priv%nva95max_direct = jj

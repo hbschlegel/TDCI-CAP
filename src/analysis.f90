@@ -1922,14 +1922,14 @@ contains
     integer(8) :: index(50)
     real(8)    :: const, const2, psi2, vabs00_, rdum, rdum1, norm1
     complex(8) :: psi_ia, u(2), vt(2)
-    
-!    get_psid produces psi_det that is normalized 
+
+!    get_psid produces psi_det that is normalized
 !    norm is the norm of psi_det before normalization
 !    psiV = Vabs*psi_det is returned normalized and in the determinantal basis
 !    norm is returned as the norm of psiV before normalization
 !    ion_coeff are the coefficients of the ionic wavefunction obtained from normalized psiV by SVD
 !    s are the weights of the ionic wavefunctions obtained by SVD (sum s**2 = 1)
-!    ion_coeff is multiplied by unnormalized rate to yield the raw rate 
+!    ion_coeff is multiplied by unnormalized rate to yield the raw rate
 !      at which the ionic wavefunctions are produced by the simulation
 
      noab = noa + nob
@@ -1938,9 +1938,9 @@ contains
      norm1 = 0.d0
      do ia = 1,nstates
        norm1 = norm1 + dble(dconjg(psi_det(ia))*psi_det(ia))
-     end do 
+     end do
      s(1:noab) = 0.d0
-     const  = dsqrt(2.d0) 
+     const  = dsqrt(2.d0)
      const2 = 2.d0
      if ( unrestricted ) then
        const  = 1.d0
@@ -1960,7 +1960,7 @@ contains
          s(i+noa) = s(i+noa) + vabs_a(i,i)
        end if
      end do
- 
+
      psiV = dcmplx(0.d0,0.d0)
      psi2 = dreal(dconjg(psi_det(1))*psi_det(1))
      rate = psi2 * vabs00_
@@ -1971,17 +1971,17 @@ contains
        s(i) = psi2 * s(i)
      end do
 !:     write(iout,*) " vabs00_",vabs00_,rdum
-              
+
      do ia=2, nstates
-          
-       ii = hole(ia,1) 
-       aa = part(ia) 
+
+       ii = hole(ia,1)
+       aa = part(ia)
 
        i =  abs(ii)
        a =  aa+nob
        if ( aa.lt.0 ) a = -aa+noa
        psi2 = dreal(dconjg(psi_det(ia))*psi_det(1)+dconjg(psi_det(1))*psi_det(ia))
- 
+
        rdum = 0.d0
        if ( ii.lt.0 .and. aa.lt.0 ) then
          rdum =  const * vabs_a(a,i)
@@ -1999,14 +1999,14 @@ contains
        end if
 
        do jb=2, nstates
-             
-         jj = hole(jb,1)  
-         bb = part(jb) 
+
+         jj = hole(jb,1)
+         bb = part(jb)
          j  = abs(jj)
          b  = bb+nob
          if(bb.lt.0) b = -bb+noa
          psi2 = dreal(dconjg(psi_det(ia))*psi_det(jb))
- 
+
          if ( ii.eq.jj ) then
            rdum = 0.d0
            if ( aa.lt.0 .and. bb.lt.0 ) rdum = vabs_a(a,b)
@@ -2019,7 +2019,7 @@ contains
            rate = rate + psi2 * rdum
            psiV(ia) = psiV(ia) + psi_det(jb) * rdum
          end if
-             
+
          if ( aa.eq.bb ) then
            rdum = 0.d0
            if ( ii.lt.0 .and. jj.lt.0 ) rdum = -vabs_a(j,i)
@@ -2064,13 +2064,13 @@ contains
        work(1:noab*nvab) = dcmplx(0.d0,0.d0)
        do ia = 2, nstates
 
-         ii = hole(ia,1) 
-         aa = part(ia) 
+         ii = hole(ia,1)
+         aa = part(ia)
 
          i = ii + noa
-         a = aa + nva 
+         a = aa + nva
          if ( ii.lt.0 ) i = -ii
-         if ( aa.lt.0 ) a = -aa 
+         if ( aa.lt.0 ) a = -aa
 
          work(i+(a-1)*noab) = psiV(ia)
        end do
@@ -2081,7 +2081,7 @@ contains
        call zgesvd('O','N',noab,nvab,work,noab, &
          s(noab+1:2*noab),u,2,vt,2,work(1+noab*nvab:2*noab*nvab),noab*nvab,s(1+2*noab:7*noab),info)
 !:       write(iout,"('a2a',17F12.8)")(s(i+noab),i=1,noab)
-!:     fix phase and alpha beta ordering 
+!:     fix phase and alpha beta ordering
        call Zfix_phase(noab,work)
        do i = 2, noab
          if(abs(s(i-1+noab)-s(i+noab)).lt.1.d-7) &
@@ -2112,7 +2112,7 @@ contains
 !:         write(iout,"(i3,16f10.6)") i,Zion_coeff(ii+1:ii+noab)
 !:       end do
 !:       write(iout,"('a2b',17F12.8)") norm,0.5d0*rate/norm**2,norm1,rdum,(s(i),i=1,noab)
- 
+
   end subroutine get_ion_coeff
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
     subroutine get_ion_psi(iout,noa,nob,nva,nvb,nstates,nst_ion,hole,part, &
@@ -2128,7 +2128,7 @@ contains
 
     integer(8) :: i, j, k, x, a, ia, noab
     complex(8) :: cdum, zdum
-    
+
      noab = noa + nob
 
 !: assume the lowest nst_ion states include all the singly ionized ground states
@@ -2147,7 +2147,7 @@ contains
                zdum = dcmplx(0.d0,0.d0)
                do j = 1, noab
                  zdum = zdum + Zion_coeff(x+(j-1)*noab)
-               end do 
+               end do
              end if
              cdum = cdum + cis_vec(ia+(k-1)*nstates)*zdum
 !:             write(iout,"(4i5,4f10.6)") ia,x,i,a,zdum,cis_vec(ia+(k-1)*nstates)
@@ -2431,6 +2431,184 @@ contains
 !:     write(iout,"(9f12.7)") (psi(i),i=1,nstuse)
 
   end subroutine get_Zion_psi1
+
+
+
+
+  subroutine ham_cis_to_mo(hole, part, psi_det, noa, nva, nstates, nrorb, ham_cis, ham_mo, nob, nvb)
+
+      ! Arguments
+      implicit none
+      integer(8), intent(in) :: noa, nva, nstates, nrorb
+      integer(8), intent(in) :: hole(nstates), part(nstates)
+      complex(8), intent(in) :: psi_det(nstates)
+      real(8), intent(in) :: ham_cis(nstates * nstates)  ! Hamiltonian in CIS state basis (1D array)
+      real(8), intent(inout) :: ham_mo(nrorb * nrorb)      ! Hamiltonian in MO basis (1D array)
+      integer(8), optional, intent(in) :: nob, nvb
+
+      ! Local variables
+      integer(8) :: i, j, a, b, ia, ib, ii, aa, jj, bb
+      integer(8) :: cis_index, mo_index
+      real(8) :: psi2_i, psi2_j, ham_contrib
+
+      ! Initialize MO Hamiltonian
+      ham_mo = 0.d0
+
+      ! Loop over all CIS states for contributions
+      do ia = 1, nstates
+          ii = hole(ia)
+          aa = part(ia)
+
+          ! Only calculate for alpha spin orbitals.
+          if ( ii.lt.0 .and. aa.lt.0 ) then
+            psi2_i = dble(dconjg(psi_det(ia)) * psi_det(ia))  ! Norm of CIS coefficient
+            i = ii
+            a = aa + noa
+
+            ! Loop over other states to compute matrix element contributions
+            do ib = 1, nstates
+                jj = hole(ib)
+                bb = part(ib)
+
+                ! Only calculate for alpha spin orbitals.
+                if ( jj.lt.0 .and. bb.lt.0 ) then
+                  psi2_j = dble(dconjg(psi_det(ib)) * psi_det(ib))  ! Norm of CIS coefficient
+                  j = jj
+                  b = bb + noa
+
+                  cis_index = (ia - 1) * nstates + ib
+
+                  ! Contribution to MO Hamiltonian
+                  ham_contrib = ham_cis(cis_index) * psi2_i * psi2_j
+
+                  ham_mo((i - 1) * nrorb + j) = ham_mo((i - 1) * nrorb + j) + ham_contrib
+                  ham_mo((a - 1) * nrorb + b) = ham_mo((a - 1) * nrorb + b) + ham_contrib
+                  ham_mo((i - 1) * nrorb + b) = ham_mo((i - 1) * nrorb + b) - ham_contrib
+                  ham_mo((a - 1) * nrorb + j) = ham_mo((a - 1) * nrorb + j) - ham_contrib
+                end if
+            end do
+          end if
+      end do
+
+  end subroutine ham_cis_to_mo
+
+  !: Generate the complex reduced MO density
+  subroutine make_complex_density(hole, part, psi_det, noa, nva, nstates, density_complex)
+      ! Arguments
+      implicit none
+      integer(8), intent(in) :: noa, nva, nstates
+      integer(8), intent(in) :: hole(nstates, 2), part(nstates)
+      complex(8), intent(in) :: psi_det(nstates)            ! CI vector in state basis
+      complex(8), allocatable, intent(inout) :: density_complex(:)  ! Complex MO density matrix
+
+      ! Local variables
+      integer(8) :: i, j, i1, j1, a1,b1, ii, jj, aa, bb, ia, jb, idx
+      complex(8) :: psi_ia, psi_jb
+      integer(8) :: nrorb
+
+      nrorb = noa+nva
+
+      ! Initialization
+      density_complex = dcmplx(0.d0, 0.d0)
+
+      ! Populate the density matrix
+      do ia = 1, nstates
+          psi_ia = psi_det(ia)
+
+          ii = hole(ia, 1)
+          aa = part(ia)
+
+          i1 = abs(ii)
+          !if (ii > 0) i1 = ii + noa + nva
+
+          a1 = abs(aa) + noa
+          !if (aa > 0) a1 = aa + noa + nva + noa
+
+          ! Add diagonal contributions
+          idx = (i1-1)*nrorb + i1
+          density_complex(idx) = density_complex(idx) + dconjg(psi_ia) * psi_ia
+          idx = (a1-1)*nrorb + a1
+          density_complex(idx) = density_complex(idx) + dconjg(psi_ia) * psi_ia
+
+          ! Add off-diagonal contributions
+          do jb = 1, nstates
+              psi_jb = psi_det(jb)
+
+              jj = hole(jb, 1)
+              bb = part(jb)
+
+              j1 = abs(jj)
+              !if (jj > 0) j1 = jj + noa + nva
+
+              b1 = abs(bb) + noa
+              !if (bb > 0) b1 = bb + noa + nva + noa
+
+              ! Off-diagonal element between states (ia, jb)
+              idx = (i1-1)*nrorb + j1
+              density_complex(idx) = density_complex(idx) + dconjg(psi_ia) * psi_jb
+              idx = (a1-1)*nrorb + b1
+              density_complex(idx) = density_complex(idx) + dconjg(psi_ia) * psi_jb
+          end do
+      end do
+  end subroutine make_complex_density
+
+
+
+  subroutine make_transition_rate(nrorb, ham_mo, dipxmoa, dipymoa, dipzmoa, efieldx, efieldy, efieldz, vabsmoa, density_MO, transition_rates)
+
+    ! Arguments
+    implicit none
+    integer(8), intent(in) :: nrorb
+    real(8), intent(in) :: ham_mo(nrorb*nrorb)
+    real(8), intent(in) :: dipxmoa(nrorb*nrorb)
+    real(8), intent(in) :: dipymoa(nrorb*nrorb)
+    real(8), intent(in) :: dipzmoa(nrorb*nrorb)
+    real(8), intent(in) :: efieldx, efieldy, efieldz
+    real(8), intent(in) :: vabsmoa(nrorb*nrorb)
+    complex(8), intent(in) :: density_MO(nrorb*nrorb)
+    real(8), intent(out) :: transition_rates(nrorb*nrorb)
+
+    ! Local variables
+    integer(8) :: i, j, idx
+    real(8) :: field_contribution, absorbing_contribution
+    real(8) :: hamT_idx
+    complex(8) :: density_element
+    real(8) :: hbar, rate_contribution
+
+    ! Constants
+    hbar = 1.0d0  ! Planck's constant (arbitrary units)
+
+    ! Initialize transition rates to zero
+    transition_rates = 0.d0
+
+    ! Loop over all alpha orbitals (restricted wavefunction: nrorb x nrorb block)
+    do i = 1, nrorb
+        do j = 1, nrorb
+            idx = (i-1)*nrorb+j
+
+            ! Add field contributions: E(t) * mu
+            field_contribution = efieldx * dipxmoa(idx) + efieldy * dipymoa(idx) + efieldz * dipzmoa(idx)
+
+            ! Total Hamiltonian element including time-dependent contributions
+            hamT_idx = ham_mo(idx) + field_contribution + vabsmoa(idx)
+
+            ! Compute transition rate contribution
+            !: The 2.0 factor is from the Liouville-von Neumann expansion, not the restricted density matrix.
+            transition_rates(idx) = 2.d0*aimag(hamT_idx * conjg(density_MO(idx)))
+
+        end do
+    end do
+
+  end subroutine make_transition_rate
+
+
+
+
+
+
+
+
+
 
 
 

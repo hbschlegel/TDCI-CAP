@@ -72,7 +72,7 @@ module variables_control
        Qci_save = .false.          !: write CI vectors to a binary file
 
   logical :: write_binaries !: Dump many binary arrays in matrices/ folder 
-                            !: (This should be turned off for multithreaded calculations)
+  logical :: write_orb_transitionrates !: Transform H to MO basis and dump imag(H*dens) in MO basis.
  
   
   !: allocate control
