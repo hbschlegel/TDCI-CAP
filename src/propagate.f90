@@ -90,7 +90,7 @@ subroutine initialize_PropPriv(this)
 
   !write(iout, *) "Allocating Priv!"
   allocate( this%rate_aa(noa*noa), this%rate_ab(noa*nob), this%rate_ba(nob*noa), this%rate_bb(nob*nob) )
-  allocate( this%rate_a(noa), this%rate_b(nob) )
+  allocate( this%rate_a(noa+nva), this%rate_b(nob+nvb+2) )
   allocate( this%density_complex(nrorb*nrorb), this%transition_rates(nrorb*nrorb))
   this%rate_aa = 0.d0 ; this%rate_ab = 0.d0 ; this%rate_ba = 0.d0 ; this%rate_bb = 0.d0
   this%rate_a = 0.d0 ; this%rate_b = 0.d0
@@ -228,8 +228,8 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
     write( Priv%funit(3),"(a5,8(a14,1x))" ) '#','time(fs)','norm2','pop_a(occ)','pop_b(occ)', &
       'rate(fs-1)','rate_aa(occ)','rate_ab(occ)','rate_ba(occ)','rate_bb(occ)'
   else
-    write( Priv%funit(3),"(a5,8(a14,1x))" ) '#','time(fs)','norm2','pop_a(occ)','pop_b(occ)', &
-      'rate(fs-1)','rate_a(occ)','rate_b(occ)'
+    write( Priv%funit(3),"(a5,12(a14,1x))" ) '#','time(fs)','norm2','pop_a(occ)','pop_b(occ)', &
+      'rate(fs-1)','rate_a(occ)','rate_b(occ)','rate_a(virt)','rate_b(virt)','c0* c0 Vabs00','rate'
   end if
 
   !: ION datafile
@@ -342,10 +342,11 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
            (Priv%rate_aa(i),i=1,noa*noa),&
            (Priv%rate_ab(i),i=1,noa*nob),(Priv%rate_ba(i),i=1,nob*noa),(Priv%rate_bb(i),i=1,nob*nob)
   else
-    write( Priv%funit(3),"( i5,f10.4,500(1x,f15.10))") &
+    write( Priv%funit(3),"( i5,f10.4,5000(1x,f15.10))") &
            idata, dble(itime)*dt*au2fs, Priv%norm**2, &
            (pop1(i),i=1,noa),(pop1(noa+nva+i),i=1,nob), &
-           (Priv%rate_a(i),i=1,noa),(Priv%rate_b(i),i=1,nob)
+           (Priv%rate_a(i),i=1,noa),(Priv%rate_b(i),i=1,nob), &
+           (Priv%rate_a(i+noa),i=1,nva),(Priv%rate_b(i+nob),i=1,nvb+2)
   end if
   flush(Priv%funit(3))
 
@@ -651,7 +652,6 @@ subroutine trotter_linear
   real(8),allocatable :: pop0(:),pop1(:),ion(:)
   complex(8), allocatable :: psi_det0(:),ion_coeff(:),Zion_coeff(:)
 
-
   integer(8) :: i, j, ii, jj, k, kk
   integer(8) :: itime, idir, iemax, ndim
   integer(8) :: ithread, idata
@@ -711,7 +711,8 @@ subroutine trotter_linear
   ! cis_vec stores hamiltonian in
   if ( write_orb_transitionrates ) then
     allocate(Mol%ham_mo(nrorb*nrorb))
-    call ham_cis_to_mo(hole_index,part_index,psi_det0, noa,nva,nstates,nrorb,cis_vec,Mol%ham_mo,nob,nvb)
+    !call ham_cis_to_mo(hole_index,part_index,psi_det0, noa,nva,nstates,nrorb,cis_vec,Mol%ham_mo,nob,nvb)
+    call ham_cis_to_mo(hole_index(:,1),part_index(:,1),psi_det0, noa,nva,nstates,nrorb,cis_vec,Mol%ham_mo,nob,nvb)
   end if
   select case ( trim(jobtype) ) 
   case( flag_cis ) 
@@ -986,7 +987,7 @@ subroutine trotter_linear
             !: 1-RDM (opdm) should be stored in scratch now.
             ! Calculate complex density matrix and transition rates
             if ( write_orb_transitionrates ) then
-              call make_complex_density(hole_index,part_index,psi_det0,noa,nva,nstates,Priv%density_complex)
+              call make_complex_density(hole_index(:,1),part_index(:,1),psi_det0,noa,nva,nstates,Priv%density_complex)
               call make_transition_rate((noa+nva), Mol%ham_mo, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Priv%efieldx, &
                      Priv%efieldy, Priv%efieldz, Mol%vabsmoa, Priv%density_complex, Priv%transition_rates)
 
@@ -995,7 +996,6 @@ subroutine trotter_linear
 
               call write_dbin_safe(Priv%transition_rates, (noa+nva)*(noa+nva), Priv%datafile )
             end if
-
 
             !: Check max nva for input NOs at this step.
             Priv%nva95max_direct = jj
@@ -1017,7 +1017,6 @@ subroutine trotter_linear
             !call NO_rate_sanity( scratch, U_NO, natorb_occ, Mol%vabsmoa, Mol%cmo_a)
             !flush(iout)    
             !call dgemm_sanity 
-
 
             call get_norm( Priv%norm,nstuse, psi )
             call get_expectation( nstuse, Priv%norm, psi, abp, Priv%rate) !: rate expectation value

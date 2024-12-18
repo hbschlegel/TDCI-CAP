@@ -848,7 +848,7 @@ contains
     real(8), intent(inout), optional :: nva_rate
 
     integer(8) :: i, i1, j, j1, a, a1, b, b1, ia, jb, ii, jj, aa, bb, istate, ndim, k
-    integer(8) :: ij
+    integer(8) :: ij, iselect
     real(8)    :: const, const2, psi2, vabs00_, rdum, rate
     real(8)    :: density_AO(nbasis*nbasis)
     real(8)    :: tmprate(80000), tmpsum, tmp2, tmprate_direct
@@ -873,6 +873,7 @@ contains
      rate = 0.d0
      rate_a = 0.d0
      rate_b = 0.d0
+     iselect = 8
 
      !write(iout, *) "pop_rate ndim: ", ndim
        
@@ -953,7 +954,8 @@ contains
          density(i1+(a1-1)*ndim) = density(i1+(a1-1)*ndim) + const * psi2
          density(a1+(i1-1)*ndim) = density(a1+(i1-1)*ndim) + const * psi2
          rdum =  const * vabs_a(a,i)
-         rate_a(i) = rate_a(i) +  2.d0 * psi2 * rdum
+         rate_a(i) = rate_a(i) + 2.d0 * psi2 * rdum
+         if(iselect.eq.0.or.iselect.eq.i) rate_a(a) = rate_a(a) + 2.d0 * psi2 * rdum
          rate = rate + 2.d0 * psi2 * rdum
          psiV(1) = psiV(1) + psi_det(ia) * rdum
          psiV(ia) = psiV(ia) + psi_det(1) * rdum
@@ -963,7 +965,8 @@ contains
          density(a1+(i1-1)*ndim) = density(a1+(i1-1)*ndim) + const * psi2
          rdum =  const * vabs_b(a,i)
          rate = rate + 2.d0 * psi2 * rdum
-         rate_b(i) = rate_b(i) +  2.d0 * psi2 * rdum
+         rate_b(i) = rate_b(i) + 2.d0 * psi2 * rdum
+         if(iselect.eq.0.or.iselect.eq.i) rate_b(a) = rate_b(a) + 2.d0 * psi2 * rdum
          psiV(1) = psiV(1) + psi_det(ia) * rdum
          psiV(ia) = psiV(ia) + psi_det(1) * rdum
        end if
@@ -993,16 +996,28 @@ contains
          rdum = 0.d0
              
          if ( ii.eq.jj .and. ii.lt.0 ) then
-           if ( aa.lt.0 .and. bb.lt.0 ) rdum = vabs_a(a,b)
-           if ( aa.gt.0 .and. bb.gt.0 ) rdum = vabs_b(a,b)
+           if ( aa.lt.0 .and. bb.lt.0 ) then
+             rdum = vabs_a(a,b)
+             if(iselect.eq.0.or.iselect.eq.i) rate_a(a) = rate_a(a) + psi2 * rdum
+           end if
+           if ( aa.gt.0 .and. bb.gt.0 ) then
+             rdum = vabs_b(a,b)
+             if(iselect.eq.0.or.iselect.eq.i) rate_b(a) = rate_b(a) + psi2 * rdum
+           end if
            rate = rate + psi2 * rdum
            rate_a(i) = rate_a(i) + psi2 * rdum
            psiV(ia) = psiV(ia) + psi_det(jb) * rdum
          end if
              
          if ( ii.eq.jj .and. ii.gt.0 ) then
-           if ( aa.lt.0 .and. bb.lt.0 ) rdum = vabs_a(a,b)
-           if ( aa.gt.0 .and. bb.gt.0 ) rdum = vabs_b(a,b)
+           if ( aa.lt.0 .and. bb.lt.0 ) then
+             rdum = vabs_a(a,b)
+             if(iselect.eq.0.or.iselect.eq.i) rate_a(a) = rate_a(a) + psi2 * rdum
+           end if
+           if ( aa.gt.0 .and. bb.gt.0 ) then
+             rdum = vabs_b(a,b)
+             if(iselect.eq.0.or.iselect.eq.i) rate_b(a) = rate_b(a) + psi2 * rdum
+           end if
            rate = rate + psi2 * rdum
            rate_b(i) = rate_b(i) + psi2 * rdum
            psiV(ia) = psiV(ia) + psi_det(jb) * rdum
@@ -1013,18 +1028,26 @@ contains
              rdum = - vabs_a(j,i)
              rate = rate + psi2 * rdum
              rate_a(i) = rate_a(i) + psi2 * rdum
+             if(iselect.eq.0.or.iselect.eq.i) rate_a(a) = rate_a(a) + psi2 * rdum
              psiV(ia) = psiV(ia) + psi_det(jb) * rdum
            end if
            if ( ii.gt.0 .and. jj.gt.0 ) then
              rdum = - vabs_b(j,i)
              rate = rate + psi2 * rdum
              rate_b(i) = rate_b(i) + psi2 * rdum
+             if(iselect.eq.0.or.iselect.eq.i) rate_b(a) = rate_b(a) + psi2 * rdum
              psiV(ia) = psiV(ia) + psi_det(jb) * rdum
            end if
          end if
 
          if( ia.eq.jb ) then
            rdum = vabs00_
+           if ( ii.lt.0 .and. jj.lt.0 ) then
+             if(iselect.eq.0.or.iselect.eq.i) rate_a(a) = rate_a(a) + psi2 * rdum
+           end if
+           if ( ii.gt.0 .and. jj.gt.0 ) then
+             if(iselect.eq.0.or.iselect.eq.i) rate_b(a) = rate_b(a) + psi2 * rdum
+           end if
            rate = rate + psi2 * rdum
            psiV(ia) = psiV(ia) + psi_det(jb) * rdum
          end if
@@ -1032,6 +1055,8 @@ contains
 998    format(6I4/4F20.15/4F20.15)
        end do
      end do
+      rate_b(noa+nva+1) = dconjg(psi_det(1))*psi_det(1)*vabs00_
+      rate_b(noa+nva+2) = rate
       !write(iout,*) " rate0 = ", rate
       rate = 0.d0
       do ia = 1,nstates
@@ -1922,14 +1947,14 @@ contains
     integer(8) :: index(50)
     real(8)    :: const, const2, psi2, vabs00_, rdum, rdum1, norm1
     complex(8) :: psi_ia, u(2), vt(2)
-
-!    get_psid produces psi_det that is normalized
+    
+!    get_psid produces psi_det that is normalized 
 !    norm is the norm of psi_det before normalization
 !    psiV = Vabs*psi_det is returned normalized and in the determinantal basis
 !    norm is returned as the norm of psiV before normalization
 !    ion_coeff are the coefficients of the ionic wavefunction obtained from normalized psiV by SVD
 !    s are the weights of the ionic wavefunctions obtained by SVD (sum s**2 = 1)
-!    ion_coeff is multiplied by unnormalized rate to yield the raw rate
+!    ion_coeff is multiplied by unnormalized rate to yield the raw rate 
 !      at which the ionic wavefunctions are produced by the simulation
 
      noab = noa + nob
@@ -2497,7 +2522,7 @@ contains
       ! Arguments
       implicit none
       integer(8), intent(in) :: noa, nva, nstates
-      integer(8), intent(in) :: hole(nstates, 2), part(nstates)
+      integer(8), intent(in) :: hole(nstates), part(nstates)
       complex(8), intent(in) :: psi_det(nstates)            ! CI vector in state basis
       complex(8), allocatable, intent(inout) :: density_complex(:)  ! Complex MO density matrix
 
@@ -2505,6 +2530,7 @@ contains
       integer(8) :: i, j, i1, j1, a1,b1, ii, jj, aa, bb, ia, jb, idx
       complex(8) :: psi_ia, psi_jb
       integer(8) :: nrorb
+      integer(8), parameter :: iout = 42
 
       nrorb = noa+nva
 
@@ -2512,10 +2538,12 @@ contains
       density_complex = dcmplx(0.d0, 0.d0)
 
       ! Populate the density matrix
-      do ia = 1, nstates
+      !: Loop from 2 because 1 represents HF determinant
+      !:   and causes segfault bc hole(1,1) is 0.
+      do ia = 2, nstates
           psi_ia = psi_det(ia)
 
-          ii = hole(ia, 1)
+          ii = hole(ia)
           aa = part(ia)
 
           i1 = abs(ii)
@@ -2534,7 +2562,7 @@ contains
           do jb = 1, nstates
               psi_jb = psi_det(jb)
 
-              jj = hole(jb, 1)
+              jj = hole(jb)
               bb = part(jb)
 
               j1 = abs(jj)

@@ -179,9 +179,10 @@ contains
     call write_header( 'write_specifics2','write_info','enter' )
 
     istates = 20
-    write(iout,'(A)') ' ENERGIES (eV)'
-    do i=1, istates
-       write(iout,50) i, cis_eig(i)*au2eV
+    write(iout,'(A)') ' ENERGIES (eV), TDx(1,i), TDy(1,i), TDz(1,i), Vabs(i,i)'
+    do i=1, 50
+       ii = (i-1)*nstuse + i
+       write(iout,49) i, cis_eig(i)*au2eV, tdx(i), tdy(i), tdz(i), abp(ii)
     end do
 
     write(iout,'(A)') ' NSTUSE' 
@@ -234,6 +235,7 @@ contains
 
 40  format( a5,1x,5(1x,a15)/6x,6(1x,a15) )
 41  format( a5,1x,a15,a8,4(1x,a15) )
+49  format( i5,1x,5(1x,f15.10) )
 50  format( i5,1x,5(1x,f15.10)/6x,6(1x,f15.8) )
 51  format( i5,1x,f15.10,2i4,4(1x,f15.10) )
 52  format( 21x,2i4,4(1x,f15.10) )
