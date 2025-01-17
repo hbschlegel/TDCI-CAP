@@ -524,10 +524,9 @@ contains
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
                     psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,rwork,au2fs)
                 else
-                  call pop_rate(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
-                    hole_index,part_index,state_ip_index,ip_states, &
+                  call pop_rate(Mol,jj,kk,hole_index,part_index,state_ip_index, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
-                    Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork,au2fs)
+                    Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork)
                 end if
 
                 call get_norm( norm,nstuse, psi )                
@@ -1142,10 +1141,9 @@ contains
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
                     psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,rwork,au2fs)
                 else
-                  call pop_rate(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
-                    hole_index,part_index,state_ip_index,ip_states, &
+                  call pop_rate(Mol,jj,kk,hole_index,part_index,state_ip_index, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
-                    Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork,au2fs)
+                    Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork)
                 end if
         
                 call get_norm( norm,nstuse, psi )                
@@ -1729,10 +1727,9 @@ contains
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
                     psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,rwork,au2fs)
                 else
-                  call pop_rate(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
-                    hole_index,part_index,state_ip_index,ip_states, &
+                  call pop_rate(Mol,jj,kk,hole_index,part_index,state_ip_index, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
-                    Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork,au2fs)
+                    Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork)
                 end if
 
                 call get_norm( norm,nstuse, psi )                
@@ -2283,10 +2280,9 @@ contains
                     pop1,ion,ion_coeff,rate_aa,rate_ab,rate_ba,rate_bb, &
                     psi_det0,psi1,normV,Mol%vabsmoa,Mol%vabsmob,rwork,au2fs)
                 else
-                  call pop_rate(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
-                    hole_index,part_index,state_ip_index,ip_states, &
+                  call pop_rate(Mol,jj,kk,hole_index,part_index,state_ip_index, &
                     pop1,ion,ion_coeff,rate_a,rate_b,psi_det0,psi1,normV, &
-                    Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork,au2fs)
+                    Mol%vabsmoa,Mol%vabsmob,unrestricted,rwork)
                 end if
         
                 call get_norm( norm,nstuse, psi )                

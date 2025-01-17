@@ -423,12 +423,16 @@ contains
     integer(8) :: ifield
     character(1000) :: cformat
 
+    write(iout,*) "Entered write_summary" 
+    flush(iout)
+
     call write_header( 'write_summary', 'write_info', 'enter' )
     
     write(iout,'(A)') ' SUMMARY'
     cformat = '    #'//'   e_max'//'         x'//'         y'//'         z' //'      norm'//'      dipx'//'      dipy'//'      dipz'
 
     write(iout,'(A)') trim(cformat)
+    flush(iout)
     do ifield=1, nemax*ndir
        write(iout,"(i5,1x,f7.5,100(f10.4))") ifield, &
             tdciresults(ifield)%fstrength0,       &

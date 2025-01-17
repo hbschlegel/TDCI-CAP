@@ -159,8 +159,10 @@ program main
   if ( Qpropagate ) then
      if( linear ) then
         select case ( trim(jobtype) )
-        case( flag_cis ) ;    call trotter_linear
-        case( flag_ip  ) ;    call trotter_linear
+        case( flag_cis )
+          call trotter_linear
+        case( flag_ip  )
+          call trotter_linear
         case( flag_soc ) 
           if(Qserial) then
             call Ztrott_serial_lin
@@ -192,7 +194,6 @@ program main
           end if
         end select
      end if
-     flush(iout)
      call write_summary
   end if
   

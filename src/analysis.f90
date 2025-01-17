@@ -1,6 +1,9 @@
 module analysis
   
-  !use variables_global ! <C> use at your risk, beware of private & shared OMP variables
+  use variables_global ! <C> use at your risk, beware of private & shared OMP variables
+  !: If we want to remove global variables without adding them all to the function signature
+  !:   we should put all the globals in a single type, and create local copies in each subroutine
+  !:   but that's a lot of edits in the current state of the code...
   use variables_setup ! MolInfo class definition
   use util
   implicit none
@@ -829,22 +832,21 @@ contains
   end subroutine write_data
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
-    subroutine pop_rate(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,nva95,nva99,hole,part,state_ip_index,ip_states, &
-      pop,ion,ion_coeff,rate_a,rate_b,psi_det,psiV,normV,vabs_a,vabs_b,unrestricted,density,au2fs,nva_rate)
+    subroutine pop_rate(Mol,nva95,nva99,hole,part,state_ip_index, &
+      pop,ion,ion_coeff,rate_a,rate_b,psi_det,psiV,normV,vabs_a,vabs_b,unrestricted,density,nva_rate)
 
     implicit none
 
     class(MolInfo), intent(in)       :: Mol
-    integer(8), intent(in)    :: nbasis,iout, noa, nob, norb, nstates, nva, nvb, ip_states
+    integer(8),intent(inout):: nva95, nva99
     integer(8), intent(in)    :: hole(nstates,2), part(nstates), state_ip_index(noa+nob,noa+nob)
-    real(8), intent(in)       :: au2fs, vabs_a(noa+nva,noa+nva), vabs_b(nob+nvb,nob+nvb)
+    real(8), intent(in)       :: vabs_a(noa+nva,noa+nva), vabs_b(nob+nvb,nob+nvb)
     real(8), intent(inout)    :: pop(norb), ion(norb)
     real(8), allocatable, intent(inout) :: rate_a(:), rate_b(:)
     real(8), intent(inout)    :: normV, density(norb*norb)
     complex(8),intent(inout)  :: psiv(nstates),ion_coeff(ip_states)
     complex(8), intent(in)    :: psi_det(nstates)
     logical, intent(in)       :: unrestricted
-    integer(8),intent(inout):: nva95, nva99
     real(8), intent(inout), optional :: nva_rate
 
     integer(8) :: i, i1, j, j1, a, a1, b, b1, ia, jb, ii, jj, aa, bb, istate, ndim, k
@@ -2487,8 +2489,8 @@ contains
           ! Only calculate for alpha spin orbitals.
           if ( ii.lt.0 .and. aa.lt.0 ) then
             psi2_i = dble(dconjg(psi_det(ia)) * psi_det(ia))  ! Norm of CIS coefficient
-            i = ii
-            a = aa + noa
+            i = abs(ii)
+            a = abs(aa) + noa
 
             ! Loop over other states to compute matrix element contributions
             do ib = 1, nstates
@@ -2498,14 +2500,21 @@ contains
                 ! Only calculate for alpha spin orbitals.
                 if ( jj.lt.0 .and. bb.lt.0 ) then
                   psi2_j = dble(dconjg(psi_det(ib)) * psi_det(ib))  ! Norm of CIS coefficient
-                  j = jj
-                  b = bb + noa
+                  j = abs(jj)
+                  b = abs(bb) + noa
 
                   cis_index = (ia - 1) * nstates + ib
 
                   ! Contribution to MO Hamiltonian
                   ham_contrib = ham_cis(cis_index) * psi2_i * psi2_j
 
+                  !: Invalid read of size 8 here
+                  if((cis_index.lt.1).or.(cis_index.gt.(nstates*nstates))) then
+                    write(iout,*) "BAD CIS_INDEX!! ", cis_index, nstates, nrorb, ia, ib, i, a, j, b 
+                  end if
+                  if((((i-1)*nrorb+j).lt.1).or.(((i-1)*nrorb+j).gt.(nrorb*nrorb))) then
+                    write(iout,*) "BAD HAM_MO INDEX!! ", (i-1)*nrorb+j, nstates, nrorb, ia, ib, i, a, j, b 
+                  end if
                   ham_mo((i - 1) * nrorb + j) = ham_mo((i - 1) * nrorb + j) + ham_contrib
                   ham_mo((a - 1) * nrorb + b) = ham_mo((a - 1) * nrorb + b) + ham_contrib
                   ham_mo((i - 1) * nrorb + b) = ham_mo((i - 1) * nrorb + b) - ham_contrib
@@ -2523,7 +2532,7 @@ contains
       implicit none
       integer(8), intent(in) :: noa, nva, nstates
       integer(8), intent(in) :: hole(nstates), part(nstates)
-      complex(8), intent(in) :: psi_det(nstates)            ! CI vector in state basis
+      complex(8), intent(in) :: psi_det(nstates)            ! CI vector in determinant basis
       complex(8), allocatable, intent(inout) :: density_complex(:)  ! Complex MO density matrix
 
       ! Local variables
@@ -2538,7 +2547,7 @@ contains
       density_complex = dcmplx(0.d0, 0.d0)
 
       ! Populate the density matrix
-      !: Loop from 2 because 1 represents HF determinant
+      !: Loop starts at 2 because 1 represents HF determinant
       !:   and causes segfault bc hole(1,1) is 0.
       do ia = 2, nstates
           psi_ia = psi_det(ia)
@@ -2559,7 +2568,7 @@ contains
           density_complex(idx) = density_complex(idx) + dconjg(psi_ia) * psi_ia
 
           ! Add off-diagonal contributions
-          do jb = 1, nstates
+          do jb = 2, nstates
               psi_jb = psi_det(jb)
 
               jj = hole(jb)
@@ -2570,6 +2579,23 @@ contains
 
               b1 = abs(bb) + noa
               !if (bb > 0) b1 = bb + noa + nva + noa
+
+              if ( i1.gt.nrorb .or. i1.lt.1 ) then
+                write(iout,*) "DETECTED PROBLEM IN make_complex_density"
+                write(iout,*) i1, a1, j1, b1
+              end if
+              if ( a1.gt.nrorb .or. a1.lt.1 ) then
+                write(iout,*) "DETECTED PROBLEM IN make_complex_density"
+                write(iout,*) i1, a1, j1, b1
+              end if
+              if ( j1.gt.nrorb .or. j1.lt.1 ) then
+                write(iout,*) "DETECTED PROBLEM IN make_complex_density"
+                write(iout,*) i1, a1, j1, b1
+              end if
+              if ( b1.gt.nrorb .or. b1.lt.1 ) then
+                write(iout,*) "DETECTED PROBLEM IN make_complex_density"
+                write(iout,*) i1, a1, j1, b1
+              end if
 
               ! Off-diagonal element between states (ia, jb)
               idx = (i1-1)*nrorb + j1
