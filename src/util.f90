@@ -281,7 +281,7 @@ contains
     integer(8), intent(in) :: nob,nvb
     real(8),    intent(in) :: mo_matBB(nob+nvb,nob+nvb)
 
-    complex(8), intent(inout) :: Zi2a_mat(nstates*nstates)
+    complex(8), intent(inout) :: zi2a_mat(nstates*nstates)
     
 
     complex(8) :: cdum
@@ -289,8 +289,8 @@ contains
     integer(8) :: k, ia2, ia, jb, kk
 
     
-    Zi2a_mat    = dcmplx( 0.d0,0.d0 )
-    Zi2a_mat(1) = dcmplx( mo00, 0.d0 )
+    zi2a_mat    = dcmplx( 0.d0,0.d0 )
+    zi2a_mat(1) = dcmplx( mo00, 0.d0 )
 
 
     !: < ia | h(1) | 0 > == < a | h(1) | i >
@@ -302,12 +302,12 @@ contains
        if ( aa.gt.0 ) a = abs(aa) + nob
        
         if ( ii.lt.0 .and. aa.lt.0 ) then
-           Zi2a_mat(ia)  = dcmplx( mo_matAA(i,a), 0.d0 )
-           Zi2a_mat(ia2) = dcmplx( mo_matAA(i,a), 0.d0 )
+           zi2a_mat(ia)  = dcmplx( mo_matAA(i,a), 0.d0 )
+           zi2a_mat(ia2) = dcmplx( mo_matAA(i,a), 0.d0 )
         end if
         if ( ii.gt.0 .and. aa.gt.0 ) then
-           Zi2a_mat(ia)  = dcmplx( mo_matBB(i,a), 0.d0 )
-           Zi2a_mat(ia2) = dcmplx( mo_matBB(i,a), 0.d0 )
+           zi2a_mat(ia)  = dcmplx( mo_matBB(i,a), 0.d0 )
+           zi2a_mat(ia2) = dcmplx( mo_matBB(i,a), 0.d0 )
         end if
        
     end do ia0
@@ -1486,20 +1486,25 @@ contains
     integer(8), intent(in)    :: n
     complex(8), intent(in)    :: A(n,n)
     character(*), intent(in)  :: label
-    integer(4) :: i,j
+    integer(8) :: i,j, iout, nviolations
+    real(8) :: ahermiticity
 
- 5  Format(' TestHerm: Matrix ',A10)
-10  Format(A10,' not Hermitian: i,A(i,i) ',I6,2F15.10)
-20  Format(A10,' not Hermitian: i,j,A(i,j) ',2I6,4F15.10)
-
-    write(42,5) trim(label)
+    iout = 42
+    nviolations = 0
+    ahermiticity = 0.d0
+    
     do i=1,n
-      if(abs(aimag(A(i,i))).gt.1.d-7) write(42,10) trim(label),i,a(i,i)
+      !if(abs(aimag(A(i,i))).gt.1.d-7) write(iout,*) trim(label),i,a(i,i)
       do j=1,i
-        if(abs(A(i,j)-DConjg(A(j,i))).gt.1.d-7) &
-          write(42,20) trim(label),i,j,a(i,j),a(j,i)
+        if(abs(A(i,j)-DConjg(A(j,i))).gt.1.d-7) then
+          !write(42,20) trim(label),i,j,a(i,j),a(j,i)
+          nviolations = nviolations + 1
+          ahermiticity = ahermiticity + abs(A(i,j)-DConjg(A(j,i)))
+        end if
       end do
     end do
+    write(iout, '(A,A,A,i10,A,E20.10)') "Hermitivity test of ", trim(label), " nviolations: ", nviolations, "  ahermiticity: ", ahermiticity
+    write(iout, *) "Hermitivity test of ", trim(label), " nviolations: ", nviolations, "  ahermiticity: ", ahermiticity
 
   end subroutine testherm
   !==================================================================!

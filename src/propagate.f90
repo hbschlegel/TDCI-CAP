@@ -212,11 +212,12 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
     open( unit=Priv%funit(1), file=trim(Priv%cifile), form='unformatted' )
     write(Priv%funit(1)) ndata, nstuse, nstates
     select case (MODE)
-      case(0) !: trotter_linear
+      case(0, 2) !: trotter_linear, Ztrotter_linear
         write(Priv%funit(1)) 0.d0, 0.d0, 0.d0, Priv%dirx1, Priv%diry1, &
           Priv%dirz1, 0.d0, 0.d0, 0.d0, 1.d0
       case(1) !: trotter_circular
-        write(Priv%funit(1)) 0.d0, 0.d0, Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%dirx2, Priv%diry2, Priv%dirz2, 1.d0
+        write(Priv%funit(1)) 0.d0, 0.d0, Priv%dirx1, Priv%diry1, &
+          Priv%dirz1, Priv%dirx2, Priv%diry2, Priv%dirz2, 1.d0
     end select
     write(Priv%funit(1)) real(psi0)
     write(Priv%funit(1)) aimag(psi0) 
@@ -229,7 +230,7 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
   write( Priv%funit(2), '(A)' ) '# emax1 emax2 theta0 phi0 theta1 phi1 theta2 phi2 dirx0 diry0 dirz0 dirx1 diry1 dirz1 dirx2 diry2 dirz2'
 
   select case (MODE)
-    case(0) !: trotter_linear
+    case(0, 2) !: trotter_linear, Ztrotter_linear
       write( Priv%funit(2), "( '#',  20(f16.10,1x) )" ) Priv%emax1, 0.d0, &
              tdciresults(idir+(iemax-1)*ndir)%theta0, tdciresults(idir+(iemax-1)*ndir)%phi0,&
              0.d0,0.d0,  0.d0,0.d0, &
@@ -243,7 +244,7 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
            Priv%dirx1, Priv%diry1, Priv%dirz1,  Priv%dirx2, Priv%diry2, Priv%dirz2
   end select
 
-  if( trim(jobtype).eq.flag_ip) then
+  if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip ) then
     write( Priv%funit(2),"(a5,7(a10,1x),2(1x,a15),10(1x,a15) )" ) '#','time(fs)', & 
       'NO99 MO99 ','field1','field2','fieldx','fieldy','fieldz', &
       'norm2','rate(fs-1)', 'mu_x(au)','mu_y(au)','mu_z(au)','6 x |psi(i)|**2'
@@ -297,8 +298,6 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
   end if 
 
 
-
-
 end subroutine PropWriteDataHeaders
 
 
@@ -325,8 +324,14 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
 
   if( Qci_save) then
     if( linear ) then
-      write(Priv%funit(1)) dble(itime)*dt*au2fs, Priv%efield1, 0.d0, &
-       Priv%dirx1, Priv%diry1, Priv%dirz1, 0.d0, 0.d0, 0.d0, Priv%norm**2
+      select case ( trim(jobtype) )
+      case( flag_cis, flag_ip ) !: trotter_linear
+        write(Priv%funit(1)) dble(itime)*dt*au2fs, Priv%efield1, 0.d0, &
+          Priv%dirx1, Priv%diry1, Priv%dirz1, 0.d0, 0.d0, 0.d0, Priv%norm**2
+      case( flag_soc, flag_socip ) !: Ztrotter_linear
+        write(Priv%funit(1)) dble(itime)*dt*au2fs, Priv%efield1, Priv%efield2, Priv%dirx1, Priv%diry1, Priv%dirz1, &
+          Priv%dirx2, Priv%diry2, Priv%dirz2, Priv%norm**2
+      end select
     else !: circular
       write(Priv%funit(1)) dble(itime)*dt*au2fs, Priv%efield1, Priv%efield2, Priv%dirx1, Priv%diry1, Priv%dirz1, &
         Priv%dirx2, Priv%diry2, Priv%dirz2, Priv%norm**2
@@ -348,15 +353,8 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
              Priv%efieldx,Priv%efieldy,Priv%efieldz, &
              Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz, &
              !Priv%norm**2, tmprate, Priv%rate, Priv%rate/au2fs, Priv%muz, &
-             dble(dconjg(psi(1))*psi(1))/Priv%norm**2, &
-             dble(dconjg(psi(2))*psi(2))/Priv%norm**2, &
-             dble(dconjg(psi(3))*psi(3))/Priv%norm**2, &
-             dble(dconjg(psi(4))*psi(4))/Priv%norm**2, &
-             dble(dconjg(psi(5))*psi(5))/Priv%norm**2, &
-             dble(dconjg(psi(6))*psi(6))/Priv%norm**2, &
-             dble(dconjg(psi(7))*psi(7))/Priv%norm**2, &
-             dble(dconjg(psi(8))*psi(8))/Priv%norm**2
-    else
+             (dble(dconjg(psi(i))*psi(i))/Priv%norm**2,i=1,20)
+    else !: norm is zero? when does this happen?
       write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
              idata, dble(itime)*dt*au2fs,Priv%nva99max,Priv%nva99max_direct,Priv%efield1,Priv%efield2,&
              Priv%efieldx,Priv%efieldy,Priv%efieldz, &
@@ -372,24 +370,24 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
   end if
   flush(Priv%funit(2))
 
-  if( trim(jobtype).eq.flag_ip) then
+  if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
     write( Priv%funit(3),"( i5,f10.4,500(1x,f15.10))") &
            idata, dble(itime)*dt*au2fs, Priv%norm**2, &
            (pop1(i),i=1,noa),(pop1(noa+nva+i),i=1,nob),Priv%rate/au2fs,&
            (Priv%rate_aa(i),i=1,noa*noa),&
            (Priv%rate_ab(i),i=1,noa*nob),(Priv%rate_ba(i),i=1,nob*noa),(Priv%rate_bb(i),i=1,nob*nob)
-  else
+  else !: flag_cis, flag_soc
     write( Priv%funit(3),"( i5,f10.4,5000(1x,f15.10))") &
            idata, dble(itime)*dt*au2fs, Priv%norm**2, &
            (pop1(i),i=1,noa),(pop1(noa+nva+i),i=1,nob), &
            (Priv%rate_a(i),i=1,noa),(Priv%rate_b(i),i=1,nob), &
-           (Priv%rate_a(i+noa),i=1,nva),(Priv%rate_b(i+nob),i=1,nvb+2)
+           (Priv%rate_a(i+noa),i=1,nva),(Priv%rate_b(i+nob),i=1,nvb)
   end if
   flush(Priv%funit(3))
 
   write( Priv%funit(4),"( i5,f10.4,500(1x,f15.10))") &
          idata, dble(itime)*dt*au2fs, Priv%rate/Priv%norm**2, Priv%normV, &
-         (ion(i),i=1,noa),(ion(noa+nva+i),i=1,nob)
+         (ion(i),i=1,noa),(ion(noa+nva+i),i=1,nob),(ion_coeff(i),i=1,ip_states)
   flush(Priv%funit(4))
               
   if( Qmo_dens) then
@@ -410,62 +408,74 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
 
   end if ! write_binaries
 
-  if(trim(jobtype).eq.flag_cis .and. (.not. Qwrite_ion_coeff) ) then
-    call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                       psi_det0,psi1,Priv%norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
-                       Priv%rate,Zion_coeff,ion_coeff,scratch)
-    call get_proj_ion(iout,noa+nob,ip_vec,Zion_coeff(noa+nob+1),Zproj_ion)
-    !write(iout,*) " ip_states",ip_states
-    !do i=1,noa+nob
-    !  write(iout,"('SVD s',i8,16f13.7)") idata,scratch(i)
-    !  write(iout,"('coeff',i3,16f13.7)") i,(Zion_coeff(j+i*(noa+nob)),j=1,noa+nob)
-    !  write(iout,"('ipvec',i3,16f13.7)") i,(ip_vec(j+(i-1)*(noa+nob)),j=1,noa+nob)
-    !  write(iout,"('proj ',i3,16f13.7)") i,(Zproj_ion(j+(i-1)*(noa+nob)),j=1,noa+nob)
-    !end do
-    write( Priv%funit(5),"(i5,f10.4,50(1x,f15.10))") &
-           idata, dble(itime)*dt*au2fs, Priv%rate,(scratch(i),i=1,noa+nob)
-    do i = 1,noa+nob
-      write( Priv%funit(5),"(50(1x,f15.10))") (Zproj_ion(j+(i-1)*(noa+nob)),j=1,noa+nob)
-    end do
-    do i = 1,noa+nob
-      write( Priv%funit(5),"(50(1x,f15.10))") (Zion_coeff(j+i*(noa+nob)),j=1,noa+nob)
-    end do
-  end if
 
-
-
-  if(trim(jobtype).eq.flag_ip .and. (.not. Qwrite_ion_coeff) ) then
-    call get_ion_coeff_ip(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                ip_states,state_ip_index,psi_det0,psi1,Priv%norm,Mol%vabsmoa,Mol%vabsmob, &
-                Priv%rate,Zion_coeff,ion_coeff,scratch)
-    call get_proj_ion(iout,ip_states,ip_vec,Zion_coeff(ip_states+1),Zproj_ion)
-    !write(iout,*) " ip_states",ip_states
-    !write(iout,"('s    ',14f13.7/5x,14f13.7/5x,14f13.7/5x,14f13.7)") &
-    !            (scratch(j),j=1,ip_states)
-    !write(iout,"('rates',14f13.7/5x,14f13.7/5x,14f13.7/5x,14f13.7)") &
-    !            (abs(Zion_coeff(j)),j=1,ip_states)
-    !flush(iout)
-    !do i=1,ip_states
-    !write(iout,"('SVD s',i8,16f13.7)") idata,scratch(i)
-    !write(iout,"('coeff',i3,16f13.7/8x,16f13.7/8x,16f13.7/8x,16f13.7)") &
-    !            i,(Zion_coeff(j+i*(ip_states)),j=1,ip_states)
-    !write(iout,"('ipvec',i3,16f13.7/8x,16f13.7/8x,16f13.7/8x,16f13.7)") &
-    !            i,(ip_vec(j+(i-1)*(ip_states)),j=1,ip_states)
-    !write(iout,"('proj ',i3,16f13.7/8x,16f13.7/8x,16f13.7/8x,16f13.7)") &
-    !            i,(Zproj_ion(j+(i-1)*(ip_states)),j=1,ip_states)
-    !end do
-    !flush(iout)
-    write( Priv%funit(5),"(i5,f10.4,50(1x,f15.10))") &
-           idata, dble(itime)*dt*au2fs, Priv%rate,(scratch(i),i=1,ip_states)
-    do i = 1,ip_states
-      write( Priv%funit(5),"(60(1x,f15.10))") (Zproj_ion(j+(i-1)*ip_states),j=1,ip_states)
-    end do
-    do i = 1,ip_states
-      write( Priv%funit(5),"(60(1x,f15.10))") (Zion_coeff(j+i*ip_states),j=1,ip_states)
-    end do
-    flush(Priv%funit(5))
-  end if
-
+  if (.not. Qwrite_ion_coeff) then
+    select case (trim(jobtype))
+    case( flag_cis, flag_soc )
+      call get_ion_coeff(hole_index,part_index,psi_det0,psi1,&
+             Priv%norm,Mol%vabsmoa,Mol%vabsmob, &
+             Priv%rate,Zion_coeff,ion_coeff,scratch)
+      if( trim(jobtype).eq.flag_cis ) then
+        call get_proj_ion(iout,noa+nob,ip_vec,&
+               Zion_coeff(noa+nob+1),Zproj_ion)
+      else !: flag_soc
+        call get_Zproj_ion(iout,noa+nob,Zip_vec,&
+               Zion_coeff(noa+nob+1),Zproj_ion)
+      end if
+      !write(iout,*) " ip_states",ip_states
+      !do i=1,noa+nob
+      !  write(iout,"('SVD s',i8,16f13.7)") idata,scratch(i)
+      !  write(iout,"('coeff',i3,16f13.7)") i,(Zion_coeff(j+i*(noa+nob)),j=1,noa+nob)
+      !  write(iout,"('ipvec',i3,16f13.7)") i,(ip_vec(j+(i-1)*(noa+nob)),j=1,noa+nob)
+      !  write(iout,"('proj ',i3,16f13.7)") i,(Zproj_ion(j+(i-1)*(noa+nob)),j=1,noa+nob)
+      !end do
+      write( Priv%funit(5),"(i5,f10.4,50(1x,f15.10))") &
+             idata, dble(itime)*dt*au2fs, Priv%rate,(scratch(i),i=1,noa+nob)
+      do i = 1,noa+nob
+        write( Priv%funit(5),"(50(1x,f15.10))") (Zproj_ion(j+(i-1)*(noa+nob)),j=1,noa+nob)
+      end do
+      do i = 1,noa+nob
+        write( Priv%funit(5),"(50(1x,f15.10))") (Zion_coeff(j+i*(noa+nob)),j=1,noa+nob)
+      end do
+    case( flag_ip, flag_socip )
+      call get_ion_coeff_ip(hole_index,part_index,&
+             state_ip_index,psi_det0,psi1,Priv%norm,&
+             Mol%vabsmoa,Mol%vabsmob,&
+             Priv%rate,Zion_coeff,ion_coeff,scratch)
+      if( trim(jobtype).eq.flag_ip ) then
+        call get_proj_ion(iout,ip_states,ip_vec,&
+               Zion_coeff(ip_states+1),Zproj_ion)
+      else !: flag_socip
+        call get_Zproj_ion(iout,ip_states,Zip_vec,&
+          Zion_coeff(noa+nob+1),Zproj_ion)
+      end if
+      !write(iout,*) " ip_states",ip_states
+      !write(iout,"('s    ',14f13.7/5x,14f13.7/5x,14f13.7/5x,14f13.7)") &
+      !            (scratch(j),j=1,ip_states)
+      !write(iout,"('rates',14f13.7/5x,14f13.7/5x,14f13.7/5x,14f13.7)") &
+      !            (abs(Zion_coeff(j)),j=1,ip_states)
+      !flush(iout)
+      !do i=1,ip_states
+      !write(iout,"('SVD s',i8,16f13.7)") idata,scratch(i)
+      !write(iout,"('coeff',i3,16f13.7/8x,16f13.7/8x,16f13.7/8x,16f13.7)") &
+      !            i,(Zion_coeff(j+i*(ip_states)),j=1,ip_states)
+      !write(iout,"('ipvec',i3,16f13.7/8x,16f13.7/8x,16f13.7/8x,16f13.7)") &
+      !            i,(ip_vec(j+(i-1)*(ip_states)),j=1,ip_states)
+      !write(iout,"('proj ',i3,16f13.7/8x,16f13.7/8x,16f13.7/8x,16f13.7)") &
+      !            i,(Zproj_ion(j+(i-1)*(ip_states)),j=1,ip_states)
+      !end do
+      !flush(iout)
+      write( Priv%funit(5),"(i5,f10.4,50(1x,f15.10))") &
+             idata, dble(itime)*dt*au2fs, Priv%rate,(scratch(i),i=1,ip_states)
+      do i = 1,ip_states
+        write( Priv%funit(5),"(60(1x,f15.10))") (Zproj_ion(j+(i-1)*ip_states),j=1,ip_states)
+      end do
+      do i = 1,ip_states
+        write( Priv%funit(5),"(60(1x,f15.10))") (Zion_coeff(j+i*ip_states),j=1,ip_states)
+      end do
+      flush(Priv%funit(5))
+    end select
+  end if !: (.not. Qwrite_ion_coeff)
 
 end subroutine PropWriteData
 
@@ -651,9 +661,9 @@ subroutine trotter_linear
   class(PropagationShared), allocatable :: Prop
   integer(8) :: nstuse2 
   complex(8) :: exphel(nstuse), psi0(nstuse)
-  real(8) :: hp1(nstuse*nstuse), tdvals1(nstuse) 
+  real(8)    :: tdvals1(nstuse)  !: eigenvectors of hp1
+  real(8)    :: hp1(nstuse*nstuse)
   
-
   !: thread private variables
   class(PropagationPrivate), allocatable :: Priv    
   !: Psi arrays must be allocated on the stack for performance
@@ -679,7 +689,7 @@ subroutine trotter_linear
   !: variables not used in OMP
   real(8) :: temp
 
-
+  !=------------------------=!
 
   call write_header( 'trotter_linear','propagate','enter' )    
   call writeme_propagate( 'trot_lin', 'equation' ) 
@@ -883,9 +893,9 @@ subroutine trotter_linear
             call get_norm( Priv%norm, nstuse, psi )
             call get_psid( nstuse, nstates, cis_vec, Priv%norm, psi, psi_det0 )
             ii = (itime-1)*(noa+nob)*(noa+nob+1)
-            call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-                     psi_det0,psi1,Priv%norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
-                     Priv%rate, Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),ion_coeff,scratch)
+            call get_ion_coeff(hole_index,part_index,psi_det0,psi1,Priv%norm,&
+                   Mol%vabsmoa,Mol%vabsmob,Priv%rate,&
+                   Zion_coeff( ii+1 : ii+(noa+nob)*(noa+nob+1) ),ion_coeff,scratch)
             !write(iout,"('W0',i5,i7,16f12.8)") itime,ii,rate,scratch(1:noa+nob)
             do i = 1,noa+nob
               do j =1,noa+nob
@@ -916,7 +926,7 @@ subroutine trotter_linear
             else
               call pop_rate(Mol,jj,kk,hole_index,part_index,state_ip_index, &
                    pop1,ion,ion_coeff,Priv%rate_a,Priv%rate_b,psi_det0,psi1,Priv%normV, &
-                   Mol%vabsmoa,Mol%vabsmob,unrestricted,scratch,Priv%rate_direct)
+                   Mol%vabsmoa,Mol%vabsmob,scratch,Priv%rate_direct)
             end if 
             !: 1-RDM (opdm) should be stored in scratch now.
             ! Calculate complex density matrix and transition rates
@@ -1257,8 +1267,8 @@ subroutine trotter_circular
             call get_norm( Priv%norm, nstuse, psi )
             call get_psid( nstuse, nstates, cis_vec, Priv%norm, psi, psi_det0 )
             ii = (itime-1)*(noa+nob)*(noa+nob+1)
-            call get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole_index,part_index, &
-              psi_det0,psi1,Priv%norm,Mol%vabsmoa,Mol%vabsmob,unrestricted, &
+            call get_ion_coeff(hole_index,part_index, &
+              psi_det0,psi1,Priv%norm,Mol%vabsmoa,Mol%vabsmob, &
               Priv%rate, Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),ion_coeff,scratch)
             !:write(iout,"('W0',i5,i7,16f12.8)") itime,ii,Priv%rate,scratch(1:noa+nob)
             do i = 1,noa+nob
@@ -1288,7 +1298,7 @@ subroutine trotter_circular
             else
               call pop_rate(Mol,jj,kk,hole_index,part_index,state_ip_index, &
                  pop1,ion,ion_coeff,Priv%rate_a,Priv%rate_b,psi_det0,psi1,Priv%normV, &
-                 Mol%vabsmoa,Mol%vabsmob,unrestricted,scratch,Priv%rate_direct)
+                 Mol%vabsmoa,Mol%vabsmob,scratch,Priv%rate_direct)
             end if
             !: 1-RDM stored in scratch now.
 
@@ -2603,7 +2613,7 @@ end subroutine write_vabsmo_table
 
 !: Duplicate code for trotter_linear and trotter_circular
 !: before the propagation loop
-subroutine trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, ion_coeff, Zion_coeff, iwork, scratch)
+subroutine trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, ion_coeff, Zion_coeff, iwork, scratch, cwork)
   implicit none
   class(PropagationShared), allocatable, intent(inout) :: Prop
   complex(8), intent(inout) :: exphel(nstuse), psi0(nstuse)
@@ -2613,6 +2623,7 @@ subroutine trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, io
   complex(8), allocatable, intent(inout) :: psi_det0(:),ion_coeff(:),Zion_coeff(:)
   integer(8), allocatable, intent(inout)  :: iwork(:)
   real(8), allocatable, intent(inout)     :: scratch(:)
+  complex(8), allocatable, optional, intent(inout)     :: cwork(:)
 
   real(8) :: temp
   integer(8) :: i
@@ -2639,18 +2650,26 @@ subroutine trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, io
     allocate(Zion_coeff(nstep*ip_states*(ip_states+1)))
   else
     allocate(Zion_coeff(ip_states*(ip_states+1)))
-    allocate(Zproj_ion(ip_states*ip_states))
+    allocate(Zproj_ion(ip_states*(ip_states+1)))
   end if
+
   norm0 = 1.d0
-  call get_psid( nstuse, nstates, cis_vec, norm0, psi0, psi_det0 )
-  ! cis_vec stores hamiltonian in
-  if ( write_orb_transitionrates ) then
-    allocate(Mol%ham_mo(nrorb*nrorb))
-    !call ham_cis_to_mo(hole_index,part_index,psi_det0, noa,nva,nstates,nrorb,cis_vec,Mol%ham_mo,nob,nvb)
-    call ham_cis_to_mo(hole_index(:,1),part_index(:,1),psi_det0, noa,nva,nstates,nrorb,cis_vec,Mol%ham_mo,nob,nvb)
+
+
+  if( (trim(jobtype).eq.flag_soc) ) then
+    call get_Zpsid( nstuse, nstates, Zcis_vec, norm0, psi0, psi_det0 )
+  else !: linear trotter 
+    call get_psid( nstuse, nstates, cis_vec, norm0, psi0, psi_det0 )
   end if
+
   select case ( trim(jobtype) )
   case( flag_cis )
+    if ( unrestricted ) then
+      call pop_cis( hole_index(:,1), noa,norb,nstates,nva, part_index(:,1), pop0, psi_det0, nob,nvb )
+    else
+      call pop_cis( hole_index(:,1), noa,norb,nstates,nva, part_index(:,1), pop0, psi_det0 )
+    end if
+  case( flag_soc )
     if ( unrestricted ) then
       call pop_cis( hole_index(:,1), noa,norb,nstates,nva, part_index(:,1), pop0, psi_det0, nob,nvb )
     else
@@ -2675,21 +2694,33 @@ subroutine trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, io
   if( QeigenDC ) then
     allocate( iwork(3+5*nstuse) )
     allocate( scratch(1+8*nstuse+2*nstuse*nstuse) )
+    if(trim(jobtype).eq.flag_soc) then !: Ztrotter_linear
+      allocate( cwork(1+8*nstuse+2*nstuse*nstuse) )
+    end if
   else
     allocate( iwork(2) )
+    if(trim(jobtype).eq.flag_soc) then !: Ztrotter_linear
+      i = max(3*nstuse,(ip_states)*(ip_states))
+      allocate( cwork(i) )
+    end if
     allocate( scratch(nstuse*nstuse) )
   end if
 
   !: exphel = exp(-iH*dt/2)
   do i=1, nstuse
-     temp = -0.5d0 * cis_eig(i) * dt
-     exphel(i) = dcmplx( dcos(temp) , dsin(temp) )
+    temp = -0.5d0 * cis_eig(i) * dt
+    exphel(i) = dcmplx( dcos(temp) , dsin(temp) )
   end do
 
   call write_vabsmo_table(nrorb, Mol%vabsmoa, Mol%orben )
+  ! cis_vec stores hamiltonian
+  if ( write_orb_transitionrates ) then
+    allocate(Mol%ham_mo(nrorb*nrorb))
+    !call ham_cis_to_mo(hole_index,part_index,psi_det0, noa,nva,nstates,nrorb,cis_vec,Mol%ham_mo,nob,nvb)
+    call ham_cis_to_mo(hole_index(:,1),part_index(:,1),psi_det0, noa,nva,nstates,nrorb,cis_vec,Mol%ham_mo,nob,nvb)
+  end if
 
-
-end subroutine
+end subroutine trotter_init
 
 end module propagate
 

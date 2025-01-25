@@ -917,11 +917,11 @@ contains
     
        ntt = nbasis*(nbasis+1)/2
 
-       if( allocated(Mol%soczao)  ) then
-          deallocate(Mol%socxao, Mol%socyao, Mol%soczao)
-          write(iout,'(A)') ' deallocated Mol%soczao, Mol%socyao, Mol%socxao '  
-          call track_mem( -3*ntt )
-       end if
+       !if( allocated(Mol%soczao)  ) then
+       !   deallocate(Mol%socxao, Mol%socyao, Mol%soczao)
+       !   write(iout,'(A)') ' deallocated Mol%soczao, Mol%socyao, Mol%socxao '  
+       !   call track_mem( -3*ntt )
+       !end if
        if( allocated(Mol%cmo_b) ) then
           deallocate(Mol%cmo_b)
           write(iout,'(A)') ' deallocated Mol%cmo_b '  
@@ -1226,7 +1226,7 @@ contains
           write(iout,'(A)') ' - Maya Angelous'
           write(iout,'(A)') divide
        case( 'date' )          
-          write(iout,'(A)') ' I WAS COMPILED ON Fri Jan 17 01:27:06 PM EST 2025 '
+          write(iout,'(A)') ' I WAS COMPILED ON Fri Jan 24 09:18:37 PM EST 2025 '
           write(iout,'(A)') ' I AM A REVISED CODE FOR CW PULSE GENERATION '
           write(iout,'(A)') ' RAMPING PARAMETER SET TO RAMP_STEP=16000, NOT NSTEP'
           call dnt(iout)          

@@ -112,73 +112,67 @@ contains
     end if
 
     !: Start OMP parallelization start non-iterative parallelization
-    !$OMP PARALLEL
-    !$OMP SECTIONS
-    
-    !$OMP SECTION  !: Vabs
-    thread1 = OMP_get_thread_num()       
+
+    !thread1 = OMP_get_thread_num()       
+    thread1 = 1
     write(iout,"(' Vabs Thread # ',i0)") thread1       
     call get_ao2mo( thread1, 'vabs' )   !: <AO|Vabs|AO> --> <MO|Vabs|MO>     
     call get_form1det( thread1, 'vabs') !: <MO|Vabs|MO> --> <psi_ia|Vabs|psi_jb> 
     if ( Qalloc_Zcomplex ) then
        call testherm(nstates,Zabp,'VabsMO')
-!:       call Zform1cis(nstates,nstuse,Zabp,Zcis_vec)
-       call Zform1cis0(nstates,nstuse,Zabp,Zcis_vec,Zwork1)
+       call Zform1cis(nstates,nstuse,Zabp,Zcis_vec)
+       !call Zform1cis0(nstates,nstuse,Zabp,Zcis_vec,Zwork1)
        call testherm(nstuse,Zabp,'VabsCI')
     else
-!:       call form1cis(nstates,nstuse,abp,cis_vec)
-       call form1cis0(nstates,nstuse,abp,cis_vec,work1)
+       call form1cis(nstates,nstuse,abp,cis_vec)
+       !call form1cis0(nstates,nstuse,abp,cis_vec,work1)
     end if
     
     
-    !$OMP SECTION  !: DipX
-    thread2 = OMP_get_thread_num()
+    !thread2 = OMP_get_thread_num()
+    thread2 = 2
     write(iout,"(' DipX Thread # ',i0)") thread2
     call get_ao2mo( thread2, 'dipx' ) 
     call get_form1det( thread2, 'dipx') 
     if ( Qalloc_Zcomplex ) then
        call testherm(nstates,Ztdx,'TDxMO')
-!:       call Zform1cis(nstates,nstuse,Ztdx,Zcis_vec)
-       call Zform1cis0(nstates,nstuse,Ztdx,Zcis_vec,Zwork2)
+       call Zform1cis(nstates,nstuse,Ztdx,Zcis_vec)
+       !call Zform1cis0(nstates,nstuse,Ztdx,Zcis_vec,Zwork2)
        call testherm(nstuse,Ztdx,'TDxCI')
     else 
-!:       call form1cis(nstates,nstuse,tdx,cis_vec)        
-       call form1cis0(nstates,nstuse,tdx,cis_vec,work2)
+       call form1cis(nstates,nstuse,tdx,cis_vec)        
+       !call form1cis0(nstates,nstuse,tdx,cis_vec,work2)
     end if
 
-    !$OMP SECTION  !: DipY
-    thread3 = OMP_get_thread_num()
+    !thread3 = OMP_get_thread_num()
+    thread3 = 3
     write(iout,"(' DipY Thread # ',i0)") thread3       
     call get_ao2mo( thread3, 'dipy' ) 
     call get_form1det( thread3, 'dipy')
     if ( Qalloc_Zcomplex ) then
        call testherm(nstates,Ztdy,'TDyMO')
-!:       call Zform1cis(nstates,nstuse,Ztdy,Zcis_vec)
-       call Zform1cis0(nstates,nstuse,Ztdy,Zcis_vec,Zwork3)
+       call Zform1cis(nstates,nstuse,Ztdy,Zcis_vec)
+       !call Zform1cis0(nstates,nstuse,Ztdy,Zcis_vec,Zwork3)
        call testherm(nstuse,Ztdy,'TDyCI')
     else 
-!:       call form1cis(nstates,nstuse,tdy,cis_vec)  
-       call form1cis0(nstates,nstuse,tdy,cis_vec,work3)
+       call form1cis(nstates,nstuse,tdy,cis_vec)  
+       !call form1cis0(nstates,nstuse,tdy,cis_vec,work3)
     end if
     
-    !$OMP SECTION  !: DipZ
     thread4 = OMP_get_thread_num()
     write(iout,"(' DipZ Thread # ',i0)") thread4
     call get_ao2mo( thread4, 'dipz' )
     call get_form1det( thread4, 'dipz' )
     if ( Qalloc_Zcomplex ) then
        call testherm(nstates,Ztdz,'TDzMO')
-!:       call Zform1cis(nstates,nstuse,Ztdz,Zcis_vec)
-       call Zform1cis0(nstates,nstuse,Ztdz,Zcis_vec,Zwork4)
+       call Zform1cis(nstates,nstuse,Ztdz,Zcis_vec)
+       !call Zform1cis0(nstates,nstuse,Ztdz,Zcis_vec,Zwork4)
        call testherm(nstuse,Ztdz,'TDzCI')
     else 
-!:       call form1cis(nstates,nstuse,tdz,cis_vec)
-       call form1cis0(nstates,nstuse,tdz,cis_vec,work4)
+       call form1cis(nstates,nstuse,tdz,cis_vec)
+       !call form1cis0(nstates,nstuse,tdz,cis_vec,work4)
     end if
        
-    !$OMP END SECTIONS
-    !$OMP END PARALLEL
-   
     !: AD
     write(iout, *) "Eq 18 (Field Perturbed Orbitals):"
     write(iout, '(A)') 'ifield,  Rate'

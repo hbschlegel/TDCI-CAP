@@ -159,34 +159,20 @@ program main
   if ( Qpropagate ) then
      if( linear ) then
         select case ( trim(jobtype) )
-        case( flag_cis )
+        case( flag_cis, flag_ip )
           call trotter_linear
-        case( flag_ip  )
-          call trotter_linear
-        case( flag_soc ) 
-          if(Qserial) then
-            call Ztrott_serial_lin
-          else
-            call Ztrotter_linear
-          end if
-        case( flag_socip ) 
+        case( flag_soc, flag_socip ) 
           if(Qserial) then
             call Ztrott_serial_lin
           else
             call Ztrotter_linear
           end if
         end select
-     else
+     else ! circular
         select case ( trim(jobtype) )
-        case( flag_cis ) ;    call trotter_circular
-        case( flag_ip  ) ;    call trotter_circular
-        case( flag_soc ) 
-          if(Qserial) then
-            call Ztrott_serial_cir
-          else
-            call Ztrotter_circular
-          end if
-        case( flag_socip ) 
+        case( flag_cis, flag_ip )
+          call trotter_circular
+        case( flag_soc, flag_socip ) 
           if(Qserial) then
             call Ztrott_serial_cir
           else

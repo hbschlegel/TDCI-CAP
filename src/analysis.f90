@@ -833,7 +833,7 @@ contains
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
     subroutine pop_rate(Mol,nva95,nva99,hole,part,state_ip_index, &
-      pop,ion,ion_coeff,rate_a,rate_b,psi_det,psiV,normV,vabs_a,vabs_b,unrestricted,density,nva_rate)
+      pop,ion,ion_coeff,rate_a,rate_b,psi_det,psiV,normV,vabs_a,vabs_b,density,nva_rate)
 
     implicit none
 
@@ -846,7 +846,6 @@ contains
     real(8), intent(inout)    :: normV, density(norb*norb)
     complex(8),intent(inout)  :: psiv(nstates),ion_coeff(ip_states)
     complex(8), intent(in)    :: psi_det(nstates)
-    logical, intent(in)       :: unrestricted
     real(8), intent(inout), optional :: nva_rate
 
     integer(8) :: i, i1, j, j1, a, a1, b, b1, ia, jb, ii, jj, aa, bb, istate, ndim, k
@@ -1589,14 +1588,13 @@ contains
  
   end subroutine pop_rate_ip
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
-    subroutine get_ion_coeff_ip(iout,noa,nob,nva,nvb,nstates,hole,part,ip_states,state_ip_index, &
+  subroutine get_ion_coeff_ip(hole,part,state_ip_index, &
       psi_det,psiV,norm,vabs_a,vabs_b,rate,Zion_coeff,work,s)
 
     use util
     implicit none
 
-    integer(8), intent(in)  :: iout, noa, nob, nva, nvb, nstates, ip_states, &
-                               hole(nstates,2), part(nstates), state_ip_index(noa+nob,noa+nob)
+    integer(8), intent(in)  :: hole(nstates,2), part(nstates), state_ip_index(noa+nob,noa+nob)
     real(8), intent(in)     :: vabs_a(noa+nva,noa+nva), vabs_b(nob+nvb,nob+nvb)
     real(8), intent(inout)  :: norm, rate, s(nstates*nstates)
     complex(8), intent(in)  :: psi_det(nstates)
@@ -1932,18 +1930,16 @@ contains
   end subroutine get_ion_coeff_ip
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
-    subroutine get_ion_coeff(iout,noa,nob,nva,nvb,nstates,hole,part,psi_det,psiV,norm, &
-                 vabs_a,vabs_b,unrestricted,rate,Zion_coeff,work,s)
+    subroutine get_ion_coeff(hole,part,psi_det,psiV,norm, &
+                 vabs_a,vabs_b,rate,Zion_coeff,work,s)
     use util
     implicit none
 
-    integer(8), intent(in)    :: iout, noa, nob, nva, nvb, nstates, &
-                                 hole(nstates,2), part(nstates)
+    integer(8), intent(in)    :: hole(nstates,2), part(nstates)
     real(8), intent(in)       :: vabs_a(noa+nva,noa+nva), vabs_b(nob+nvb,nob+nvb)
     real(8), intent(inout)    :: norm, rate, s(nstates*nstates)
     complex(8), intent(in)    :: psi_det(nstates),work(:)
     complex(8), intent(inout) :: psiv(nstates),Zion_coeff((noa+nob)*(nva+nvb+1))
-    logical, intent(in)       :: unrestricted
 
     integer(8) :: i, j, a, b, ia, jb, ii, jj, aa, bb, info, noab, nvab
     integer(8) :: index(50)

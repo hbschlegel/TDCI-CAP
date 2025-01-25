@@ -961,6 +961,11 @@ contains
     
     allocate( scratch1(nbasis,nbasis) )
     scratch1 = 0.d0
+
+    write(iout,*) "BEFORE CRASH ", allocated(Mol%soczao)
+    flush(iout)
+    write(iout,*) Mol%soczao(2,2)
+    flush(iout)
     
     !: Mol%socmoAA
     scratch1(:,:) = - Mol%soczao(:,:)

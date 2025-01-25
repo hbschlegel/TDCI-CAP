@@ -126,8 +126,8 @@ contains
       allocate( RArr(MaxArr) )
    10 Call Rd_Labl(IU,IVers,CBuf,NI,NR,NTot,LenBuf,N1,N2,N3,N4,N5,ASym,NRI,EOF)
       Write(IOut,1110) CBuf,NI,NR,NRI,NTot,LenBuf,N1,N2,N3,N4,N5,ASym
-!:      write(iout,*) '***',trim(CBUF),'***'
-!:      flush(iout)
+      write(iout,*) '***',trim(CBUF),'***'
+      flush(iout)
       If(NTot.gt.MaxArr) Write(IOut,*) " *** file too large *** increase MaxArr"
       If(.not.EOF .and. NTot.le.MaxArr) then
         select case ( trim(CBuf) )
@@ -165,6 +165,8 @@ contains
           Mol%dipyao = RArr(ntt+1:2*ntt)
           Mol%dipzao = RArr(2*ntt+1:3*ntt)
         case ( trim(' File   617'), trim('FILE 617 REALS'), trim('FILE 751 REALS') )
+           write(iout,*) "Found SOC File!"
+           flush(iout)
            allocate(Mol%socxao(nbasis,nbasis),Mol%socyao(nbasis,nbasis),Mol%soczao(nbasis,nbasis))
           Call Rd_RBuf(IU,NTot,LenBuf,RArr)
           ij = 0
@@ -269,6 +271,18 @@ contains
 !:        If(IOpCl.eq.1) deallocate(cmo_b)
 !:        deallocate(dijabAB,diajbAA,diajbBB)
       Call Close_MatF(IU)
+
+    !: Check if we have the matrices we need and throw an error if we don't
+    if ((trim(jobtype).eq.flag_soc).or.(trim(jobtype).eq.flag_socip)) then
+      write(iout, *) "Checking if we collected the SOC elements..."
+      flush(iout)
+      if (.not.allocated(Mol%soczao)) then
+        write(iout, *) "Mol%soczao is not allocated. Stopping."
+        flush(iout)
+        STOP "SOC elements not found."
+      end if
+    end if 
+
 !
 !    Calculate dipole moment
 !
