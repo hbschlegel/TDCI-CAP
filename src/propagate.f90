@@ -179,7 +179,8 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
   integer(8), intent(in) :: iemax, idir
   type(tdcidat), allocatable, intent(inout) :: tdciresults(:)
   complex(8), intent(inout) :: psi0(:), Zion_coeff(:)
-  !: MODE 0=trotter_linear, 1=trotter_circular
+  !: MODE 0=trotter_linear,  1=trotter_circular
+  !:      2=Ztrotter_linear, 3=Ztrotter_circular
   integer, intent(in) :: MODE
 
   !: Local variables
@@ -215,7 +216,7 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
       case(0, 2) !: trotter_linear, Ztrotter_linear
         write(Priv%funit(1)) 0.d0, 0.d0, 0.d0, Priv%dirx1, Priv%diry1, &
           Priv%dirz1, 0.d0, 0.d0, 0.d0, 1.d0
-      case(1) !: trotter_circular
+      case(1, 3) !: trotter_circular, Ztrotter_circular
         write(Priv%funit(1)) 0.d0, 0.d0, Priv%dirx1, Priv%diry1, &
           Priv%dirz1, Priv%dirx2, Priv%diry2, Priv%dirz2, 1.d0
     end select
@@ -235,7 +236,7 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
              tdciresults(idir+(iemax-1)*ndir)%theta0, tdciresults(idir+(iemax-1)*ndir)%phi0,&
              0.d0,0.d0,  0.d0,0.d0, &
              Priv%dirx1, Priv%diry1, Priv%dirz1,  0.d0,0.d0,0.d0,  0.d0,0.d0,0.d0
-    case(1) !: trotter_circular
+    case(1, 3) !: trotter_circular, Ztrotter_circular
       write( Priv%funit(2), "( '#',  20(f16.10,1x) )" ) Priv%emax1, Priv%emax2, &
            tdciresults(1+(iemax-1)*ndir)%theta0, tdciresults(1+(iemax-1)*ndir)%phi0, &
            tdciresults(1+(iemax-1)*ndir)%theta1, tdciresults(1+(iemax-1)*ndir)%phi1, &
@@ -697,6 +698,7 @@ subroutine trotter_linear
   
   nstuse2 = nstuse * nstuse
 
+  !: allocation and exphel = exp(-iH*dt/2)
   call trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, ion_coeff, Zion_coeff, iwork, scratch)
 
   !: write psi0
@@ -1059,6 +1061,7 @@ subroutine trotter_circular
 
   nstuse2 = nstuse*nstuse
 
+  !: allocation and exphel = exp(-iH*dt/2)
   call trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, ion_coeff, Zion_coeff, iwork, scratch)
 
   !: write psi0
@@ -1146,7 +1149,7 @@ subroutine trotter_circular
       !$OMP END CRITICAL (IO_LOCK)
         
       !: initialize psi
-      call cpu_time(start3)
+      call cpu_time(start1)
       psi = psi0
       if( read_state1(iemax).ne.0 ) then
         psi = dcmplx(0.d0,0.d0)
@@ -1168,8 +1171,8 @@ subroutine trotter_circular
       end if
       if( Qread_ion_coeff ) psi = dcmplx(0.d0,0.d0)
 
-      call cpu_time(finish3)
-      times(1) = start3 - finish3
+      call cpu_time(finish1)
+      times(1) = start1 - finish1 !: initialize psi time
 
       !: begin Looping over time
       call cpu_time( start2 )
@@ -1203,6 +1206,7 @@ subroutine trotter_circular
           end do
            
           !: psi contains exp(-iHel dt/2 ) * C(t)
+          !: hp1 is W1 := 
           !: psi1 = W1 * exp(-Vabs dt/2) * psi
           psi1 = dcmplx( 0.d0, 0.d0 )
           do j = 1, nstuse
@@ -1300,20 +1304,7 @@ subroutine trotter_circular
                  pop1,ion,ion_coeff,Priv%rate_a,Priv%rate_b,psi_det0,psi1,Priv%normV, &
                  Mol%vabsmoa,Mol%vabsmob,scratch,Priv%rate_direct)
             end if
-            !: 1-RDM stored in scratch now.
-
-            !: This code doesn't appear in linear_trotter... why?
-            ion_coeff = dcmplx( 0.d0,0.d0 )
-            do i=1,ip_states
-              cdum = dcmplx( 0.d0,0.d0 )
-              do j=1,nstuse
-                !:cdum = cdum + proj_ion(j+(i-1)*nstuse)*psi(j)
-              end do
-                !:write(iout,"(' ion_coeff_det',I4,4f12.7)") i,cdum/Priv%norm,abs(cdum/Priv%norm)
-              do k=1,ip_states
-                ion_coeff(k) = ion_coeff(k) + ip_vec(i+(k-1)*ip_states)*cdum
-              end do
-            end do
+            !: MO-based density matrix stored in rwork now.
 
             call get_norm( Priv%norm,nstuse, psi )
             call get_expectation( nstuse, Priv%norm, psi, abp, Priv%rate) !: rate expectation value
@@ -2694,16 +2685,27 @@ subroutine trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, io
   if( QeigenDC ) then
     allocate( iwork(3+5*nstuse) )
     allocate( scratch(1+8*nstuse+2*nstuse*nstuse) )
-    if(trim(jobtype).eq.flag_soc) then !: Ztrotter_linear
-      allocate( cwork(1+8*nstuse+2*nstuse*nstuse) )
+    if(trim(jobtype).eq.flag_soc) then !: Ztrotter
+      if(linear) then
+        allocate( cwork(1+8*nstuse+2*nstuse*nstuse) ) !: Ztrotter_linear
+      else
+        allocate( cwork(nstuse*nstuse+2*nstuse) ) !: Ztrotter_circular
+      end if
     end if
-  else
-    allocate( iwork(2) )
-    if(trim(jobtype).eq.flag_soc) then !: Ztrotter_linear
-      i = max(3*nstuse,(ip_states)*(ip_states))
-      allocate( cwork(i) )
+  else !: .not. QeigenDC
+    if((.not.linear).and.(trim(jobtype).eq.flag_soc)) then !: Ztrotter_circular
+      allocate( iwork(2) )
+      i = max(3*nstuse-2,(ip_states)*(ip_states))
+      allocate( scratch(i) ) !: weird that rwork (scratch) and cwork are swapped for circular. TODO: double-check array bounds in Ztrotter_circular
+      allocate( cwork(nstuse*nstuse) )
+    else !: trotter_circular, trotter_linear, Ztrotter_linear
+      allocate( iwork(2) )
+      if(trim(jobtype).eq.flag_soc) then !: Ztrotter_linear
+        i = max(3*nstuse,(ip_states)*(ip_states))
+        allocate( cwork(i) )
+      end if
+      allocate( scratch(nstuse*nstuse) )
     end if
-    allocate( scratch(nstuse*nstuse) )
   end if
 
   !: exphel = exp(-iH*dt/2)
