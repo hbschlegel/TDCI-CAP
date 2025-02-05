@@ -1,6 +1,25 @@
-# TDCI-CAP
 
-This code models ionization by performing state-based Time Dependent Configuration Interaction (TDCI) in the presence of a complex absorbing potential. Supports CI Singles (TD-CIS) for modeling first ionization, and TD-CISD-IP for second ionization.
+## Theoretical Background
+
+The time-dependent configuration interaction (TDCI) code can be used to simulate the electronic structure of a molecule interacting with the electric field of an intense, ultra-short laser pulse.
+The time-independent, ground and excited configurations of a molecule in the absence of a field are combined with time-dependent linear coefficients to model the molecular wavefunction in the electric field of the laser pulse (the nuclear positions kept fixed).
+The interaction of the molecule with the electric field of the laser pulse is treated in the semiclassical dipole approximation and the pulses can be linear or elliptically polarized.
+For strong field ionization, the molecule is surrounded by a complex absorbing potential (CAP) to remove the outgoing electron (see Figure 1).  
+
+![Figure 1](img/Figure1.png)
+***Figure 1.** Hydrogen atom wavefunction (light blue), Coulomb potential (dark blue) and complex absorbing potential (dashed dark blue) without a field. The strong field from a laser pulse suppresses the Coulomb potential (red) and the wavefunction (orange) can go over the Coulomb barrier or tunnel through it and be absorbed by the complex potential (dashed red).*
+
+For single ionization, the wavefunction includes the Hartree-Fock ground state and all singly excited configurations (CIS).
+Ionization of cations can be modeled by a CISD-IP wavefunction which is built from singly ionized and singly excited, singly ionized configurations of the Hartree-Fock ground state of the neutral molecule.
+For molecules with heavy elements, spin-orbit coupling (SOC) can be included with an effective one electron SOC operator.
+The wavefunction is propagated with the exponential of the field-dependent Hamiltonian using a Trotter factorization.
+The ionization yield for TDCI-CAP simulation is calculated from the decrease in the norm squared of the wavefunction as it interacts with the absorbing potential.
+The rate is computed from the expectation value of the absorbing potential using the time-dependent wavefunction.
+The integrals needed to construct the Hamiltonian are computed in an electronic structure program such as Gaussian.
+For strong field ionization standard molecular basis sets are augmented with several sets of diffuse functions to support the wavefunction as the electron leaves the molecule and interacts with the absorbing potential.
+The followings sections provide a brief overview of the theory and computational approaches of the TDCI code.
+More details on applications can be found in some of our papers.[^1][^2][^3][^4][^5][^6][^7]
+
 
 ## Compilation
 
@@ -235,8 +254,12 @@ Table of input parameters:
 
 
 
-
-
-
+[^1]: [Krause, P.; Sonk, J. A.; Schlegel, H. B., Strong field ionization rates simulated with time-dependent configuration interaction and an absorbing potential. J. Chem. Phys. 2014, 140, 174113. 10.1063/1.4874156](https://doi.org/10.1063/1.4874156) [(Mirror)](https://schlegelgroup.wayne.edu/Pub_folder/369.pdf)
+[^2]: test
+[^3]: test
+[^4]: test
+[^5]: test
+[^6]: test
+[^7]: test
 
 
