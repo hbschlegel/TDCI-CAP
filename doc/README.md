@@ -22,10 +22,17 @@ More details on applications can be found in some of our papers.[^1][^2][^3][^4]
 
 ### Hamiltonian 
 In the TD-CI approach, the electronic wavefunction is propagated with the time dependent Schrödinger equation.
-$$i\hbar \frac{\partial}{\partial t} \Psi(t) = \hat{H}(t)\Psi(t) = [\hat{H}_{el} + \hat{V}^{SOC} - \hat{\vec{\mu}} \cdot \vec{E}(t) - i \hat{V}^{abs}] \Psi(t) \tag{1}$$
+```math
+i\hbar \frac{\partial}{\partial t} \Psi(t) = \hat{H}(t)\Psi(t) = [\hat{H}_{el} + \hat{V}^{SOC} - \hat{\vec{\mu}} \cdot \vec{E}(t) - i \hat{V}^{abs}] \Psi(t) \tag{1}$$
+```
+
 $\hat{H}_{el}$ is the field-free, time-independent non-relativistic electronic Hamiltonian and the interaction with the electric field of an intense laser pulse is treated in the semiclassical dipole approximation, where $\hat{\vec{\mu}}$ is the dipole operator and $\vec{E}$ is the electric field.
 The spin-orbit coupling term is approximated by an effective one electron spin-orbit coupling operator. 
-$$\hat{V}^{SOC} = -\frac{\alpha_0^2}{2} \sum_A Z_A^{eff} \frac{(\vec{r} - \vec{r}_A) \times \nabla}{|\vec{r} - \vec{r}_A|^3} \tag{2}$$
+
+```math
+\hat{V}^{SOC} = -\frac{\alpha_0^2}{2} \sum_A Z_A^{eff} \frac{(\vec{r} - \vec{r}_A) \times \nabla}{|\vec{r} - \vec{r}_A|^3} \tag{2}$$
+```
+
 Suitable values for $Z^{eff}$ have been reported by Koseki, Gordon and co-workers and by Chiodo and Russo.
 $Z^{eff}$ can be adjusted to reproduce the experimentally observed spin-orbit splitting.
 $\hat{V}^{abs}$  is the absorbing potential.
