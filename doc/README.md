@@ -23,14 +23,14 @@ More details on applications can be found in some of our papers.[^1][^2][^3][^4]
 ### Hamiltonian 
 In the TD-CI approach, the electronic wavefunction is propagated with the time dependent Schrödinger equation.
 ```math
-i\hbar \frac{\partial}{\partial t} \Psi(t) = \hat{H}(t)\Psi(t) = [\hat{H}_{el} + \hat{V}^{SOC} - \hat{\vec{\mu}} \cdot \vec{E}(t) - i \hat{V}^{abs}] \Psi(t) \tag{1}$$
+i\hbar \frac{\partial}{\partial t} \Psi(t) = \hat{H}(t)\Psi(t) = \left[\hat{H}_{el} + \hat{V}^{SOC} - \hat{\vec{\mu}} \cdot \vec{E}(t) - i \hat{V}^{abs}\right] \Psi(t) \tag{1}
 ```
 
 $\hat{H}_{el}$ is the field-free, time-independent non-relativistic electronic Hamiltonian and the interaction with the electric field of an intense laser pulse is treated in the semiclassical dipole approximation, where $\hat{\vec{\mu}}$ is the dipole operator and $\vec{E}$ is the electric field.
 The spin-orbit coupling term is approximated by an effective one electron spin-orbit coupling operator. 
 
 ```math
-\hat{V}^{SOC} = -\frac{\alpha_0^2}{2} \sum_A Z_A^{eff} \frac{(\vec{r} - \vec{r}_A) \times \nabla}{|\vec{r} - \vec{r}_A|^3} \tag{2}$$
+\hat{V}^{SOC} = -\frac{\alpha_0^2}{2} \sum_A Z_A^{eff} \frac{(\vec{r} - \vec{r}_A) \times \nabla}{|\vec{r} - \vec{r}_A|^3} \tag{2}
 ```
 
 Suitable values for $Z^{eff}$ have been reported by Koseki, Gordon and co-workers and by Chiodo and Russo.
@@ -40,7 +40,7 @@ $\hat{V}^{abs}$  is the absorbing potential.
 ### Absorbing Potential
 The absorbing potential, $\hat{V}^{abs}$, surrounds the molecule starting at a distance of about 10 – 15 bohr and removes the outgoing part of the wavefunction thereby simulating ionization.
 The absorbing potential for the molecule is constructed from spherical potentials centered on each atom.
-The potential on atom C is written in terms of the distance from the nucleus, $r_c = |\vec{r} - \vec{C}|$.
+The potential on atom C is written in terms of the distance from the nucleus, $r_{c} = \left|\vec{r} - \vec{C}\right|$ .
 In the quadratic form, the atomic potential starts at $R_A$ rises quadratically to $(R_A+R_B)/2$, turns over quadratically to $R_B$ and is constant, $V_{max}$, beyond $R_B$. 
 
 ## Compilation
