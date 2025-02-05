@@ -4,7 +4,7 @@
 The time-dependent configuration interaction (TDCI) code can be used to simulate the electronic structure of a molecule interacting with the electric field of an intense, ultra-short laser pulse.
 The time-independent, ground and excited configurations of a molecule in the absence of a field are combined with time-dependent linear coefficients to model the molecular wavefunction in the electric field of the laser pulse (the nuclear positions kept fixed).
 The interaction of the molecule with the electric field of the laser pulse is treated in the semiclassical dipole approximation and the pulses can be linear or elliptically polarized.
-For strong field ionization, the molecule is surrounded by a complex absorbing potential (CAP) to remove the outgoing electron (see Figure 1).  
+For strong field ionization, the molecule is surrounded by a complex absorbing potential (CAP) to remove the outgoing electron (see Figure 1).
 
 ![Figure 1](img/Figure1.png)
 ***Figure 1.** Hydrogen atom wavefunction (light blue), Coulomb potential (dark blue) and complex absorbing potential (dashed dark blue) without a field. The strong field from a laser pulse suppresses the Coulomb potential (red) and the wavefunction (orange) can go over the Coulomb barrier or tunnel through it and be absorbed by the complex potential (dashed red).*
@@ -75,6 +75,105 @@ E_{max} \sin^2\left(\frac{\omega t}{2n}\right) \cos(\omega t), & 0 \leq t \leq 2
 0, & t > 2n.
 \end{cases}
 ```
+and an $n$ cycle circular polarized 800 nm pulse in the $xz$ plane with a $\sin^2$ envelope.
+For an \(n\) cycle circularly polarized 800 nm pulse in the \(xz\)-plane with a \(\sin^2\) envelope:
+
+```math
+E_x(t) = E_{max} \sin^2\left(\frac{\omega t}{2n}\right) \big[-\cos(\omega t)\cos(\gamma) - \sin(\omega t)\sin(\gamma)\big],
+```
+```math
+E_z(t) = E_{max} \sin^2\left(\frac{\omega t}{2n}\right) \big[\cos(\omega t)\sin(\gamma) - \sin(\omega t)\cos(\gamma)\big],
+```
+```math
+E_x(t) = E_z(t) = 0, \quad t \geq 2n.
+\tag{7}
+```
+$E_{max}$ is the maximum value for the electric field and $\gamma$ is the Euler angle that determines the direction of the major axis of an elliptically polarized pulse.
+To obtain directional information for ionization, a static field can be used instead of an oscillating field.
+To avoid non-adiabatic excitations, the electric field is slowly ramped up to a constant value. 
+```math
+\begin{cases}
+E(t) = E_{max} \left(1 - \left(1 - \frac{t}{t_{ramp}}\right)^4\right) & 0 \leq t \leq t_{ramp} \\
+E(t) = E_{max} & t > t_{ramp}.
+\end{cases}
+\tag{8}
+```
+The shapes of a 7 cycle linear pulse and a static pulse are shown in Figure 3.
+Several other pulse shapes available in the TDCI code are described in the Appendix.
+
+![Figure 1](img/Figure1.png)
+***Figure 3.** (a) A 7 cycle linearly polarized 800 nm pulse with a sin2 envelope (eq 6), (b) 2 cycle circularly polarized 800 nm pulse with a sin2 envelope showing x and z components in green and red, respectively (eq 7) and (c) a “static” pulse used to probe the angular dependence of strong field ionization (eq 8).*
+
+### Wavefunctions
+
+In the TD-CI approach, the wavefunction is written as a linear combination of time-dependent coefficients with time-independent states of the field-free Hamiltonian, $\Psi_s$.
+
+```math
+\Psi(t) = \sum_{s} C_{s}(t) \Psi_s
+```
+For single ionization of a neutral molecule to cations, a wavefunction consisting of the ground state and all singly excited configurations (CIS) is suitable,
+```math
+\Psi(t) = c_0(t)\psi_0 + \sum_{i,a} c_i^a(t) \psi_i^a
+```
+where $psi_i^a$ are singly excited determinants and i, j etc. and a, b, etc. are indices for the occupied and virtual molecular spin-orbitals, respectively.
+For ionization of a cation to a dication, a spin-unrestricted wavefunction could be used, but this treats the $\alpha$ and $\beta$ spin-orbitals differently. This problem can be overcome by using a CISD-IP wavefunction. The wavefunction is constructed using the molecular orbitals of the closed shell system and includes singly ionized determinants, $\psi_x$, and singly excited, singly ionized determinants, $\psi_{xi}^a$.
+```math
+\Psi(t) = \sum_x c_x(t) \psi_x + \sum_{x,i,a} c_{xi}^a \psi_{xi}^a
+```
+where x indicates the ionized molecular spin-orbitals.
+The ionizations generate the ground and excited states of the cation, and the single excitations serve to improve the energies of these cation states.
+As a result, the energies of the cation states will depend slightly on the number of virtual orbitals used to construct the singly excited, singly ionized determinants.
+
+### Propagation of the Wavefunction
+For typical strong field ionization studies, numerous simulations of 20 – 50 femtoseconds are needed (e.g. different pulse shapes, intensities and directions, different delay time in pump-probe simulations, etc.).
+Because of the strong fields and the wide range of the energies of the excited configurations, small time steps are required for the propagation.
+In the TDCI code the wavefunction is propagated with the exponential of the Hamiltonian, since this unitary transformation is very stable and allows for larger time steps.
+Typically, a time step of 0.05 au = 1.2 attoseconds can be used.
+Reducing the time step by a factor of 2 changes the ionization rate by less than 0.02% for typical simulations. 
+The exponential of the Hamiltonian can be obtained via a Trotter factorization with components depending on the field-free Hamiltonian, the absorbing potential and the dipole moment matrix.
+For a linearly polarized pulse, the propagation for a time step of $\Delta t$ is
+```math
+\Psi(t + \Delta t) = \exp(-i \hat{H} \Delta t) \Psi(t)
+```
+
+```math
+C(t + \Delta t) = \exp\left(-i \hat{H}_{el} \Delta t / 2\right) \exp\left(-V^{abs} \Delta t / 2\right)
+\cdot \exp\left(i E(t + \Delta t / 2) D \Delta t\right)
+\cdot \exp\left(-V^{abs} \Delta t / 2\right) \exp\left(-i \hat{H}_{el} \Delta t / 2\right) C(t)
+```
+
+```math
+= \exp\left(-i \hat{H}_{el} \Delta t / 2\right) U^{T} \exp\left(i E(t + \Delta t / 2) d \Delta t\right) U
+\cdot \exp\left(-i \hat{H}_{el} \Delta t / 2\right) C(t)
+```
+This requires some initial diagonalizations but avoids the exponentiation of a full matrix at every time step. The field-free Hamiltonian is time-independent and can be diagonalized once at the beginning of the simulation. By working in the eigenbasis of the field-free Hamiltonian, the exponential of the field-free Hamiltonian, $\exp(-i \hat{H}_{el} \Delta t/2)$, is a diagonal matrix and is easy to calculate.
+Because the absorbing potential is time-independent, $\exp(-V^{abs} \Delta t / 2)$ needs to be calculated only once.
+The calculation of $\exp(i \vec{E}(t + \Delta t / 2) \mathbf{D} \Delta t)$ would require an exponentiation of a full matrix at each time step.
+However, by diagonalizing $\mathbf{D} = \mathbf{W}^T \mathbf{d} \mathbf{W}$ once at the beginning of the simulation and working in the eigenbasis of $\mathbf{D}$, the contribution reduces to an easy-to-calculate exponential of a time-dependent diagonal matrix, $\exp(i \vec{E}(t + \Delta t / 2) \mathbf{d} \Delta t)$ . The product $\mathbf{U} = \exp(-V^{abs} \Delta t / 2) \mathbf{W}^T$ is formed once at the beginning of the propagation.
+Thus, all of the $N^3$ steps need to be done only once at the beginning and can be reused for many subsequent simulations.
+A propagation step for a linearly polarized pulse with fixed nuclear positions scales as $N^2$ and involves two full matrix-vector multiplies ( $\mathbf{U}$ and $\mathbf{U}^T$ ) and three diagonal matrix-vector multiplies ( $\exp(-i \hat{H}_{el} \Delta t / 2)$ and $\exp(i \vec{E}(t + \Delta t / 2) \mathbf{d} \Delta t)$ ).
+
+The corresponding Trotter factorization for a circularly polarized pulse involves two oscillating fields:
+
+```math
+\begin{aligned}
+C(t + \Delta t) = & \exp(-i \hat{H}_{el} \Delta t / 2) \exp(-V^{abs} \Delta t / 2) \\
+& \cdot \mathbf{W}_2^T \exp\left(i E_z(t + \Delta t / 2) d_2 \Delta t / 2\right) \mathbf{W}_2 \\
+& \cdot \mathbf{W}_1^T \exp\left(i E_x(t + \Delta t / 2) d_1 \Delta t\right) \mathbf{W}_1 \\
+& \cdot \mathbf{W}_2^T \exp\left(i E_z(t + \Delta t / 2) d_2 \Delta t / 2\right) \mathbf{W}_2 \\
+& \cdot \exp(-V^{abs} \Delta t / 2) \exp(-i \hat{H}_{el} \Delta t / 2) C(t).
+\end{aligned}
+```
+Here, <span> $\mathbf{W}_1 \mathbf{d}_1 \mathbf{W}_1^T = d_1$ </span> and <span> $\mathbf{W}_2 \mathbf{d}_2 \mathbf{W}_2^T = d_2$ are the eigenvalues and eigenvectors of the transition dipole matrices $\mathbf{D}_1$ and $\mathbf{D}_2$ in the two orthogonal field directions.
+The product $\mathbf{U}^T$ = $\mathbf{W}_{1} \mathbf{W}_{2}$ is formed once at the beginning of the propagation.
+A propagation step for a circularly polarized pulse with fixed nuclei involves four full matrix-vector multiplies ( $\mathbf{U}$ , $\mathbf{U}^T$ , $\mathbf{U}^T$ and $\mathbf{U}$ ) and five diagonal matrix-vector multiplies ( $\exp(-i \hat{H}_{el} \Delta t / 2)$ , $\exp(i \vec{E}(t + \Delta t / 2) d_1 \Delta t)$ , and $\exp(i \vec{E}(t + \Delta t / 2) d_2 \Delta t / 2)$ ).
+
+
+
+
+
+
+
 
 
 
@@ -86,7 +185,7 @@ E_{max} \sin^2\left(\frac{\omega t}{2n}\right) \cos(\omega t), & 0 \leq t \leq 2
 ## Compilation
 
 TDCI-CAP can be compiled with nvfortran on unix systems supported by NVIDIA's HPC SDK. We have tested only CentOS, Ubuntu, and Archlinux x64 builds.
-
+ 
 The NVIDIA HPC SDK can be downloaded at https://developer.nvidia.com/hpc-sdk-downloads
 NVIDIA's install instructions https://docs.nvidia.com/hpc-sdk/hpc-sdk-install-guide/index.html
 
