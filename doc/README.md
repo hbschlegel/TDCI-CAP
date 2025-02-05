@@ -40,8 +40,48 @@ $\hat{V}^{abs}$  is the absorbing potential.
 ### Absorbing Potential
 The absorbing potential, $\hat{V}^{abs}$, surrounds the molecule starting at a distance of about 10 – 15 bohr and removes the outgoing part of the wavefunction thereby simulating ionization.
 The absorbing potential for the molecule is constructed from spherical potentials centered on each atom.
-The potential on atom C is written in terms of the distance from the nucleus, $r_{c} = \left|\vec{r} - \vec{C}\right|$ .
+The potential on atom C is written in terms of the distance from the nucleus, ${r_{c}=\left|\vec{r} - \vec{C}\right|}$ .
 In the quadratic form, the atomic potential starts at $R_A$ rises quadratically to $(R_A+R_B)/2$, turns over quadratically to $R_B$ and is constant, $V_{max}$, beyond $R_B$. 
+```math
+\hat{V}^{abs}_{C}(r_c) =
+\begin{cases} 
+0, & r_c \leq R_A, \\
+V_{max}, & r_c \geq R_B, \\
+2V_{max} \left( \frac{r_c - R_A}{R_B - R_A} \right)^2, & R_A \leq r_c \leq \frac{R_A + R_B}{2}, \\
+V_{max} - 2V_{max} \left( \frac{R_B - r_c}{R_B - R_A} \right)^2, & \frac{R_A + R_B}{2} \leq r_c \leq R_B.
+\end{cases}
+\tag{3}
+```
+In the $sin^2$ form, the atomic potential on an atom rises as $\sin^2$ between $R_A$ and $R_B$,
+```math
+\hat{V}^{abs}_{C}(r_c) = V_{max} \sin^2 \left( \frac{\pi}{2} \frac{r_c - R_A}{R_B - R_A} \right), \quad R_A \leq r_c \leq R_B.
+\tag{4}
+```
+The absorbing potential for the molecule is equal to the minimum of the values of the atomic absorbing potentials. This has also been termed a Voronoi absorbing potential. 
+```math
+\hat{V}^{abs}(\vec{r}) = \min\left( \hat{V}^{abs}_1, \hat{V}^{abs}_2, \dots, \hat{V}^{abs}_{\text{Natoms}} \right).
+\tag{5}
+```
+Typical values of the parameters for the absorbing potential are $R_A = 3.5$ times the van der Waals radius for each atom (so that the absorbing potential starts far enough beyond the Coulomb well), $R_B = 10$ times the van der Waals radius (so that the rise in the absorbing potential is gradual enough to minimize any reflection) and $V_{\text{max}} = 10$ hartree (so that the potential is strongly absorbing but the integrals remain finite). Figure 2 shows examples of atomic and molecular absorbing potentials.
+![Figure 1](img/Figure1.png)
+***Figure 2.** (a) Shape of an atomic absorbing potential ($\sin^2$ form in red, quadratic form in dashed blue), (b) 2D plot of $R_A$ for absorbing potential of carbon (black), oxygen (red) and hydrogen (grey) in $CH_2O$ (c) 3D plot of RA (gold) and $(R_A+R_B)/2$ (blue) for the molecular absorbing potential for $CH_2O$.*
+
+### Electric Field of Laser Pulse
+The electric field for linearly polarized $n$ cycle pulse with a $\sin^2$ envelope is,
+```math
+E(t) =
+\begin{cases}
+E_{max} \sin^2\left(\frac{\omega t}{2n}\right) \cos(\omega t), & 0 \leq t \leq 2n \\
+0, & t > 2n.
+\end{cases}
+```
+
+
+
+
+
+
+
 
 ## Compilation
 
