@@ -62,7 +62,9 @@ The absorbing potential for the molecule is equal to the minimum of the values o
 \hat{V}^{abs}(\vec{r}) = \min\left( \hat{V}^{abs}_1, \hat{V}^{abs}_2, \dots, \hat{V}^{abs}_{\text{Natoms}} \right).
 \tag{5}
 ```
+
 Typical values of the parameters for the absorbing potential are $R_A = 3.5$ times the van der Waals radius for each atom (so that the absorbing potential starts far enough beyond the Coulomb well), $R_B = 10$ times the van der Waals radius (so that the rise in the absorbing potential is gradual enough to minimize any reflection) and $V_{\text{max}} = 10$ hartree (so that the potential is strongly absorbing but the integrals remain finite). Figure 2 shows examples of atomic and molecular absorbing potentials.
+
 ![Figure 2](img/Figure2.png)
 ***Figure 2.** (a) Shape of an atomic absorbing potential ($\sin^2$ form in red, quadratic form in dashed blue), (b) 2D plot of $R_A$ for absorbing potential of carbon (black), oxygen (red) and hydrogen (grey) in $CH_2O$ (c) 3D plot of RA (gold) and $(R_A+R_B)/2$ (blue) for the molecular absorbing potential for $CH_2O$.*
 
@@ -138,17 +140,12 @@ For a linearly polarized pulse, the propagation for a time step of $\Delta t$ is
 
 ```math
 \begin{align}
-C(t + \Delta t) = & \exp\left(-i \hat{H}_{el} \Delta t / 2\right) \exp\left(-V^{abs} \Delta t / 2\right)
-& \cdot \exp\left(i E(t + \Delta t / 2) D \Delta t\right)
-& \cdot \exp\left(-V^{abs} \Delta t / 2\right) \exp\left(-i \hat{H}_{el} \Delta t / 2\right) C(t)
-\end{align}
-```
-
-```math
-\begin{align}
-= \exp\left(-i \hat{H}_{el} \Delta t / 2\right) U^{T}
-& \cdot \exp\left(i E(t + \Delta t / 2) d \Delta t\right)
-& \cdot U \cdot \exp\left(-i \hat{H}_{el} \Delta t / 2\right) C(t)
+C(t + \Delta t) = \ \ & \exp\left(-i \hat{H}_{el} \Delta t / 2\right) \exp\left(-V^{abs} \Delta t / 2\right) \\
+\cdot & \exp\left(i E(t + \Delta t / 2) D \Delta t\right) \\
+\cdot & \exp\left(-V^{abs} \Delta t / 2\right) \exp\left(-i \hat{H}_{el} \Delta t / 2\right) C(t) \\
+= \ \ & \exp\left(-i \hat{H}_{el} \Delta t / 2\right) U^{T} \\
+\cdot & \exp\left(i E(t + \Delta t / 2) d \Delta t\right) \\
+\cdot & U \cdot \exp\left(-i \hat{H}_{el} \Delta t / 2\right) C(t)
 \end{align}
 ```
 This requires some initial diagonalizations but avoids the exponentiation of a full matrix at every time step.
@@ -156,15 +153,14 @@ The field-free Hamiltonian is time-independent and can be diagonalized once at t
 By working in the eigenbasis of the field-free Hamiltonian, the exponential of the field-free Hamiltonian,
 ```math
 \exp(-i \hat{H}_{el} \Delta t/2)
-```, is a diagonal matrix and is easy to calculate.
+```
+is a diagonal matrix and is easy to calculate.
 Because the absorbing potential is time-independent, 
 ```math
 \exp(-V^{abs} \Delta t / 2)
-``` needs to be calculated only once.
-The calculation of 
-```math
-\exp(i \vec{E}(t + \Delta t / 2) \mathbf{D} \Delta t)
-``` would require an exponentiation of a full matrix at each time step.
+```
+needs to be calculated only once.
+The calculation of $\exp(i \vec{E}(t + \Delta t / 2) \mathbf{D} \Delta t)$ would require an exponentiation of a full matrix at each time step.
 However, by diagonalizing $\mathbf{D} = \mathbf{W}^T \mathbf{d} \mathbf{W}$ once at the beginning of the simulation and working in the eigenbasis of $\mathbf{D}$, the contribution reduces to an easy-to-calculate exponential of a time-dependent diagonal matrix, $\exp(i \vec{E}(t + \Delta t / 2) \mathbf{d} \Delta t)$ . The product $\mathbf{U} = \exp(-V^{abs} \Delta t / 2) \mathbf{W}^T$ is formed once at the beginning of the propagation.
 Thus, all of the $N^3$ steps need to be done only once at the beginning and can be reused for many subsequent simulations.
 A propagation step for a linearly polarized pulse with fixed nuclear positions scales as $N^2$ and involves two full matrix-vector multiplies ( $\mathbf{U}$ and $\mathbf{U}^T$ ) and three diagonal matrix-vector multiplies ( $\exp(-i \hat{H}_{el} \Delta t / 2)$ and $\exp(i \vec{E}(t + \Delta t / 2) \mathbf{d} \Delta t)$ ).
@@ -191,7 +187,7 @@ and
 are the eigenvalues and eigenvectors of the transition dipole matrices $\mathbf{D}_1$ and $\mathbf{D}_2$ in the two orthogonal field directions.
 The product 
 ```math
-$\mathbf{U}^T$ = $\mathbf{W}_{1} \mathbf{W}_{2}
+\mathbf{U}^T$ = \mathbf{W}_{1} \mathbf{W}_{2}
 ```
 is formed once at the beginning of the propagation.
 A propagation step for a circularly polarized pulse with fixed nuclei involves four full matrix-vector multiplies ( $\mathbf{U}$ , $\mathbf{U}^T$ , $\mathbf{U}^T$ and $\mathbf{U}$ ) and five diagonal matrix-vector multiplies:
@@ -209,29 +205,24 @@ and
 ### Ionization Rate
 
 The ionization rate is taken as the rate of decrease in the norm squared of the wavefunction as the wavefunction interacts with the absorbing potential (Figure 4). 
+
 ![Figure 4](img/Figure4.png)
 ***Figure 4.** Strong field ionization of hydrogen atom (a) electric field of a “static” pulse with three different intensities (b) dipole moment demonstrating hydrogen responds adiabatically to the field (c) decrease in the norm of the wavefunction as hydrogen is ionized by the electric field.*
 
-Using the time-dependent Schrödinger equation, the rate can be related to the expectation value of the absorbing potential,
-
+Using the time-dependent Schrödinger equation, 
 ```math
 i \frac{\partial \Psi(t)}{\partial t} = [\hat{H}(t) - i \hat{V}^{\text{abs}}] \Psi(t)
 ```
-
-```
+the rate can be related to the expectation value of the absorbing potential,
+```math
 \begin{aligned}
-\text{rate}(t) = & -\frac{d \langle \Psi(t) | \Psi(t) \rangle}{dt}
-
-& = -\langle \Psi(t) | \frac{d \Psi(t)}{dt} \rangle + \text{complex conjugate}
-
-& = -\langle \Psi(t) | -i [\hat{H}(t) - i \hat{V}^{\text{abs}}] \Psi(t) \rangle + \text{complex conjugate}
-
-& = 2 \langle \Psi(t) | \hat{V}^{\text{abs}} | \Psi(t) \rangle
-
+\text{rate}(t) = & -\frac{d \langle \Psi(t) | \Psi(t) \rangle}{dt} \\
+& = -\langle \Psi(t) | \frac{d \Psi(t)}{dt} \rangle + \text{complex conjugate} \\
+& = -\langle \Psi(t) | -i [\hat{H}(t) - i \hat{V}^{\text{abs}}] \Psi(t) \rangle + \text{complex conjugate} \\
+& = 2 \langle \Psi(t) | \hat{V}^{\text{abs}} | \Psi(t) \rangle \\
 & = 2 \sum_{r,s} C_r^*(t) C_s(t) \langle \Psi_r | \hat{V}^{\text{abs}} | \Psi_s \rangle
 \end{aligned}
 ```
-
 where $r$ and $s$ are indices for configurations.
 For simplicity, the CIS wavefunction is used in the following equations, but these can be easily extended to CISD-IP.
 In terms of determinants, the ionization rate is
@@ -265,7 +256,6 @@ Because diffuse functions on adjacent centers overlap strongly, the exponents sh
 
 ![Figure 5](img/Figure5.png)
 ***Figure 5.** Example of diffuse s, p, d and f gaussian basis functions added to support the wavefunction in the region between the Coulomb well and the absorbing potential.*
-
 
 
 ## Compilation
