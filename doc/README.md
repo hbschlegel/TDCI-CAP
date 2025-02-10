@@ -384,12 +384,19 @@ The tools/rate\_analyzer.py script must be executed from the job directory, and 
 
 Next, we provide a sample tdci `input` file.
 The `input` file is separated into "namelist" sections that start with `&` and end with `/`.
+
 A table with descriptions of each parameter is provided below.
+
 In this example, we set the initial wavefunction as a superposition between the $S_0$ and $S_2$ states with the `init_states` and `init_coeffs` parameters.
+
 The `FIELD` section specifies that a "static" field (slowly ramps up to a static value) will be applied to the system.
+
 The `FIELD_strengths` section specifies that we will only propagate one field strength of 0.0500 atomic units.
+
 The `FIELD_directions` section says that we will apply this field in two different directions, the `$(\theta,\phi)=(0,0)$` direction, and the `$(\theta,\phi)=(30,0)$` direction.
+
 The parameters in the `SYSTEM` section control the propagation scheme, including the duration and number of timesteps. 
+
 
 ```bash
  &DYNAMICS
