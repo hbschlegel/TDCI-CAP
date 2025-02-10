@@ -9,16 +9,16 @@ For strong field ionization, the molecule is surrounded by a complex absorbing p
 ![Figure 1](img/Figure1.png)
 ***Figure 1.** Hydrogen atom wavefunction (light blue), Coulomb potential (dark blue) and complex absorbing potential (dashed dark blue) without a field. The strong field from a laser pulse suppresses the Coulomb potential (red) and the wavefunction (orange) can go over the Coulomb barrier or tunnel through it and be absorbed by the complex potential (dashed red).*
 
-For single ionization, the wavefunction includes the Hartree-Fock ground state and all singly excited configurations (CIS).
+For single ionization, the wavefunction includes the Hartree-Fock ground state and all singly excited configurations (CIS).[^1][^2]
 Ionization of cations can be modeled by a CISD-IP wavefunction which is built from singly ionized and singly excited, singly ionized configurations of the Hartree-Fock ground state of the neutral molecule.
-For molecules with heavy elements, spin-orbit coupling (SOC) can be included with an effective one electron SOC operator.
+For molecules with heavy elements, spin-orbit coupling (SOC) can be included with an effective one electron SOC operator.[^5]
 The wavefunction is propagated with the exponential of the field-dependent Hamiltonian using a Trotter factorization.
 The ionization yield for TDCI-CAP simulation is calculated from the decrease in the norm squared of the wavefunction as it interacts with the absorbing potential.
 The rate is computed from the expectation value of the absorbing potential using the time-dependent wavefunction.
 The integrals needed to construct the Hamiltonian are computed in an electronic structure program such as Gaussian.
 For strong field ionization standard molecular basis sets are augmented with several sets of diffuse functions to support the wavefunction as the electron leaves the molecule and interacts with the absorbing potential.
 The followings sections provide a brief overview of the theory and computational approaches of the TDCI code.
-More details on applications can be found in some of our papers.[^1][^2][^3][^4][^5][^6][^7]
+More details on applications can be found in some of our papers.[^3][^4][^6][^7]
 
 ### Hamiltonian 
 In the TD-CI approach, the electronic wavefunction is propagated with the time dependent Schrödinger equation.
@@ -63,7 +63,7 @@ The absorbing potential for the molecule is equal to the minimum of the values o
 \tag{5}
 ```
 Typical values of the parameters for the absorbing potential are $R_A = 3.5$ times the van der Waals radius for each atom (so that the absorbing potential starts far enough beyond the Coulomb well), $R_B = 10$ times the van der Waals radius (so that the rise in the absorbing potential is gradual enough to minimize any reflection) and $V_{\text{max}} = 10$ hartree (so that the potential is strongly absorbing but the integrals remain finite). Figure 2 shows examples of atomic and molecular absorbing potentials.
-![Figure 1](img/Figure1.png)
+![Figure 2](img/Figure2.png)
 ***Figure 2.** (a) Shape of an atomic absorbing potential ($\sin^2$ form in red, quadratic form in dashed blue), (b) 2D plot of $R_A$ for absorbing potential of carbon (black), oxygen (red) and hydrogen (grey) in $CH_2O$ (c) 3D plot of RA (gold) and $(R_A+R_B)/2$ (blue) for the molecular absorbing potential for $CH_2O$.*
 
 ### Electric Field of Laser Pulse
@@ -101,7 +101,7 @@ E(t) = E_{max} & t > t_{ramp}.
 The shapes of a 7 cycle linear pulse and a static pulse are shown in Figure 3.
 Several other pulse shapes available in the TDCI code are described in the Appendix.
 
-![Figure 1](img/Figure1.png)
+![Figure 3](img/Figure3.png)
 ***Figure 3.** (a) A 7 cycle linearly polarized 800 nm pulse with a sin2 envelope (eq 6), (b) 2 cycle circularly polarized 800 nm pulse with a sin2 envelope showing x and z components in green and red, respectively (eq 7) and (c) a “static” pulse used to probe the angular dependence of strong field ionization (eq 8).*
 
 ### Wavefunctions
@@ -164,21 +164,91 @@ C(t + \Delta t) = & \exp(-i \hat{H}_{el} \Delta t / 2) \exp(-V^{abs} \Delta t / 
 & \cdot \exp(-V^{abs} \Delta t / 2) \exp(-i \hat{H}_{el} \Delta t / 2) C(t).
 \end{aligned}
 ```
-Here, <span> $\mathbf{W}_1 \mathbf{d}_1 \mathbf{W}_1^T = d_1$ </span> and <span> $\mathbf{W}_2 \mathbf{d}_2 \mathbf{W}_2^T = d_2$ are the eigenvalues and eigenvectors of the transition dipole matrices $\mathbf{D}_1$ and $\mathbf{D}_2$ in the two orthogonal field directions.
-The product $\mathbf{U}^T$ = $\mathbf{W}_{1} \mathbf{W}_{2}$ is formed once at the beginning of the propagation.
-A propagation step for a circularly polarized pulse with fixed nuclei involves four full matrix-vector multiplies ( $\mathbf{U}$ , $\mathbf{U}^T$ , $\mathbf{U}^T$ and $\mathbf{U}$ ) and five diagonal matrix-vector multiplies ( $\exp(-i \hat{H}_{el} \Delta t / 2)$ , $\exp(i \vec{E}(t + \Delta t / 2) d_1 \Delta t)$ , and $\exp(i \vec{E}(t + \Delta t / 2) d_2 \Delta t / 2)$ ).
+Here,
+```math
+\mathbf{W}_1 \mathbf{d}_1 \mathbf{W}_1^T = d_1
+```
+and 
+```math
+\mathbf{W}_2 \mathbf{d}_2 \mathbf{W}_2^T = d_2
+```
+are the eigenvalues and eigenvectors of the transition dipole matrices $\mathbf{D}_1$ and $\mathbf{D}_2$ in the two orthogonal field directions.
+The product 
+```math
+$\mathbf{U}^T$ = $\mathbf{W}_{1} \mathbf{W}_{2}
+```
+is formed once at the beginning of the propagation.
+A propagation step for a circularly polarized pulse with fixed nuclei involves four full matrix-vector multiplies ( $\mathbf{U}$ , $\mathbf{U}^T$ , $\mathbf{U}^T$ and $\mathbf{U}$ ) and five diagonal matrix-vector multiplies:
+```math
+\exp(-i \hat{H}_{el} \Delta t / 2)
+```
+```math
+\exp(i \vec{E}(t + \Delta t / 2) d_1 \Delta t)
+```
+and
+```math
+\exp(i \vec{E}(t + \Delta t / 2) d_2 \Delta t / 2)
+```
+
+### Ionization Rate
+
+The ionization rate is taken as the rate of decrease in the norm squared of the wavefunction as the wavefunction interacts with the absorbing potential (Figure 4). 
+![Figure 4](img/Figure4.png)
+***Figure 4.** Strong field ionization of hydrogen atom (a) electric field of a “static” pulse with three different intensities (b) dipole moment demonstrating hydrogen responds adiabatically to the field (c) decrease in the norm of the wavefunction as hydrogen is ionized by the electric field.*
+
+Using the time-dependent Schrödinger equation, the rate can be related to the expectation value of the absorbing potential,
+
+```math
+i \frac{\partial \Psi(t)}{\partial t} = [\hat{H}(t) - i \hat{V}^{\text{abs}}] \Psi(t)
+```
+
+```
+\begin{aligned}
+\text{rate}(t) = & -\frac{d \langle \Psi(t) | \Psi(t) \rangle}{dt}
+
+& = -\langle \Psi(t) | \frac{d \Psi(t)}{dt} \rangle + \text{complex conjugate}
+
+& = -\langle \Psi(t) | -i [\hat{H}(t) - i \hat{V}^{\text{abs}}] \Psi(t) \rangle + \text{complex conjugate}
+
+& = 2 \langle \Psi(t) | \hat{V}^{\text{abs}} | \Psi(t) \rangle
+
+& = 2 \sum_{r,s} C_r^*(t) C_s(t) \langle \Psi_r | \hat{V}^{\text{abs}} | \Psi_s \rangle
+\end{aligned}
+```
+
+where $r$ and $s$ are indices for configurations.
+For simplicity, the CIS wavefunction is used in the following equations, but these can be easily extended to CISD-IP.
+In terms of determinants, the ionization rate is
+
+```math
+\begin{align}
+\text{rate}(t) = & \, 2 \[ c_0^*(t) c_0(t) \langle \Psi_0 | \hat{V}^{\text{abs}} | \Psi_0 \rangle \\
+& + \sum_{i,a} c_i^{a*}(t) c_0(t) \langle \Psi_i^a | \hat{V}^{\text{abs}} | \Psi_0 \rangle \\
+& + \sum_{j,b} c_0^*(t) c_j^b(t) \langle \Psi_0 | \hat{V}^{\text{abs}} | \Psi_j^b \rangle \\
+& + \sum_{i,j,a,b} c_i^{a*}(t) c_j^b(t) \langle \Psi_i^a | \hat{V}^{\text{abs}} | \Psi_j^b \rangle \Bigg]
+\end{align}
+```
+
+The rate can also be written in terms of the density matrix and the absorbing potential in the basis of the molecular orbitals, $\phi_p$
+
+```math
+\text{rate}(t) = 2 \sum_{p,q}^{\text{all}} \rho_{pq}(t) \langle \phi_p | \hat{V}^{\text{abs}} | \phi_q \rangle
+```
+where $\rho_{pq}(t)$ is the time-dependent one particle density matrix derived from the CI wavefunction and indices p and q run over all occupied and virtual orbitals.
+This form is also applicable to rt-TD-DFT.
 
 
+### Basis Sets
+For simulations of strong field ionization with TDCI, standard molecular basis set must be augmented by several sets of diffuse functions to support the wavefunction as it is distorted by the strong field and interacts with the absorbing potential.
+Various sets of diffuse functions have been developed and evaluated for their ability to treat strong field ionization.
+The added diffuse functions should represent the unbound electron density optimally as it interacts with the laser field and the absorbing potential but should be limited in number so that the simulations can be carried out efficiently.
+These sets include diffuse *s*, *p*, *d*, and *f* gaussian functions with selected even-tempered exponents of the form 0.0001×2n placed on each atom.
+When combined with the aug-cc-pVTZ molecular basis set and an absorbing potential starting at 3.5 times the van der Waals radius for each atom, the least diffuse *s*, *p* and *f* functions should have exponents of 0.0256 and 0.0512 for *d* functions.
+The most diffuse *s*, *p*, *d*, and *f* functions should have exponents of 0.0032, 0.0032, 0.0064 and 0.0064, respectively (or possibly or smaller).
+Because diffuse functions on adjacent centers overlap strongly, the exponents should not be too small since this leads to severe linear dependencies problems and SCF convergence problems.  
 
-
-
-
-
-
-
-
-
-
+![Figure 5](img/Figure5.png)
+***Figure 5.** Example of diffuse s, p, d and f gaussian basis functions added to support the wavefunction in the region between the Coulomb well and the absorbing potential. *
 
 
 
@@ -201,11 +271,12 @@ Once the compilation is complete, you will find the tdci executable in the `bin/
 
 ## Tutorial
 
-
-
-
 ### Gaussian Input
-Before running TDCI, we must run a preliminary Gaussian Configuration Interaction Singles (CIS) calculation to obtain the one and two electron integrals, dipole, and absorbing potential matrix elements.
+Before running TDCI, we must run a preliminary Gaussian Configuration Interaction Singles (CIS) calculation to obtain necessary integrals for the calculation.
+The one electron integrals are written in the atomic orbital basis and include the dipole moment, spin-orbit and absorbing potential integrals ($Z_{\text{eff}}$ needs to be specified for each atom for spin-orbit calculations).
+The transformed two electron integrals are written in the molecular orbital basis in the Gaussian “bucket” format.
+Since most strong field simulations use only a limited number of occupied orbitals and eliminate the highest energy virtual orbitals, the Gaussian input needs to specify the number of occupied and virtual orbitals for the integral transformation.
+These files can be very large but can be used for multiple simulations as long as the molecular geometry is the same.
 We use Gaussian development version gdvj28p.
 Below is an example Gaussian input file. Several nonstandard inputs are necessary, and are described in more detail below.
 
@@ -215,7 +286,7 @@ Below is an example Gaussian input file. Several nonstandard inputs are necessar
 %mem=10GB
 %nproc=10
 #P ucis(mo,nstates=5)/aug-cc-pVDZ extrabasis gfprint
-int(acc2e=12) Pop=Full IOp(3/194=12003501,6/18=1,8/10=91,8/37=2,8/38=-10,9/127=2)
+int(acc2e=12) Pop=Full IOp(3/194=10003501,3/195=10,6/18=1,8/10=91,8/37=2,8/38=-10,9/127=2)
 OUTPUT=(faf,i4lab,Files=(619,751,870,1,2,3,4,5,6,7,8,9,10,11,12,13,14))
 
 h2o
@@ -241,18 +312,19 @@ MatrixElements.faf
 
 `IOp(3/194)` can set the absorbing potential parameters proportional to each atom's van der Waals radius in the following format:
 `aaabbb01`
-Where the outer (inner) boundary is set at aaa/10 (bbb/10) times the atom's van der Waals radius, respectively.
-For example, the `3/194=12003501` in the example sets the inner boundary to 3.5 radii, and the outer boundary to 12 radii.
+<!-- Where the outer (inner) boundary is set at aaa/10 (bbb/10) times the atom's van der Waals radius, respectively. -->
+Where the outer boundary is set at aaa/10 times the atom's van der Waals radius, and the inner boundary is set at bbb/10 times the atom's van der Waals radius.
+For example, the `3/194=10003501` in the example sets the inner boundary to 3.5 radii, and the outer boundary to 10 radii.
 
-`IOp(3/195)` sets the maximum value of the absorbing potential in atomic units.
+`IOp(3/195)` sets the maximum value of the absorbing potential in atomic units. 10 is a good default.
 
 `IOp(6/18)=1` and `IOp(9/127)=2` are necessary for writing the MatrixElements.faf
 
-`IOp(8/10)=91` enables `IOp(8/37-38)`, which specify the orbital cutoffs.
+`IOp(8/10)=91` enables `IOp(8/37)` and `IOp(8/38)`, which specify the orbital cutoffs.
 
-`IOp(8/37)=2` selects the first occupied orbital to be included in the active space. Excitations out of orbitals below will not be considered.
+`IOp(8/37)=2` selects the first occupied orbital to be included in the active space. Excitations out of orbitals below will not be considered. Note that orbitals are indexed staring at 1, not 0.
 
-`IOp(8/38)=-10` selects the end of the active space. If `IOp(8/38)=N` where N is positive, the last virtual orbital in the active space will be orbital `N-1`. If N is negative, the N highest energy virtual orbitals will be removed from the active space. In practice, we select this to ignore orbitals above about 3.0 Hartree. 
+`IOp(8/38)=-10` selects the end of the active space. If `IOp(8/38)=N` where N is positive, the last virtual orbital in the active space will be orbital `N`. If N is negative, the N highest energy virtual orbitals will be removed from the active space. In practice, we select this to ignore orbitals above about 3.0 Hartree. 
 
 Don't change the line that starts with `OUTPUT=`, it specifies the indices of the various files to be included in the MatrixElements.faf file.
 
@@ -268,28 +340,50 @@ Once your Gaussian calculation successfully finishes, there should be a MatrixEl
 
 ### TDCI input
 
-TDCI expects both 'MatrixElements.faf' and 'input' to be in the current working directory. Sample tdci input files can be found in the test/tests folder. To perform a tdci simulation, simply execute the tdci binary (or sbatch script) from inside the job directory. We recommend separating the gaussian and tdci job directories, and creating symlink to the MatrixElements.faf in your tdci directory.
-Your setup should look something like this:
+TDCI expects both 'MatrixElements.faf' and 'input' to be in the current working directory. Sample tdci input files can be found in the test/tests folder, or in the section below. To perform a tdci simulation, simply execute the tdci binary (or sbatch script) from inside the job directory.
+We recommend separating the gaussian and tdci job directories, and creating symlink to the MatrixElements.faf in your tdci directory.
+Here's how to set up a TDCI job directory in the recommended way. We assume that the Gaussian calculation is performed inside a directory called `gaussian_h2o`.
 
 ```bash
-~$ cd tdci_h2o
-~$ ln -s ../gaussian_h2o/MatrixElements.faf .  # Create symlink.
-~/tdci_h2o$ ls -alt
+mkdir tdci_h2o                                # Create TDCI job directory
+cd tdci_h2o                                   # Enter TDCI job directory
+ln -s ../gaussian_h2o/MatrixElements.faf .    # Create symlink.
+ls -alt                                       # Print out a directory listing
+```
+
+Once you finish setting up your input file, your directory should look something like this:
+
+```
 drwxr-xr-x 18 user user     4096 Sep 23 16:47 ..
 drwxr-xr-x 18 user user     4096 Sep 23 16:47 .
 -rw-r--r--  1 user user     2052 Sep 22 18:42 input
 lrwxrwxrwx  1 user user       39 Sep 22 18:42 MatrixElements.faf -> ../gaussian_h2o/MatrixElements.faf
-
-~/tdci_h2o$ ~/TDCI-CAP/bin/tdci
-
 ```
 
-TDCI itself exports some data tables in the job directory, but TDCI is also packaged with a python analysis script that generates many tables and plots. The tools/rate\_analyzer.py script must be executed from the job directory, and passed the path of the gaussian output log as an argument.
+Then you can execute TDCI. If you are running on your own hardware, you can directly invoke the executable:
+```
+~/TDCI-CAP/bin/tdci
+```
+If you are using shared computing, make sure to wrap this in an sbatch script. 
+
+
+<!-- Commenting out this section so we don't have to explain write_matrices = .true.
+
+ TDCI itself exports some data tables in the job directory, but TDCI is also packaged with a python analysis script that generates many tables and plots.
+The tools/rate\_analyzer.py script must be executed from the job directory, and passed the path of the gaussian output log as an argument.
 ```
 ~/tdci_h2o$ python3 ~/TDCI-CAP/tools/rate_analyzer.py ../gaussian_h2o/h2o.log
 ```
+-->
 
-Next, we provide a sample tdci `input` file. A table with descriptions of each parameter is provided below.
+Next, we provide a sample tdci `input` file.
+The `input` file is separated into "namelist" sections that start with `&` and end with `/`.
+A table with descriptions of each parameter is provided below.
+In this example, we set the initial wavefunction as a superposition between the $S_0$ and $S_2$ states with the `init_states` and `init_coeffs` parameters.
+The `FIELD` section specifies that a "static" field (slowly ramps up to a static value) will be applied to the system.
+The `FIELD_strengths` section specifies that we will only propagate one field strength of 0.0500 atomic units.
+The `FIELD_directions` section says that we will apply this field in two different directions, the `$(\theta,\phi)=(0,0)$` direction, and the `$(\theta,\phi)=(30,0)$` direction.
+The parameters in the `SYSTEM` section control the propagation scheme, including the duration and number of timesteps. 
 
 ```bash
  &DYNAMICS
@@ -306,12 +400,7 @@ Next, we provide a sample tdci `input` file. A table with descriptions of each p
  /
  &FIELD
  dirform  = 'polar'
- ellipt   =  1.000
  envelope = 'stat'
- ncyc     =     7
- omega    =  0.057
- phase    = 90.000
- euler    =  0.000
  /
 &FIELD_strengths 
  nemax =       1
@@ -348,10 +437,6 @@ Next, we provide a sample tdci `input` file. A table with descriptions of each p
  Qwrite_ion_coeff= .false.
  Qread_ion_coeff = .false.
  Qmo_dens        = .true.
- write_binaries = .false.
- /
-&Davidson
- flag_davidson = .False. 
  /
 
 ```
@@ -406,11 +491,36 @@ Table of input parameters:
 
 
 
+## Output Files
+
+This section describes the main output files generated by the TDCI code.
+Each file (aside from OUTPUT) is named according to the electric-field strength index (X) and direction index (Y), typically appearing in the filename as -eX-dY.
+For example, the RESULTS file for the progataion with the first specified field and direction will be named RESULTS-e1-d1.dat
+
+
+### OUTPUT
+This is the main log file. Similar to a Gaussian log file, it contains both data tables and information about the progress of the calculation.
+After running a TDCI calculation, this should be the first place you check to make sure that it completed successfully.
+
+### RESULTS-eX-dY.dat
+
+The RESULTS file tabulates values of interest at each timestep.
+It provides time, field, total norm, ionization rate, and dipole moment components (`mu_x,y,z`).
+The MO99 number describes the total number of orbitals needed to contribute 99% of the total ionization rate. NO99 is the same for a user-supplied set of orbitals.
+In a good ionization simulation, you should aim for a final norm between 0.3 and 0.6 in the direction with most ionization.
+You may have to play around with the Emax or timestep values to achieve this.
+
+### POP-eX-dY.dat
+
+Tracks the populations of occupied orbitals at each timestep.
+Also contains the partitioned ionization rate for each orbital, as described in equation REF.
+
+### ION-eX-dY.dat
+
+Tracks the populations of orbitals and states in the ionized system.
 
 
 ## How to cite
-
-
 
 [^1]: [Krause, P.; Sonk, J. A.; Schlegel, H. B., Strong field ionization rates simulated with time-dependent configuration interaction and an absorbing potential. J. Chem. Phys. 2014, 140, 174113. 10.1063/1.4874156](https://doi.org/10.1063/1.4874156) -- ([Mirror](https://schlegelgroup.wayne.edu/Pub_folder/369.pdf))
 [^2]: [Krause, P.; Schlegel, H. B., Angle-dependent ionization of small molecules by time-dependent configuration interaction and an absorbing potential. J. Phys. Chem. Lett. 2015, 6, 2140-2146. 10.1021/acs.jpclett.5b00929](https://doi.org/10.1021/acs.jpclett.5b00929) -- ([Mirror](https://schlegelgroup.wayne.edu/Pub_folder/381.pdf))
