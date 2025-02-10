@@ -137,18 +137,34 @@ For a linearly polarized pulse, the propagation for a time step of $\Delta t$ is
 ```
 
 ```math
-C(t + \Delta t) = \exp\left(-i \hat{H}_{el} \Delta t / 2\right) \exp\left(-V^{abs} \Delta t / 2\right)
-\cdot \exp\left(i E(t + \Delta t / 2) D \Delta t\right)
-\cdot \exp\left(-V^{abs} \Delta t / 2\right) \exp\left(-i \hat{H}_{el} \Delta t / 2\right) C(t)
+\begin{align}
+C(t + \Delta t) = & \exp\left(-i \hat{H}_{el} \Delta t / 2\right) \exp\left(-V^{abs} \Delta t / 2\right)
+& \cdot \exp\left(i E(t + \Delta t / 2) D \Delta t\right)
+& \cdot \exp\left(-V^{abs} \Delta t / 2\right) \exp\left(-i \hat{H}_{el} \Delta t / 2\right) C(t)
+\end{align}
 ```
 
 ```math
-= \exp\left(-i \hat{H}_{el} \Delta t / 2\right) U^{T} \exp\left(i E(t + \Delta t / 2) d \Delta t\right) U
-\cdot \exp\left(-i \hat{H}_{el} \Delta t / 2\right) C(t)
+\begin{align}
+= \exp\left(-i \hat{H}_{el} \Delta t / 2\right) U^{T}
+& \cdot \exp\left(i E(t + \Delta t / 2) d \Delta t\right)
+& \cdot U \cdot \exp\left(-i \hat{H}_{el} \Delta t / 2\right) C(t)
+\end{align}
 ```
-This requires some initial diagonalizations but avoids the exponentiation of a full matrix at every time step. The field-free Hamiltonian is time-independent and can be diagonalized once at the beginning of the simulation. By working in the eigenbasis of the field-free Hamiltonian, the exponential of the field-free Hamiltonian, $\exp(-i \hat{H}_{el} \Delta t/2)$, is a diagonal matrix and is easy to calculate.
-Because the absorbing potential is time-independent, $\exp(-V^{abs} \Delta t / 2)$ needs to be calculated only once.
-The calculation of $\exp(i \vec{E}(t + \Delta t / 2) \mathbf{D} \Delta t)$ would require an exponentiation of a full matrix at each time step.
+This requires some initial diagonalizations but avoids the exponentiation of a full matrix at every time step.
+The field-free Hamiltonian is time-independent and can be diagonalized once at the beginning of the simulation.
+By working in the eigenbasis of the field-free Hamiltonian, the exponential of the field-free Hamiltonian,
+```math
+\exp(-i \hat{H}_{el} \Delta t/2)
+```, is a diagonal matrix and is easy to calculate.
+Because the absorbing potential is time-independent, 
+```math
+\exp(-V^{abs} \Delta t / 2)
+``` needs to be calculated only once.
+The calculation of 
+```math
+\exp(i \vec{E}(t + \Delta t / 2) \mathbf{D} \Delta t)
+``` would require an exponentiation of a full matrix at each time step.
 However, by diagonalizing $\mathbf{D} = \mathbf{W}^T \mathbf{d} \mathbf{W}$ once at the beginning of the simulation and working in the eigenbasis of $\mathbf{D}$, the contribution reduces to an easy-to-calculate exponential of a time-dependent diagonal matrix, $\exp(i \vec{E}(t + \Delta t / 2) \mathbf{d} \Delta t)$ . The product $\mathbf{U} = \exp(-V^{abs} \Delta t / 2) \mathbf{W}^T$ is formed once at the beginning of the propagation.
 Thus, all of the $N^3$ steps need to be done only once at the beginning and can be reused for many subsequent simulations.
 A propagation step for a linearly polarized pulse with fixed nuclear positions scales as $N^2$ and involves two full matrix-vector multiplies ( $\mathbf{U}$ and $\mathbf{U}^T$ ) and three diagonal matrix-vector multiplies ( $\exp(-i \hat{H}_{el} \Delta t / 2)$ and $\exp(i \vec{E}(t + \Delta t / 2) \mathbf{d} \Delta t)$ ).
@@ -222,7 +238,7 @@ In terms of determinants, the ionization rate is
 
 ```math
 \begin{align}
-\text{rate}(t) = & \, 2 \[ c_0^*(t) c_0(t) \langle \Psi_0 | \hat{V}^{\text{abs}} | \Psi_0 \rangle \\
+\text{rate}(t) = & \, 2 \Bigg[ c_0^*(t) c_0(t) \langle \Psi_0 | \hat{V}^{\text{abs}} | \Psi_0 \rangle \\
 & + \sum_{i,a} c_i^{a*}(t) c_0(t) \langle \Psi_i^a | \hat{V}^{\text{abs}} | \Psi_0 \rangle \\
 & + \sum_{j,b} c_0^*(t) c_j^b(t) \langle \Psi_0 | \hat{V}^{\text{abs}} | \Psi_j^b \rangle \\
 & + \sum_{i,j,a,b} c_i^{a*}(t) c_j^b(t) \langle \Psi_i^a | \hat{V}^{\text{abs}} | \Psi_j^b \rangle \Bigg]
@@ -248,7 +264,7 @@ The most diffuse *s*, *p*, *d*, and *f* functions should have exponents of 0.003
 Because diffuse functions on adjacent centers overlap strongly, the exponents should not be too small since this leads to severe linear dependencies problems and SCF convergence problems.  
 
 ![Figure 5](img/Figure5.png)
-***Figure 5.** Example of diffuse s, p, d and f gaussian basis functions added to support the wavefunction in the region between the Coulomb well and the absorbing potential. *
+***Figure 5.** Example of diffuse s, p, d and f gaussian basis functions added to support the wavefunction in the region between the Coulomb well and the absorbing potential.*
 
 
 
