@@ -14,6 +14,7 @@ number-sections: true
 
 # Theoretical Background
 
+
 The time-dependent configuration interaction (TDCI) code can be used to simulate the electronic structure of a molecule interacting with the electric field of an intense, ultra-short laser pulse.
 The time-independent, ground and excited configurations of a molecule in the absence of a field are combined with time-dependent linear coefficients to model the molecular wavefunction in the electric field of the laser pulse (the nuclear positions kept fixed).
 The interaction of the molecule with the electric field of the laser pulse is treated in the semiclassical dipole approximation and the pulses can be linear or elliptically polarized.
@@ -300,8 +301,11 @@ Because diffuse functions on adjacent centers overlap strongly, the exponents sh
 
 ![**Figure 5.** Example of diffuse s, p, d and f gaussian basis functions added to support the wavefunction in the region between the Coulomb well and the absorbing potential.](img/Figure5.png)
 
-# Compilation
 
+
+# Tutorial
+
+## Compilation
 TDCI-CAP can be compiled with **nvfortran** on Unix systems supported by NVIDIA's HPC SDK. We have tested only CentOS, Ubuntu, and Archlinux x64 builds.
 
 The NVIDIA HPC SDK can be downloaded at  
@@ -319,7 +323,6 @@ make
 
 After compilation completes, you will find the `tdci` executable in the `bin/` subdirectory.
 
-# Tutorial
 
 ## Gaussian Input
 
@@ -427,12 +430,19 @@ The tools/rate\_analyzer.py script must be executed from the job directory, and 
 
 Next, we provide a sample tdci `input` file.
 The `input` file is separated into "namelist" sections that start with `&` and end with `/`.
+
 A table with descriptions of each parameter is provided below.
+
 In this example, we set the initial wavefunction as a superposition between the $S_0$ and $S_2$ states with the `init_states` and `init_coeffs` parameters.
+
 The `FIELD` section specifies that a "static" field (slowly ramps up to a static value) will be applied to the system.
+
 The `FIELD_strengths` section specifies that we will only propagate one field strength of 0.0500 atomic units.
+
 The `FIELD_directions` section says that we will apply this field in two different directions, the `$(\theta,\phi)=(0,0)$` direction, and the `$(\theta,\phi)=(30,0)$` direction.
+
 The parameters in the `SYSTEM` section control the propagation scheme, including the duration and number of timesteps. 
+
 
 ```bash
  &DYNAMICS
