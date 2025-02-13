@@ -304,9 +304,9 @@ Wavefunction</a></li>
 Rate</a></li>
 <li><a href="#basis-sets" id="toc-basis-sets">Basis Sets</a></li>
 </ul></li>
-<li><a href="#compilation" id="toc-compilation">Compilation</a></li>
 <li><a href="#tutorial" id="toc-tutorial">Tutorial</a>
 <ul>
+<li><a href="#compilation" id="toc-compilation">Compilation</a></li>
 <li><a href="#gaussian-input" id="toc-gaussian-input">Gaussian
 Input</a></li>
 <li><a href="#tdci-input" id="toc-tdci-input">TDCI input</a></li>
@@ -797,7 +797,8 @@ diffuse s, p, d and f gaussian basis functions added to support the
 wavefunction in the region between the Coulomb well and the absorbing
 potential.</figcaption>
 </figure>
-<h1 id="compilation">Compilation</h1>
+<h1 id="tutorial">Tutorial</h1>
+<h2 id="compilation">Compilation</h2>
 <p>TDCI-CAP can be compiled with <strong>nvfortran</strong> on Unix
 systems supported by NVIDIA’s HPC SDK. We have tested only CentOS,
 Ubuntu, and Archlinux x64 builds.</p>
@@ -816,7 +817,6 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span></span></code></pre></div>
 <p>After compilation completes, you will find the <code>tdci</code>
 executable in the <code>bin/</code> subdirectory.</p>
-<h1 id="tutorial">Tutorial</h1>
 <h2 id="gaussian-input">Gaussian Input</h2>
 <p>Before running TDCI, we must run a preliminary Gaussian Configuration
 Interaction Singles (CIS) calculation to obtain the necessary
@@ -910,10 +910,11 @@ a MatrixElements.faf in the Gaussian job directory.</p>
 input files can be found in the test/tests folder, or in the section
 below. To perform a tdci simulation, simply execute the tdci binary (or
 sbatch script) from inside the job directory. We recommend separating
-the gaussian and tdci job directories, and creating symlink to the
-MatrixElements.faf in your tdci directory. Here’s how to set up a TDCI
-job directory in the recommended way. We assume that the Gaussian
-calculation is performed inside a directory called
+the gaussian and tdci job directories, and creating a <a
+href="https://en.wikipedia.org/wiki/Symbolic_link">symbolic link
+(symlink)</a> to the MatrixElements.faf in your tdci directory. Here’s
+how to set up a TDCI job directory in the recommended way. We assume
+that the Gaussian calculation is performed inside a directory called
 <code>gaussian_h2o</code>.</p>
 <div class="sourceCode" id="cb3"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> tdci_h2o                                <span class="co"># Create TDCI job directory</span></span>
@@ -941,21 +942,22 @@ The tools/rate\_analyzer.py script must be executed from the job directory, and 
 -->
 <p>Next, we provide a sample tdci <code>input</code> file. The
 <code>input</code> file is separated into “namelist” sections that start
-with <code>&amp;</code> and end with <code>/</code>. A table with
-descriptions of each parameter is provided below. In this example, we
-set the initial wavefunction as a superposition between the <span
-class="math inline">\(S_0\)</span> and <span
+with <code>&amp;</code> and end with <code>/</code>.</p>
+<p>A table with descriptions of each parameter is provided below.</p>
+<p>In this example, we set the initial wavefunction as a superposition
+between the <span class="math inline">\(S_0\)</span> and <span
 class="math inline">\(S_2\)</span> states with the
-<code>init_states</code> and <code>init_coeffs</code> parameters. The
-<code>FIELD</code> section specifies that a “static” field (slowly ramps
-up to a static value) will be applied to the system. The
-<code>FIELD_strengths</code> section specifies that we will only
-propagate one field strength of 0.0500 atomic units. The
-<code>FIELD_directions</code> section says that we will apply this field
-in two different directions, the <code>$(\theta,\phi)=(0,0)$</code>
-direction, and the <code>$(\theta,\phi)=(30,0)$</code> direction. The
-parameters in the <code>SYSTEM</code> section control the propagation
-scheme, including the duration and number of timesteps.</p>
+<code>init_states</code> and <code>init_coeffs</code> parameters.</p>
+<p>The <code>FIELD</code> section specifies that a “static” field
+(slowly ramps up to a static value) will be applied to the system.</p>
+<p>The <code>FIELD_strengths</code> section specifies that we will only
+propagate one field strength of 0.0500 atomic units.</p>
+<p>The <code>FIELD_directions</code> section says that we will apply
+this field in two different directions, the
+<code>$(\theta,\phi)=(0,0)$</code> direction, and the
+<code>$(\theta,\phi)=(30,0)$</code> direction.</p>
+<p>The parameters in the <code>SYSTEM</code> section control the
+propagation scheme, including the duration and number of timesteps.</p>
 <div class="sourceCode" id="cb6"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a> <span class="kw">&amp;</span><span class="ex">DYNAMICS</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a> <span class="ex">init_states</span><span class="er">(</span><span class="ex">0</span><span class="kw">)</span> <span class="ex">=</span> 2</span>
@@ -1127,7 +1129,8 @@ envelope</td>
 <td>FIELD_strengths</td>
 <td>read_emax(i)</td>
 <td>Maximum field strength of field i.</td>
-<td>Non-negative float (i must be ≥ 1)</td>
+<td>Non-negative float (i must be <span
+class="math inline">\(\geq\)</span> 1)</td>
 <td></td>
 </tr>
 <tr>
@@ -1339,16 +1342,18 @@ named RESULTS-e1-d1.dat</p>
 <p>This is the main log file. Similar to a Gaussian log file, it
 contains both data tables and information about the progress of the
 calculation. After running a TDCI calculation, this should be the first
-place you check to make sure that it completed successfully.</p>
+place you check to make sure that it completed successfully. For
+example, each individual propagation will print out a small summary when
+it starts and finishes, including the final norm of the wavefunction. In
+a good ionization simulation, you should aim for a final norm between
+0.3 and 0.6 in the direction with most ionization.</p>
 <h3 id="results-ex-dy.dat">RESULTS-eX-dY.dat</h3>
 <p>The RESULTS file tabulates values of interest at each timestep. It
 provides time, field, total norm, ionization rate, and dipole moment
 components (<code>mu_x,y,z</code>). The MO99 number describes the total
 number of orbitals needed to contribute 99% of the total ionization
-rate. NO99 is the same for a user-supplied set of orbitals. In a good
-ionization simulation, you should aim for a final norm between 0.3 and
-0.6 in the direction with most ionization. You may have to play around
-with the Emax or timestep values to achieve this.</p>
+rate. NO99 is the same for a user-supplied set of orbitals. You may have
+to play around with the Emax or timestep values to achieve this.</p>
 <h3 id="pop-ex-dy.dat">POP-eX-dY.dat</h3>
 <p>Tracks the populations of occupied orbitals at each timestep. Also
 contains the partitioned ionization rate for each orbital, as described
