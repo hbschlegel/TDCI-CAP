@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Andy Durden" />
+  <meta name="author" content="Berny Schlegel" />
+  <title>TDCI-CAP Manual</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style>
+  body {
+    max-width: 1600px;
+    width: 80%;
+    margin: 0 auto;
+  }
+  table {
+    border-collapse: collapse;
+  }
+  th, td {
+    border: 1px solid #CCC;
+    padding: 0.5em;
+  }
+
+  pre code {
+    display: block;
+    padding: 1em;
+    margin: 0.5em 0;
+    background-color: #f7f7f7;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: "DejaVu Sans Mono", "Source Code Pro", monospace;
+    overflow-x: auto;   /* allow horizontal scrolling if lines are long */
+    line-height: 1.4;
+  }
+  code {
+    background-color: #f7f7f7;
+    border: 1px solid #ddd;
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-family: "DejaVu Sans Mono", monospace;
+  }
+
+
+  </style>
+
+  <!-- Optionally load MathJax (if you want to control the version) -->
+  <script type="text/javascript" async
+    src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  </script>
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">TDCI-CAP Manual</h1>
+<p class="author">Andy Durden</p>
+<p class="author">Berny Schlegel</p>
+<p class="date">February 2025</p>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#theoretical-background"
+id="toc-theoretical-background">Theoretical Background</a>
+<ul>
+<li><a href="#hamiltonian" id="toc-hamiltonian">Hamiltonian</a></li>
+<li><a href="#absorbing-potential"
+id="toc-absorbing-potential">Absorbing Potential</a></li>
+<li><a href="#electric-field-of-laser-pulse"
+id="toc-electric-field-of-laser-pulse">Electric Field of Laser
+Pulse</a></li>
+<li><a href="#wavefunctions"
+id="toc-wavefunctions">Wavefunctions</a></li>
+<li><a href="#propagation-of-the-wavefunction"
+id="toc-propagation-of-the-wavefunction">Propagation of the
+Wavefunction</a></li>
+<li><a href="#ionization-rate" id="toc-ionization-rate">Ionization
+Rate</a></li>
+<li><a href="#basis-sets" id="toc-basis-sets">Basis Sets</a></li>
+</ul></li>
+<li><a href="#compilation" id="toc-compilation">Compilation</a></li>
+<li><a href="#tutorial" id="toc-tutorial">Tutorial</a>
+<ul>
+<li><a href="#gaussian-input" id="toc-gaussian-input">Gaussian
+Input</a></li>
+<li><a href="#tdci-input" id="toc-tdci-input">TDCI input</a></li>
+<li><a href="#output-files" id="toc-output-files">Output Files</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="theoretical-background">Theoretical Background</h1>
+<p>The time-dependent configuration interaction (TDCI) code can be used
+to simulate the electronic structure of a molecule interacting with the
+electric field of an intense, ultra-short laser pulse. The
+time-independent, ground and excited configurations of a molecule in the
+absence of a field are combined with time-dependent linear coefficients
+to model the molecular wavefunction in the electric field of the laser
+pulse (the nuclear positions kept fixed). The interaction of the
+molecule with the electric field of the laser pulse is treated in the
+semiclassical dipole approximation and the pulses can be linear or
+elliptically polarized. For strong field ionization, the molecule is
+surrounded by a complex absorbing potential (CAP) to remove the outgoing
+electron (see Figure 1).</p>
+<figure>
+<img src="img/Figure1.png"
+alt="Figure 1. Hydrogen atom wavefunction (light blue), Coulomb potential (dark blue) and complex absorbing potential (dashed dark blue) without a field. The strong field from a laser pulse suppresses the Coulomb potential (red) and the wavefunction (orange) can go over the Coulomb barrier or tunnel through it and be absorbed by the complex potential (dashed red)." />
+<figcaption aria-hidden="true"><strong>Figure 1.</strong> Hydrogen atom
+wavefunction (light blue), Coulomb potential (dark blue) and complex
+absorbing potential (dashed dark blue) without a field. The strong field
+from a laser pulse suppresses the Coulomb potential (red) and the
+wavefunction (orange) can go over the Coulomb barrier or tunnel through
+it and be absorbed by the complex potential (dashed red).</figcaption>
+</figure>
+<p>For single ionization, the wavefunction includes the Hartree-Fock
+ground state and all singly excited configurations (CIS).<a href="#fn1"
+class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a><a
+href="#fn2" class="footnote-ref" id="fnref2"
+role="doc-noteref"><sup>2</sup></a> Ionization of cations can be modeled
+by a CISD-IP wavefunction which is built from singly ionized and singly
+excited, singly ionized configurations of the Hartree-Fock ground state
+of the neutral molecule. For molecules with heavy elements, spin-orbit
+coupling (SOC) can be included with an effective one electron SOC
+operator.<a href="#fn3" class="footnote-ref" id="fnref3"
+role="doc-noteref"><sup>3</sup></a> The wavefunction is propagated with
+the exponential of the field-dependent Hamiltonian using a Trotter
+factorization. The ionization yield for TDCI-CAP simulation is
+calculated from the decrease in the norm squared of the wavefunction as
+it interacts with the absorbing potential. The rate is computed from the
+expectation value of the absorbing potential using the time-dependent
+wavefunction. The integrals needed to construct the Hamiltonian are
+computed in an electronic structure program such as Gaussian. For strong
+field ionization standard molecular basis sets are augmented with
+several sets of diffuse functions to support the wavefunction as the
+electron leaves the molecule and interacts with the absorbing potential.
+The followings sections provide a brief overview of the theory and
+computational approaches of the TDCI code. More details on applications
+can be found in some of our papers.<a href="#fn4" class="footnote-ref"
+id="fnref4" role="doc-noteref"><sup>4</sup></a><a href="#fn5"
+class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a><a
+href="#fn6" class="footnote-ref" id="fnref6"
+role="doc-noteref"><sup>6</sup></a><a href="#fn7" class="footnote-ref"
+id="fnref7" role="doc-noteref"><sup>7</sup></a></p>
+<h2 id="hamiltonian">Hamiltonian</h2>
+<p>In the TD-CI approach, the electronic wavefunction is propagated with
+the time-dependent Schrödinger equation:</p>
+<p><span class="math display">\[
+i\hbar \frac{\partial}{\partial t} \Psi(t) \;=\; \hat{H}(t)\,\Psi(t)
+\;=\;
+\Bigl[\hat{H}_{el} + \hat{V}^{SOC} \;-\; \hat{\vec{\mu}} \cdot
+\vec{E}(t) \;-\; i \,\hat{V}^{abs}\Bigr] \,\Psi(t)
+\tag{1}
+\]</span></p>
+<p><span class="math inline">\(\hat{H}_{el}\)</span> is the field-free,
+time-independent non-relativistic electronic Hamiltonian and the
+interaction with the electric field of an intense laser pulse is treated
+in the semiclassical dipole approximation, where <span
+class="math inline">\(\hat{\vec{\mu}}\)</span> is the dipole operator
+and <span class="math inline">\(\vec{E}\)</span> is the electric field.
+The spin-orbit coupling term is approximated by an effective one
+electron spin-orbit coupling operator.</p>
+<p><span class="math display">\[
+\hat{V}^{SOC} \;=\; -\,\frac{\alpha_0^2}{2}\,\sum_A
+Z_A^{eff}\,\frac{(\vec{r} - \vec{r}_A)\,\times\,\nabla}{|\vec{r} -
+\vec{r}_A|^3}
+\tag{2}
+\]</span></p>
+<p>Suitable values for <span class="math inline">\(Z^{eff}\)</span> have
+been reported by Koseki, Gordon and co-workers and by Chiodo and Russo.
+<span class="math inline">\(Z^{eff}\)</span> can be adjusted to
+reproduce the experimentally observed spin-orbit splitting. <span
+class="math inline">\(\hat{V}^{abs}\)</span> is the absorbing
+potential.</p>
+<h2 id="absorbing-potential">Absorbing Potential</h2>
+<p>The absorbing potential, <span
+class="math inline">\(\hat{V}^{abs}\)</span>, surrounds the molecule
+starting at a distance of about 10 – 15 bohr and removes the outgoing
+part of the wavefunction, thereby simulating ionization.<br />
+The absorbing potential for the molecule is constructed from spherical
+potentials centered on each atom.<br />
+The potential on atom C is written in terms of the distance from the
+nucleus, <span class="math inline">\(r_c = |\vec{r} -
+\vec{C}|\)</span>.<br />
+In the quadratic form, the atomic potential starts at <span
+class="math inline">\(R_A\)</span>, rises quadratically to <span
+class="math inline">\(\frac{R_A+R_B}{2}\)</span>, turns over
+quadratically to <span class="math inline">\(R_B\)</span>, and is
+constant, <span class="math inline">\(V_{max}\)</span>, beyond <span
+class="math inline">\(R_B\)</span>:</p>
+<p><span class="math display">\[
+\hat{V}^{abs}_{C}(r_c) \;=\;
+\begin{cases}
+0, &amp; r_c \le R_A,\\[6pt]
+V_{max}, &amp; r_c \ge R_B,\\[6pt]
+2V_{max}\Bigl(\frac{r_c - R_A}{R_B - R_A}\Bigr)^2, &amp; R_A \le r_c \le
+\tfrac{R_A + R_B}{2},\\[6pt]
+V_{max} \;-\; 2V_{max}\Bigl(\frac{R_B - r_c}{R_B - R_A}\Bigr)^2, &amp;
+\tfrac{R_A + R_B}{2} \le r_c \le R_B.
+\end{cases}
+\tag{3}
+\]</span></p>
+<p>In the <span class="math inline">\(\sin^2\)</span> form, the atomic
+potential on an atom rises as <span
+class="math inline">\(\sin^2\)</span> between <span
+class="math inline">\(R_A\)</span> and <span
+class="math inline">\(R_B\)</span>,</p>
+<p><span class="math display">\[
+\hat{V}^{abs}_{C}(r_c) \;=\;
+V_{max}\,\sin^2\Bigl(\tfrac{\pi}{2}\,\tfrac{r_c - R_A}{R_B - R_A}\Bigr),
+\quad R_A \,\le\, r_c \,\le\, R_B.
+\tag{4}
+\]</span></p>
+<p>The absorbing potential for the molecule is equal to the minimum of
+the values of the atomic absorbing potentials. This has also been termed
+a Voronoi absorbing potential.</p>
+<p><span class="math display">\[
+\hat{V}^{abs}(\vec{r}) \;=\;
+\min\Bigl(\hat{V}^{abs}_1,\;\hat{V}^{abs}_2,\;\dots,\;\hat{V}^{abs}_{\text{Natoms}}\Bigr).
+\tag{5}
+\]</span></p>
+<p>Typical values of the parameters for the absorbing potential are
+<span class="math inline">\(R_A = 3.5\)</span> times the van der Waals
+radius for each atom (so that the absorbing potential starts far enough
+beyond the Coulomb well), <span class="math inline">\(R_B = 10\)</span>
+times the van der Waals radius (so that the rise in the absorbing
+potential is gradual enough to minimize any reflection) and <span
+class="math inline">\(V_{\text{max}} = 10\)</span> hartree (so that the
+potential is strongly absorbing but the integrals remain finite).<br />
+Figure 2 shows examples of atomic and molecular absorbing
+potentials.</p>
+<figure>
+<img src="img/Figure2.png"
+alt="Figure 2. (a) Shape of an atomic absorbing potential (\sin^2 form in red, quadratic form in dashed blue), (b) 2D plot of R_A for absorbing potential of carbon (black), oxygen (red) and hydrogen (grey) in CH_2O (c) 3D plot of R_A (gold) and \tfrac{R_A+R_B}{2} (blue) for the molecular absorbing potential for CH_2O." />
+<figcaption aria-hidden="true"><strong>Figure 2.</strong> (a) Shape of
+an atomic absorbing potential (<span
+class="math inline">\(\sin^2\)</span> form in red, quadratic form in
+dashed blue), (b) 2D plot of <span class="math inline">\(R_A\)</span>
+for absorbing potential of carbon (black), oxygen (red) and hydrogen
+(grey) in <span class="math inline">\(CH_2O\)</span> (c) 3D plot of
+<span class="math inline">\(R_A\)</span> (gold) and <span
+class="math inline">\(\tfrac{R_A+R_B}{2}\)</span> (blue) for the
+molecular absorbing potential for <span
+class="math inline">\(CH_2O\)</span>.</figcaption>
+</figure>
+<h2 id="electric-field-of-laser-pulse">Electric Field of Laser
+Pulse</h2>
+<p>The electric field for a linearly polarized <span
+class="math inline">\(n\)</span>-cycle pulse with a <span
+class="math inline">\(\sin^2\)</span> envelope is:</p>
+<p><span class="math display">\[
+E(t) \;=\;
+\begin{cases}
+E_{max}\,\sin^2\!\Bigl(\tfrac{\omega t}{2n}\Bigr)\,\cos(\omega t), &amp;
+0 \le t \le 2n,\\[6pt]
+0, &amp; t &gt; 2n.
+\end{cases}
+\tag{6}
+\]</span></p>
+<p>For an <span class="math inline">\(n\)</span>-cycle circularly
+polarized 800 nm pulse in the <span
+class="math inline">\(xz\)</span>-plane with a <span
+class="math inline">\(\sin^2\)</span> envelope:</p>
+<p><span class="math display">\[
+E_x(t) \;=\; E_{max}\,\sin^2\!\Bigl(\tfrac{\omega
+t}{2n}\Bigr)\,\Bigl[-\,\cos(\omega t)\,\cos(\gamma) \;-\; \sin(\omega
+t)\,\sin(\gamma)\Bigr],
+\]</span></p>
+<p><span class="math display">\[
+E_z(t) \;=\; E_{max}\,\sin^2\!\Bigl(\tfrac{\omega
+t}{2n}\Bigr)\,\Bigl[\cos(\omega t)\,\sin(\gamma) \;-\; \sin(\omega
+t)\,\cos(\gamma)\Bigr],
+\]</span></p>
+<p><span class="math display">\[
+E_x(t) \;=\; E_z(t) \;=\; 0,\quad t \ge 2n.
+\tag{7}
+\]</span></p>
+<p><span class="math inline">\(E_{max}\)</span> is the maximum value for
+the electric field and <span class="math inline">\(\gamma\)</span> is
+the Euler angle that determines the direction of the major axis of an
+elliptically polarized pulse.<br />
+To obtain directional information for ionization, a static field can be
+used instead of an oscillating field.<br />
+To avoid non-adiabatic excitations, the electric field is slowly ramped
+up to a constant value:</p>
+<p><span class="math display">\[
+E(t) \;=\;
+\begin{cases}
+E_{max}\Bigl(1 - \Bigl(1 - \tfrac{t}{t_{ramp}}\Bigr)^4\Bigr), &amp; 0
+\le t \le t_{ramp},\\[6pt]
+E_{max}, &amp; t &gt; t_{ramp}.
+\end{cases}
+\tag{8}
+\]</span></p>
+<p>The shapes of a 7-cycle linear pulse and a static pulse are shown in
+Figure 3.<br />
+Several other pulse shapes available in the TDCI code are described in
+the Appendix.</p>
+<figure>
+<img src="img/Figure3.png"
+alt="Figure 3. (a) A 7-cycle linearly polarized 800 nm pulse with a \sin^2 envelope (Eq. 6), (b) 2-cycle circularly polarized 800 nm pulse with a \sin^2 envelope showing x and z components in green and red, respectively (Eq. 7), and (c) a “static” pulse used to probe the angular dependence of strong field ionization (Eq. 8)." />
+<figcaption aria-hidden="true"><strong>Figure 3.</strong> (a) A 7-cycle
+linearly polarized 800 nm pulse with a <span
+class="math inline">\(\sin^2\)</span> envelope (Eq. 6), (b) 2-cycle
+circularly polarized 800 nm pulse with a <span
+class="math inline">\(\sin^2\)</span> envelope showing <span
+class="math inline">\(x\)</span> and <span
+class="math inline">\(z\)</span> components in green and red,
+respectively (Eq. 7), and (c) a “static” pulse used to probe the angular
+dependence of strong field ionization (Eq. 8).</figcaption>
+</figure>
+<h2 id="wavefunctions">Wavefunctions</h2>
+<p>In the TD-CI approach, the wavefunction is written as a linear
+combination of time-dependent coefficients with time-independent states
+of the field-free Hamiltonian, <span
+class="math inline">\(\Psi_s\)</span>:</p>
+<p><span class="math display">\[
+\Psi(t) \;=\; \sum_{s}\,C_{s}(t)\,\Psi_s
+\tag{9}
+\]</span></p>
+<p>For single ionization of a neutral molecule to cations, a
+wavefunction consisting of the ground state and all singly excited
+configurations (CIS) is suitable,</p>
+<p><span class="math display">\[
+\Psi(t) \;=\; c_0(t)\,\psi_0 \;+\; \sum_{i,a}\,c_i^a(t)\,\psi_i^a
+\tag{10}
+\]</span></p>
+<p>where <span class="math inline">\(\psi_i^a\)</span> are singly
+excited determinants and <span class="math inline">\(i, j\)</span> etc.
+and <span class="math inline">\(a, b\)</span> etc. are indices for the
+occupied and virtual molecular spin-orbitals, respectively.<br />
+For ionization of a cation to a dication, a spin-unrestricted
+wavefunction could be used, but this treats the <span
+class="math inline">\(\alpha\)</span> and <span
+class="math inline">\(\beta\)</span> spin-orbitals differently.<br />
+This problem can be overcome by using a CISD-IP wavefunction.<br />
+The wavefunction is constructed using the molecular orbitals of the
+closed shell system and includes singly ionized determinants, <span
+class="math inline">\(\psi_x\)</span>, and singly excited, singly
+ionized determinants, <span
+class="math inline">\(\psi_{xi}^a\)</span>:</p>
+<p><span class="math display">\[
+\Psi(t) \;=\; \sum_{x}\,c_x(t)\,\psi_x \;+\;
+\sum_{x,i,a}\,c_{xi}^a\,\psi_{xi}^a
+\tag{11}
+\]</span></p>
+<p>where <span class="math inline">\(x\)</span> indicates the ionized
+molecular spin-orbitals.<br />
+The ionizations generate the ground and excited states of the cation,
+and the single excitations serve to improve the energies of these cation
+states.<br />
+As a result, the energies of the cation states will depend slightly on
+the number of virtual orbitals used to construct the singly excited,
+singly ionized determinants.</p>
+<h2 id="propagation-of-the-wavefunction">Propagation of the
+Wavefunction</h2>
+<p>For typical strong field ionization studies, numerous simulations of
+20 – 50 femtoseconds are needed (e.g., different pulse shapes,
+intensities and directions, different delay time in pump-probe
+simulations, etc.).<br />
+Because of the strong fields and the wide range of the energies of the
+excited configurations, small time steps are required for the
+propagation.<br />
+In the TDCI code the wavefunction is propagated with the exponential of
+the Hamiltonian, since this unitary transformation is very stable and
+allows for larger time steps.<br />
+Typically, a time step of 0.05 au = 1.2 attoseconds can be used.<br />
+Reducing the time step by a factor of 2 changes the ionization rate by
+less than 0.02% for typical simulations.<br />
+The exponential of the Hamiltonian can be obtained via a Trotter
+factorization with components depending on the field-free Hamiltonian,
+the absorbing potential, and the dipole moment matrix.<br />
+For a linearly polarized pulse, the propagation for a time step <span
+class="math inline">\(\Delta t\)</span> is</p>
+<p><span class="math display">\[
+\Psi(t + \Delta t) \;=\; \exp\bigl(-\,i\,\hat{H}\,\Delta
+t\bigr)\,\Psi(t)
+\tag{12}
+\]</span></p>
+<p><span class="math display">\[
+\begin{aligned}
+C(t + \Delta t) \;=\;
+&amp;\exp\Bigl(-\,i\,\hat{H}_{el}\,\tfrac{\Delta t}{2}\Bigr)\,
+\exp\Bigl(-\,V^{abs}\,\tfrac{\Delta t}{2}\Bigr)\, \\
+&amp;\exp\Bigl(i\,E\bigl(t + \tfrac{\Delta t}{2}\bigr)\,D\,\Delta
+t\Bigr)\, \\
+&amp;\exp\Bigl(-\,V^{abs}\,\tfrac{\Delta t}{2}\Bigr)\,
+\exp\Bigl(-\,i\,\hat{H}_{el}\,\tfrac{\Delta t}{2}\Bigr)\,C(t)
+\end{aligned}
+\tag{13}
+\]</span></p>
+<p><span class="math display">\[
+\begin{aligned}
+C(t + \Delta t) \;=\;
+&amp;\exp\Bigl(-\,i\,\hat{H}_{el}\,\tfrac{\Delta t}{2}\Bigr)\,U^{T}\, \\
+&amp;\exp\Bigl(i\,E\bigl(t + \tfrac{\Delta t}{2}\bigr)\,d\,\Delta
+t\Bigr)\, \\
+&amp;U\,\exp\Bigl(-\,i\,\hat{H}_{el}\,\tfrac{\Delta t}{2}\Bigr)\,C(t)
+\end{aligned}
+\tag{14}
+\]</span></p>
+<p>This requires some initial diagonalizations but avoids the
+exponentiation of a full matrix at every time step.<br />
+The field-free Hamiltonian is time-independent and can be diagonalized
+once at the beginning of the simulation.<br />
+By working in the eigenbasis of the field-free Hamiltonian, <span
+class="math inline">\(\exp(-i\,\hat{H}_{el}\,\Delta t / 2)\)</span> is a
+diagonal matrix and is easy to calculate.<br />
+Because the absorbing potential is time-independent, <span
+class="math inline">\(\exp(-V^{abs}\,\Delta t / 2)\)</span> needs to be
+calculated only once.<br />
+The calculation of <span class="math inline">\(\exp(i\,\vec{E}(t +
+\Delta t/2)\,\mathbf{D}\,\Delta t)\)</span> would require an
+exponentiation of a full matrix at each time step.<br />
+However, by diagonalizing <span class="math inline">\(\mathbf{D} =
+\mathbf{W}^T\,\mathbf{d}\,\mathbf{W}\)</span> once at the beginning of
+the simulation and working in the eigenbasis of <span
+class="math inline">\(\mathbf{D}\)</span>, the contribution reduces to
+an exponential of a <strong>time-dependent diagonal matrix</strong>,
+<span class="math inline">\(\exp(i\,\vec{E}(t + \Delta
+t/2)\,\mathbf{d}\,\Delta t)\)</span>.<br />
+The product <span class="math inline">\(\mathbf{U} =
+\exp(-V^{abs}\,\Delta t/2)\,\mathbf{W}^T\)</span> is formed once at the
+beginning of the propagation.<br />
+Thus, all of the <span class="math inline">\(N^3\)</span> steps need to
+be done only once at the beginning and can be reused for many subsequent
+simulations.<br />
+A propagation step for a linearly polarized pulse with fixed nuclear
+positions scales as <span class="math inline">\(N^2\)</span> and
+involves two full matrix-vector multiplies (<span
+class="math inline">\(\mathbf{U}\)</span> and <span
+class="math inline">\(\mathbf{U}^T\)</span>) and three diagonal
+matrix-vector multiplies (<span
+class="math inline">\(\exp(-i\,\hat{H}_{el}\,\Delta t/2)\)</span> and
+<span class="math inline">\(\exp(i\,\vec{E}(t + \Delta
+t/2)\,\mathbf{d}\,\Delta t)\)</span>).</p>
+<p>The corresponding Trotter factorization for a circularly polarized
+pulse involves two oscillating fields:</p>
+<p><span class="math display">\[
+\begin{aligned}
+C(t + \Delta t) = &amp; \exp(-i \hat{H}_{el} \Delta t / 2) \exp(-V^{abs}
+\Delta t / 2) \\
+&amp; \cdot \mathbf{W}_2^T \exp\left(i E_z(t + \Delta t / 2) d_2 \Delta
+t / 2\right) \mathbf{W}_2 \\
+&amp; \cdot \mathbf{W}_1^T \exp\left(i E_x(t + \Delta t / 2) d_1 \Delta
+t\right) \mathbf{W}_1 \\
+&amp; \cdot \mathbf{W}_2^T \exp\left(i E_z(t + \Delta t / 2) d_2 \Delta
+t / 2\right) \mathbf{W}_2 \\
+&amp; \cdot \exp(-V^{abs} \Delta t / 2) \exp(-i \hat{H}_{el} \Delta t /
+2) C(t).
+\end{aligned}
+\tag{15}
+\]</span></p>
+<p>Here, <span
+class="math inline">\(\mathbf{W}_1\,\mathbf{d}_1\,\mathbf{W}_1^T =
+d_1\)</span> and <span
+class="math inline">\(\mathbf{W}_2\,\mathbf{d}_2\,\mathbf{W}_2^T =
+d_2\)</span> are the eigenvalues and eigenvectors of the transition
+dipole matrices <span class="math inline">\(\mathbf{D}_1\)</span> and
+<span class="math inline">\(\mathbf{D}_2\)</span> in the two orthogonal
+field directions.<br />
+The product <span class="math inline">\(\mathbf{U}^T =
+\mathbf{W}_1\,\mathbf{W}_2\)</span> is formed once at the beginning of
+the propagation.<br />
+A propagation step for a circularly polarized pulse with fixed nuclei
+involves four full matrix-vector multiplies (<span
+class="math inline">\(\mathbf{U}\)</span>, <span
+class="math inline">\(\mathbf{U}^T\)</span>, <span
+class="math inline">\(\mathbf{U}^T\)</span>, <span
+class="math inline">\(\mathbf{U}\)</span>) and five diagonal
+matrix-vector multiplies.</p>
+<h2 id="ionization-rate">Ionization Rate</h2>
+<p>The ionization rate is taken as the rate of decrease in the norm
+squared of the wavefunction as the wavefunction interacts with the
+absorbing potential (Figure 4).</p>
+<figure>
+<img src="img/Figure4.png"
+alt="Figure 4. Strong field ionization of hydrogen atom (a) electric field of a “static” pulse with three different intensities (b) dipole moment demonstrating hydrogen responds adiabatically to the field (c) decrease in the norm of the wavefunction as hydrogen is ionized by the electric field." />
+<figcaption aria-hidden="true"><strong>Figure 4.</strong> Strong field
+ionization of hydrogen atom (a) electric field of a “static” pulse with
+three different intensities (b) dipole moment demonstrating hydrogen
+responds adiabatically to the field (c) decrease in the norm of the
+wavefunction as hydrogen is ionized by the electric field.</figcaption>
+</figure>
+<p>Using the time-dependent Schrödinger equation,</p>
+<p><span class="math display">\[
+i\,\frac{\partial\,\Psi(t)}{\partial t} \;=\; \Bigl[\hat{H}(t) \;-\;
+i\,\hat{V}^{\text{abs}}\Bigr]\,\Psi(t),
+\tag{16}
+\]</span></p>
+<p>the rate can be related to the expectation value of the absorbing
+potential:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\text{rate}(t)
+&amp;=\; -\,\frac{d\,\langle \Psi(t)\,|\,\Psi(t)\rangle}{dt} \\[6pt]
+&amp;=\; -\,\Bigl\langle \Psi(t)\,\Big|\, \frac{d\,\Psi(t)}{dt}
+\Bigr\rangle \;+\;\text{(c.c.)} \\[6pt]
+&amp;=\; -\,\Bigl\langle \Psi(t)\,\Big|\,-\,i\,\bigl[\hat{H}(t) \;-\;
+i\,\hat{V}^{\text{abs}}\bigr]\,\Psi(t)\Bigr\rangle \;+\;\text{(c.c.)}
+\\[6pt]
+&amp;=\; 2\,\Bigl\langle
+\Psi(t)\,\Big|\,\hat{V}^{\text{abs}}\,\Big|\,\Psi(t)\Bigr\rangle \\[4pt]
+&amp;=\; 2\,\sum_{r,s}\,C_r^*(t)\,C_s(t)\,\langle
+\,\Psi_r\,|\,\hat{V}^{\text{abs}}\,|\,\Psi_s\,\rangle.
+\end{aligned}
+\tag{17}
+\]</span></p>
+<p>where <span class="math inline">\(r\)</span> and <span
+class="math inline">\(s\)</span> are indices for configurations.<br />
+For simplicity, the CIS wavefunction is used in the following equations,
+but these can be easily extended to CISD-IP.<br />
+In terms of determinants, the ionization rate is</p>
+<p><span class="math display">\[
+\begin{aligned}
+\text{rate}(t)
+=\;2\Bigl[\; c_0^*(t)\,c_0(t)\,\langle \Psi_0 | \hat{V}^{\text{abs}} |
+\Psi_0 \rangle
+\;+\;\sum_{i,a}\,c_i^{a*}(t)\,c_0(t)\,\langle \Psi_i^a |
+\hat{V}^{\text{abs}} | \Psi_0 \rangle \\[6pt]
+\quad\quad+\;\sum_{j,b}\,c_0^*(t)\,c_j^b(t)\,\langle \Psi_0 |
+\hat{V}^{\text{abs}} | \Psi_j^b \rangle
+\;+\;\sum_{i,j,a,b}\,c_i^{a*}(t)\,c_j^b(t)\,\langle \Psi_i^a |
+\hat{V}^{\text{abs}} | \Psi_j^b \rangle
+\Bigr].
+\end{aligned}
+\tag{18}
+\]</span></p>
+<p>The rate can also be written in terms of the density matrix and the
+absorbing potential in the basis of the molecular orbitals, <span
+class="math inline">\(\phi_p\)</span>:</p>
+<p><span class="math display">\[
+\text{rate}(t)
+\;=\; 2\,\sum_{p,q}^{\text{all}}\;\rho_{pq}(t)\;\langle
+\phi_p\,|\,\hat{V}^{\text{abs}}\,|\,\phi_q \rangle,
+\tag{19}
+\]</span></p>
+<p>where <span class="math inline">\(\rho_{pq}(t)\)</span> is the
+time-dependent one-particle density matrix derived from the CI
+wavefunction, and indices <span class="math inline">\(p\)</span> and
+<span class="math inline">\(q\)</span> run over all occupied and virtual
+orbitals.<br />
+This form is also applicable to rt-TD-DFT.</p>
+<h2 id="basis-sets">Basis Sets</h2>
+<p>For simulations of strong field ionization with TDCI, a standard
+molecular basis set must be augmented by several sets of diffuse
+functions to support the wavefunction as it is distorted by the strong
+field and interacts with the absorbing potential.<br />
+Various sets of diffuse functions have been developed and evaluated for
+their ability to treat strong field ionization.<br />
+The added diffuse functions should represent the unbound electron
+density optimally as it interacts with the laser field and the absorbing
+potential but should be limited in number so that the simulations can be
+carried out efficiently.<br />
+These sets include diffuse <em>s</em>, <em>p</em>, <em>d</em>, and
+<em>f</em> gaussian functions with selected even-tempered exponents of
+the form 0.0001×2^n placed on each atom.<br />
+When combined with the aug-cc-pVTZ molecular basis set and an absorbing
+potential starting at 3.5 times the van der Waals radius for each atom,
+the least diffuse <em>s</em>, <em>p</em> and <em>f</em> functions should
+have exponents of 0.0256 and 0.0512 for <em>d</em> functions.<br />
+The most diffuse <em>s</em>, <em>p</em>, <em>d</em>, and <em>f</em>
+functions should have exponents of 0.0032, 0.0032, 0.0064 and 0.0064,
+respectively (or possibly smaller).<br />
+Because diffuse functions on adjacent centers overlap strongly, the
+exponents should not be too small since this leads to severe linear
+dependencies and SCF convergence problems.</p>
+<figure>
+<img src="img/Figure5.png"
+alt="Figure 5. Example of diffuse s, p, d and f gaussian basis functions added to support the wavefunction in the region between the Coulomb well and the absorbing potential." />
+<figcaption aria-hidden="true"><strong>Figure 5.</strong> Example of
+diffuse s, p, d and f gaussian basis functions added to support the
+wavefunction in the region between the Coulomb well and the absorbing
+potential.</figcaption>
+</figure>
+<h1 id="compilation">Compilation</h1>
+<p>TDCI-CAP can be compiled with <strong>nvfortran</strong> on Unix
+systems supported by NVIDIA’s HPC SDK. We have tested only CentOS,
+Ubuntu, and Archlinux x64 builds.</p>
+<p>The NVIDIA HPC SDK can be downloaded at<br />
+<a href="https://developer.nvidia.com/hpc-sdk-downloads"
+class="uri">https://developer.nvidia.com/hpc-sdk-downloads</a><br />
+NVIDIA’s install instructions:<br />
+<a
+href="https://docs.nvidia.com/hpc-sdk/hpc-sdk-install-guide/index.html"
+class="uri">https://docs.nvidia.com/hpc-sdk/hpc-sdk-install-guide/index.html</a></p>
+<p>Once the environment is prepared, you can clone the repository and
+compile the code:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/hbschlegel/TDCI-CAP</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> TDCI-CAP</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span></span></code></pre></div>
+<p>After compilation completes, you will find the <code>tdci</code>
+executable in the <code>bin/</code> subdirectory.</p>
+<h1 id="tutorial">Tutorial</h1>
+<h2 id="gaussian-input">Gaussian Input</h2>
+<p>Before running TDCI, we must run a preliminary Gaussian Configuration
+Interaction Singles (CIS) calculation to obtain the necessary
+integrals.<br />
+The one-electron integrals are written in the atomic orbital basis and
+include the dipole moment, spin-orbit, and absorbing potential integrals
+(<span class="math inline">\(Z_{\text{eff}}\)</span> needs to be
+specified for each atom for spin-orbit calculations).<br />
+The transformed two-electron integrals are written in the molecular
+orbital basis in the Gaussian “bucket” format.<br />
+Since most strong field simulations use only a limited number of
+occupied orbitals and eliminate the highest energy virtual orbitals, the
+Gaussian input needs to specify the number of occupied and virtual
+orbitals for the integral transformation.<br />
+These files can be very large but can be used for multiple simulations
+as long as the molecular geometry is the same.<br />
+We use Gaussian development version gdvj28p.<br />
+Below is an example Gaussian input file. Several nonstandard inputs are
+necessary and are described in more detail below:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">%chk=h2o.chk</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">%mem=10GB</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">%nproc=10</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">#P ucis(mo,nstates=5)/aug-cc-pVDZ extrabasis gfprint</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">int</span><span class="er">(</span><span class="va">acc2e</span><span class="op">=</span>12<span class="kw">)</span> <span class="va">Pop</span><span class="op">=</span>Full <span class="ex">IOp</span><span class="er">(</span><span class="ex">3/194=10003501,3/195=10,6/18=1,8/10=91,8/37=2,8/38=-10,9/127=2</span><span class="kw">)</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="va">OUTPUT</span><span class="op">=</span><span class="va">(</span>faf,i4lab,Files=<span class="er">(</span>619,751,870,1,2,3,4,5,6,7,8,9,10,11,12,13,14<span class="va">)</span><span class="er">)</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="ex">h2o</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span> 1</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="ex">O</span>        0.000000    0.000000    0.110812</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="ex">H</span>        0.000000   <span class="at">-0.783976</span>   <span class="at">-0.443248</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="ex">H</span>        0.000000    0.783976   <span class="at">-0.443248</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="ex">O</span> H 0</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a> <span class="ex">s</span> 1 1.00</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a> <span class="ex">.0128000000D-00</span> 1.0000000000D+00</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a> <span class="ex">s</span> 1 1.00</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a> <span class="ex">.0064000000D-00</span> 1.0000000000D+00</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a> <span class="ex">p</span> 1 1.00</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a> <span class="ex">.0128000000D-00</span> 1.0000000000D+00</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="ex">****</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="ex">MatrixElements.faf</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span></code></pre></div>
+<p><code>IOp(3/194)</code> can set the absorbing potential parameters
+proportional to each atom’s van der Waals radius in the following
+format: <code>aaabbb01</code> Where the outer boundary is set at aaa/10
+times the atom’s van der Waals radius, and the inner boundary is set at
+bbb/10 times the atom’s van der Waals radius. For example, the
+<code>3/194=10003501</code> in the example sets the inner boundary to
+3.5 radii, and the outer boundary to 10 radii.</p>
+<p><code>IOp(3/195)</code> sets the maximum value of the absorbing
+potential in atomic units. 10 is a good default.</p>
+<p><code>IOp(6/18)=1</code> and <code>IOp(9/127)=2</code> are necessary
+for writing the MatrixElements.faf</p>
+<p><code>IOp(8/10)=91</code> enables <code>IOp(8/37)</code> and
+<code>IOp(8/38)</code>, which specify the orbital cutoffs.</p>
+<p><code>IOp(8/37)=2</code> selects the first occupied orbital to be
+included in the active space. Excitations out of orbitals below will not
+be considered. Note that orbitals are indexed staring at 1, not 0.</p>
+<p><code>IOp(8/38)=-10</code> selects the end of the active space. If
+<code>IOp(8/38)=N</code> where N is positive, the last virtual orbital
+in the active space will be orbital <code>N</code>. If N is negative,
+the N highest energy virtual orbitals will be removed from the active
+space. In practice, we select this to ignore orbitals above about 3.0
+Hartree.</p>
+<p>Don’t change the line that starts with <code>OUTPUT=</code>, it
+specifies the indices of the various files to be included in the
+MatrixElements.faf file.</p>
+<p>When selecting an active space, one must be careful to ensure
+degenerate orbitals remain in the same (non)-active set. If one
+degenerate orbital is left out of the active space while others are
+included, it will cause unphysical results.</p>
+<p>If you’re having convergence difficulties, try combinations of these
+parameters:
+<code>int(acc2e=12) SCF(QC,NoVarAcc,NoIncFock,MaxCYC=64,VShift=500)</code></p>
+<p>For more information on the IOps, consult the <a
+href="https://gaussian.com/overlay9/">Gaussian overlay
+documentation</a>. The SCF parameters are documented <a
+href="https://gaussian.com/scf/">here</a>.</p>
+<p>NOTE: If you are using shared computing like WSU’s Grid, please
+remember to follow their rules and policies. This means you should run
+Gaussian and TDCI from an sbatch script that is scheduled through SLURM.
+See your computing resource’s documentation for more details.</p>
+<p>Once your Gaussian calculation successfully finishes, there should be
+a MatrixElements.faf in the Gaussian job directory.</p>
+<h2 id="tdci-input">TDCI input</h2>
+<p>TDCI expects both <code>MatrixElements.faf</code> and
+<code>input</code> to be in the current working directory. Sample tdci
+input files can be found in the test/tests folder, or in the section
+below. To perform a tdci simulation, simply execute the tdci binary (or
+sbatch script) from inside the job directory. We recommend separating
+the gaussian and tdci job directories, and creating symlink to the
+MatrixElements.faf in your tdci directory. Here’s how to set up a TDCI
+job directory in the recommended way. We assume that the Gaussian
+calculation is performed inside a directory called
+<code>gaussian_h2o</code>.</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> tdci_h2o                                <span class="co"># Create TDCI job directory</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> tdci_h2o                                   <span class="co"># Enter TDCI job directory</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ln</span> <span class="at">-s</span> ../gaussian_h2o/MatrixElements.faf .    <span class="co"># Create symlink.</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> <span class="at">-alt</span>                                       <span class="co"># Print out a directory listing</span></span></code></pre></div>
+<p>Once you finish setting up your input file, your directory should
+look something like this:</p>
+<pre><code>drwxr-xr-x 18 user user     4096 Sep 23 16:47 ..
+drwxr-xr-x 18 user user     4096 Sep 23 16:47 .
+-rw-r--r--  1 user user     2052 Sep 22 18:42 input
+lrwxrwxrwx  1 user user       39 Sep 22 18:42 MatrixElements.faf -&gt; ../gaussian_h2o/MatrixElements.faf</code></pre>
+<p>Then you can execute TDCI. If you are running on your own hardware,
+you can directly invoke the executable:</p>
+<pre><code>~/TDCI-CAP/bin/tdci</code></pre>
+<p>If you are using shared computing, make sure to wrap this in an
+sbatch script.</p>
+<!-- Commenting out this section so we don't have to explain write_matrices = .true.
+
+ TDCI itself exports some data tables in the job directory, but TDCI is also packaged with a python analysis script that generates many tables and plots.
+The tools/rate\_analyzer.py script must be executed from the job directory, and passed the path of the gaussian output log as an argument.
+```
+~/tdci_h2o$ python3 ~/TDCI-CAP/tools/rate_analyzer.py ../gaussian_h2o/h2o.log
+```
+-->
+<p>Next, we provide a sample tdci <code>input</code> file. The
+<code>input</code> file is separated into “namelist” sections that start
+with <code>&amp;</code> and end with <code>/</code>. A table with
+descriptions of each parameter is provided below. In this example, we
+set the initial wavefunction as a superposition between the <span
+class="math inline">\(S_0\)</span> and <span
+class="math inline">\(S_2\)</span> states with the
+<code>init_states</code> and <code>init_coeffs</code> parameters. The
+<code>FIELD</code> section specifies that a “static” field (slowly ramps
+up to a static value) will be applied to the system. The
+<code>FIELD_strengths</code> section specifies that we will only
+propagate one field strength of 0.0500 atomic units. The
+<code>FIELD_directions</code> section says that we will apply this field
+in two different directions, the <code>$(\theta,\phi)=(0,0)$</code>
+direction, and the <code>$(\theta,\phi)=(30,0)$</code> direction. The
+parameters in the <code>SYSTEM</code> section control the propagation
+scheme, including the duration and number of timesteps.</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a> <span class="kw">&amp;</span><span class="ex">DYNAMICS</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a> <span class="ex">init_states</span><span class="er">(</span><span class="ex">0</span><span class="kw">)</span> <span class="ex">=</span> 2</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a> <span class="ex">init_states</span><span class="er">(</span><span class="ex">1</span><span class="kw">)</span> <span class="ex">=</span> 1</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a> <span class="ex">init_states</span><span class="er">(</span><span class="ex">2</span><span class="kw">)</span> <span class="ex">=</span> 3</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a> <span class="ex">init_coeffs</span><span class="er">(</span><span class="ex">1</span><span class="kw">)</span> <span class="ex">=</span> <span class="er">(</span><span class="ex">1.00000,0.00000</span><span class="kw">)</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a> <span class="ex">init_coeffs</span><span class="er">(</span><span class="ex">2</span><span class="kw">)</span> <span class="ex">=</span> <span class="er">(</span><span class="ex">1.00000,0.00000</span><span class="kw">)</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a> <span class="ex">restart</span>        = .false.</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a> <span class="ex">Qsave</span>          = .false.</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a> <span class="ex">/</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a> <span class="kw">&amp;</span><span class="ex">FIELD_units</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a> <span class="ex">omega_units</span> = <span class="st">&#39;au&#39;</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a> <span class="ex">/</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a> <span class="kw">&amp;</span><span class="ex">FIELD</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a> <span class="ex">dirform</span>  = <span class="st">&#39;polar&#39;</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a> <span class="ex">envelope</span> = <span class="st">&#39;stat&#39;</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a> <span class="ex">/</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="kw">&amp;</span><span class="ex">FIELD_strengths</span> </span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a> <span class="ex">nemax</span> =       1</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a> <span class="ex">read_emax</span><span class="er">(</span><span class="ex">1</span><span class="kw">)</span> <span class="ex">=</span> 0.0500</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a> <span class="ex">/</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="kw">&amp;</span><span class="ex">FIELD_directions</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a> <span class="ex">ndir</span> = 2 </span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a> <span class="ex">read_theta</span><span class="er">(</span> <span class="ex">1</span><span class="kw">)</span> <span class="ex">=</span> 0.d0   <span class="kw">;</span>  <span class="ex">read_phi</span><span class="er">(</span> <span class="ex">1</span><span class="kw">)</span> <span class="ex">=</span> 0.d0 </span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a> <span class="ex">read_theta</span><span class="er">(</span> <span class="ex">2</span><span class="kw">)</span> <span class="ex">=</span> 30.d0  <span class="kw">;</span>  <span class="ex">read_phi</span><span class="er">(</span> <span class="ex">2</span><span class="kw">)</span> <span class="ex">=</span> 0.d0 </span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="ex">/</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a> <span class="kw">&amp;</span><span class="ex">SYSTEM_units</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a> <span class="ex">dt_units</span>     = <span class="st">&#39;au&#39;</span> </span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a> <span class="ex">eigmax_units</span> = <span class="st">&#39;au&#39;</span> </span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a> <span class="ex">/</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a> <span class="kw">&amp;</span><span class="ex">SYSTEM</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a> <span class="ex">dt</span>          =  0.050</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a> <span class="ex">eigmax</span>      = 10.000</span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a> <span class="ex">ionization</span>  = <span class="at">-1.000</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a> <span class="ex">jobtype</span>     =  <span class="st">&#39;cis&#39;</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a> <span class="ex">nstep</span>       =   1000</span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a> <span class="ex">outstep</span>     =    100</span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a> <span class="ex">nactive</span>     =      0</span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a> <span class="ex">nvirtual</span>    =      0</span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a> <span class="ex">socfac</span>      = 1.00000000</span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a> <span class="ex">socfacZ</span>     = 1.00100000</span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a> <span class="ex">IP_alpha_beta</span> = .false.</span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a> <span class="ex">QeigenDC</span> = .true.</span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a> <span class="ex">/</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a> <span class="kw">&amp;</span><span class="ex">InOutFILES</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a> <span class="ex">Qread_tdcidata</span>  = .false.</span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a> <span class="ex">tdcidatfile</span>     = <span class="st">&#39;MatrixElements.faf&#39;</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a> <span class="ex">outputfile</span>      = <span class="st">&#39;OUTPUT&#39;</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a> <span class="ex">restartbinfile</span>  = <span class="st">&#39;OUTPUT_RESTART.bin&#39;</span></span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a> <span class="va">Qwrite_ion_coeff</span><span class="op">=</span> <span class="ex">.false.</span></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a> <span class="ex">Qread_ion_coeff</span> = .false.</span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a> <span class="ex">Qmo_dens</span>        = .true.</span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a> <span class="ex">/</span></span></code></pre></div>
+<p>Table of input parameters:</p>
+<table>
+<colgroup>
+<col style="width: 5%" />
+<col style="width: 5%" />
+<col style="width: 31%" />
+<col style="width: 12%" />
+<col style="width: 44%" />
+</colgroup>
+<thead>
+<tr>
+<th><strong>Namelist</strong></th>
+<th><strong>Parameter</strong></th>
+<th><strong>Description</strong></th>
+<th><strong>Allowed values</strong></th>
+<th><strong>Notes</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DYNAMICS</td>
+<td>init_states(i)</td>
+<td>Init_state(0) is the number of initial states. Init_state(i) for
+i&gt;0 is the state index of state i.</td>
+<td>N/A</td>
+<td></td>
+</tr>
+<tr>
+<td>DYNAMICS</td>
+<td>init_coeffs(i)</td>
+<td>Initial coefficient of state i</td>
+<td>Complex (e.g., (1.00, 0.00))</td>
+<td>Example: Init_coeffs(1) = (1.0, 0.0)</td>
+</tr>
+<tr>
+<td>DYNAMICS</td>
+<td>restart</td>
+<td>Reads RESTART.bin to restart the propagation</td>
+<td>.true. or .false.</td>
+<td></td>
+</tr>
+<tr>
+<td>DYNAMICS</td>
+<td>Qsave</td>
+<td>Creates RESTART.bin</td>
+<td>N/A</td>
+<td></td>
+</tr>
+<tr>
+<td>FIELD_units</td>
+<td>omega_units</td>
+<td>Units for the omega parameter</td>
+<td>‘au’</td>
+<td>‘au’ – Atomic units.</td>
+</tr>
+<tr>
+<td>FIELD</td>
+<td>dirform</td>
+<td>Coordinate system used for FIELD_directions namelist.</td>
+<td>‘polar’, ‘cart’</td>
+<td>‘polar’: Polar coordinates<br>‘cart’: Cartesian coordinates</td>
+</tr>
+<tr>
+<td>FIELD</td>
+<td>ellipt</td>
+<td>Ellipticity for circularly polarized fields</td>
+<td>Float from 0.0–1.0</td>
+<td>A value of 1.0 corresponds to a circular pulse.</td>
+</tr>
+<tr>
+<td>FIELD</td>
+<td>envelope</td>
+<td>Envelope that outlines the carrier field.</td>
+<td>‘none’, ‘cos2’, ‘trap’, ‘gaus’, ‘stat’, ‘band’, ‘ramp’, ‘sin2’,
+‘cirl’, ‘cirr’</td>
+<td>For a full description of the options, see the relevant section in
+documentation.</td>
+</tr>
+<tr>
+<td>FIELD</td>
+<td>ncyc</td>
+<td>Number of carrier field periods that are enclosed in the
+envelope</td>
+<td>Positive integer</td>
+<td>Does not apply to fields ‘none’, ‘static’, and ‘ramp’.</td>
+</tr>
+<tr>
+<td>FIELD</td>
+<td>omega</td>
+<td>Frequency of the carrier field</td>
+<td>Positive float</td>
+<td>Units are set by the omega_units parameter.</td>
+</tr>
+<tr>
+<td>FIELD</td>
+<td>phase</td>
+<td>Carrier wave’s phase factor in degrees</td>
+<td>Positive float</td>
+<td></td>
+</tr>
+<tr>
+<td>FIELD</td>
+<td>euler</td>
+<td>Sets the Euler angle (gamma) for elliptical pulses.</td>
+<td>Non-negative float</td>
+<td></td>
+</tr>
+<tr>
+<td>FIELD_strengths</td>
+<td>nemax</td>
+<td>Propagations to perform with different field strengths</td>
+<td>Positive integer</td>
+<td>Read_emax(i) must be set for i=1,…,nemax</td>
+</tr>
+<tr>
+<td>FIELD_strengths</td>
+<td>read_emax(i)</td>
+<td>Maximum field strength of field i.</td>
+<td>Non-negative float (i must be ≥ 1)</td>
+<td></td>
+</tr>
+<tr>
+<td>FIELD_directions</td>
+<td>ndir</td>
+<td>Number of propagations to perform with different field polarization
+directions.</td>
+<td>Positive integer</td>
+<td>Read_theta(i) and Read_phi(i) must be set for i=1,…,ndir. The total
+number of propagations will be nemax×ndir.</td>
+</tr>
+<tr>
+<td>FIELD_directions</td>
+<td>read_theta(i)</td>
+<td>Theta coordinate for field polarization direction i</td>
+<td>Float from 0–360</td>
+<td>Requires dirform=’polar’</td>
+</tr>
+<tr>
+<td>FIELD_directions</td>
+<td>read_phi(i)</td>
+<td>Phi coordinate for field polarization direction i</td>
+<td>Float from 0–360</td>
+<td>Requires dirform=’polar’</td>
+</tr>
+<tr>
+<td>FIELD_directions</td>
+<td>read_x(i)</td>
+<td>x coordinate for field polarization direction i</td>
+<td>Float</td>
+<td>Requires dirform=’cart’</td>
+</tr>
+<tr>
+<td>FIELD_directions</td>
+<td>read_y(i)</td>
+<td>y coordinate for field polarization direction i</td>
+<td>Float</td>
+<td>Requires dirform=’cart’</td>
+</tr>
+<tr>
+<td>FIELD_directions</td>
+<td>read_z(i)</td>
+<td>z coordinate for field polarization direction i</td>
+<td>Float</td>
+<td>Requires dirform=’cart’</td>
+</tr>
+<tr>
+<td>SYSTEM_units</td>
+<td>dt_units</td>
+<td>Units for the ‘dt’ parameter.</td>
+<td>‘au’</td>
+<td>‘au’ – Atomic units</td>
+</tr>
+<tr>
+<td>SYSTEM_units</td>
+<td>eigmax_units</td>
+<td>Units for the ‘eigmax’ parameter.</td>
+<td>‘au’</td>
+<td>‘au’ – Atomic units</td>
+</tr>
+<tr>
+<td>SYSTEM</td>
+<td>dt</td>
+<td>Size of the propagation timestep</td>
+<td>Positive float</td>
+<td></td>
+</tr>
+<tr>
+<td>SYSTEM</td>
+<td>eigmax</td>
+<td>Ignore states above this energy</td>
+<td>Positive float</td>
+<td></td>
+</tr>
+<tr>
+<td>SYSTEM</td>
+<td>ionization</td>
+<td>Ionization parameter (details unspecified)</td>
+<td>Float</td>
+<td></td>
+</tr>
+<tr>
+<td>SYSTEM</td>
+<td>jobtype</td>
+<td>Selects the type of propagation to be performed</td>
+<td>‘cis’, ‘cisip’, ‘soc’, ‘socip’</td>
+<td>‘cis’: TD-CIS<br>‘cisip’: TD-CISD-ip<br>‘soc’: TD-CIS with
+spin-orbit coupling<br>‘socip’: TD-CISD-ip with spin-orbit coupling</td>
+</tr>
+<tr>
+<td>SYSTEM</td>
+<td>nstep</td>
+<td>Number of timesteps to be propagated</td>
+<td>Positive integer</td>
+<td></td>
+</tr>
+<tr>
+<td>SYSTEM</td>
+<td>outstep</td>
+<td>Output data will only be written on step numbers divisible by
+outstep</td>
+<td>Positive integer</td>
+<td>If nstep=50 and outstep=10, data will be written on steps 10, 20,
+30, 40, and 50.</td>
+</tr>
+<tr>
+<td>SYSTEM</td>
+<td>nactive</td>
+<td>Number of active occupied orbitals (lower orbitals are ignored)</td>
+<td>N/A</td>
+<td></td>
+</tr>
+<tr>
+<td>SYSTEM</td>
+<td>nvirtual</td>
+<td>Number of active virtual orbitals (higher orbitals are ignored)</td>
+<td>N/A</td>
+<td></td>
+</tr>
+<tr>
+<td>SYSTEM</td>
+<td>socfac</td>
+<td>Spin-orbit coupling factor (details unspecified)</td>
+<td>N/A</td>
+<td></td>
+</tr>
+<tr>
+<td>SYSTEM</td>
+<td>socfacZ</td>
+<td>Scales z-component of spin-orbit coupling (development test)</td>
+<td>N/A</td>
+<td></td>
+</tr>
+<tr>
+<td>SYSTEM</td>
+<td>IP_alpha_beta</td>
+<td></td>
+<td>.true. or .false.</td>
+<td></td>
+</tr>
+<tr>
+<td>SYSTEM</td>
+<td>QeigenDC</td>
+<td></td>
+<td>.true. or .false.</td>
+<td></td>
+</tr>
+<tr>
+<td>InOutFILES</td>
+<td>Qread_tdcidata</td>
+<td>Type of Gaussian data file to read</td>
+<td>.true. or .false.</td>
+<td>For legacy TDCI.dat files, use .true.<br>For new MatrixElements.faf
+files, use .false.</td>
+</tr>
+<tr>
+<td>InOutFILES</td>
+<td>tdcidatfile</td>
+<td>Specifies the filename of the Gaussian data file</td>
+<td>String</td>
+<td></td>
+</tr>
+<tr>
+<td>InOutFILES</td>
+<td>outputfile</td>
+<td>Name of output log file</td>
+<td>String</td>
+<td></td>
+</tr>
+<tr>
+<td>InOutFILES</td>
+<td>restartbinfile</td>
+<td>Name of the restart file</td>
+<td>String</td>
+<td>Setting parameter ‘restart’ to .true. will read from this
+file.<br>Setting parameter ‘Qsave’ to .true. will write this file.</td>
+</tr>
+<tr>
+<td>InOutFILES</td>
+<td>Qwrite_ion_coeff</td>
+<td>For sequential double ionization, writes the ion coefficients</td>
+<td>.true. or .false.</td>
+<td></td>
+</tr>
+<tr>
+<td>InOutFILES</td>
+<td>Qread_ion_coeff</td>
+<td>For sequential double ionization, reads the ion coefficients</td>
+<td>.true. or .false.</td>
+<td></td>
+</tr>
+<tr>
+<td>InOutFILES</td>
+<td>Qmo_dens</td>
+<td>Writes the density matrix to MO_density files</td>
+<td>.true. or .false.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="output-files">Output Files</h2>
+<p>This section describes the main output files generated by the TDCI
+code. Each file (aside from OUTPUT) is named according to the
+electric-field strength index (X) and direction index (Y), typically
+appearing in the filename as -eX-dY. For example, the RESULTS file for
+the progataion with the first specified field and direction will be
+named RESULTS-e1-d1.dat</p>
+<h3 id="output">OUTPUT</h3>
+<p>This is the main log file. Similar to a Gaussian log file, it
+contains both data tables and information about the progress of the
+calculation. After running a TDCI calculation, this should be the first
+place you check to make sure that it completed successfully.</p>
+<h3 id="results-ex-dy.dat">RESULTS-eX-dY.dat</h3>
+<p>The RESULTS file tabulates values of interest at each timestep. It
+provides time, field, total norm, ionization rate, and dipole moment
+components (<code>mu_x,y,z</code>). The MO99 number describes the total
+number of orbitals needed to contribute 99% of the total ionization
+rate. NO99 is the same for a user-supplied set of orbitals. In a good
+ionization simulation, you should aim for a final norm between 0.3 and
+0.6 in the direction with most ionization. You may have to play around
+with the Emax or timestep values to achieve this.</p>
+<h3 id="pop-ex-dy.dat">POP-eX-dY.dat</h3>
+<p>Tracks the populations of occupied orbitals at each timestep. Also
+contains the partitioned ionization rate for each orbital, as described
+in equation REF.</p>
+<h3 id="ion-ex-dy.dat">ION-eX-dY.dat</h3>
+<p>Tracks the populations of orbitals and states in the ionized
+system.</p>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p><a href="https://doi.org/10.1063/1.4874156">Krause, P.;
+Sonk, J. A.; Schlegel, H. B., Strong field ionization rates simulated
+with time-dependent configuration interaction and an absorbing
+potential. J. Chem. Phys. 2014, 140, 174113. 10.1063/1.4874156</a> – (<a
+href="https://schlegelgroup.wayne.edu/Pub_folder/369.pdf">Mirror</a>)<a
+href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p><a
+href="https://doi.org/10.1021/acs.jpclett.5b00929">Krause, P.; Schlegel,
+H. B., Angle-dependent ionization of small molecules by time-dependent
+configuration interaction and an absorbing potential. J. Phys. Chem.
+Lett. 2015, 6, 2140-2146. 10.1021/acs.jpclett.5b00929</a> – (<a
+href="https://schlegelgroup.wayne.edu/Pub_folder/381.pdf">Mirror</a>)<a
+href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p><a href="https://doi.org/10.1063/5.0034807">Lee, M. K.;
+Hoerner, P.; Li, W.; Schlegel, H. B., Effect of spin-orbit coupling on
+strong field ionization simulated with time-dependent configuration
+interaction. J. Chem. Phys. 2020, 153. 10.1063/5.0034807</a> – (<a
+href="https://schlegelgroup.wayne.edu/Pub_folder/435.pdf">Mirror</a>)<a
+href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p><a
+href="https://doi.org/10.1021/acs.jpca.7b06108">Hoerner, P.; Schlegel,
+H. B., Angular dependence of strong field ionization of CH3X (X = F, Cl,
+Br, or I) using time-dependent configuration interaction with an
+absorbing potential. J. Phys. Chem. A 2017, 121, 5940-5946.
+10.1021/acs.jpca.7b06108</a> – (<a
+href="https://schlegelgroup.wayne.edu/Pub_folder/409.pdf">Mirror</a>)<a
+href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p><a
+href="https://doi.org/10.1021/acs.jpcc.8b00619">Hoerner, P.; Schlegel,
+H. B., Angular dependence of strong field ionization of haloacetylenes,
+HCCX (X = F, Cl, Br, I) using time-dependent configuration interaction
+with an absorbing potential. J. Phys. Chem. C 2018, 122, 13751–13757.
+10.1021/acs.jpcc.8b00619</a> – (<a
+href="https://schlegelgroup.wayne.edu/Pub_folder/416.pdf">Mirror</a>)<a
+href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6"><p><a href="https://doi.org/10.1063/1.5133659">Lee, M. K.;
+Li, W.; Schlegel, H. B., Angular dependence of strong field sequential
+double ionization for neon and acetylene simulated with time-dependent
+configuration interaction using CIS and CISD-IP. J. Chem. Phys. 2020,
+152, 064106. 10.1063/1.5133659</a> – (<a
+href="https://schlegelgroup.wayne.edu/Pub_folder/429.pdf">Mirror</a>)<a
+href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7"><p><a
+href="https://doi.org/10.3389/fchem.2022.866137">Schlegel, H. B.;
+Hoerner, P.; Li, W., Ionization of HCCI neutral and cations by strong
+laser fields simulated with time dependent configuration interaction.
+Front. Chem. 2022, 10, 866137. 10.3389/fchem.2022.866137</a> – (<a
+href="https://schlegelgroup.wayne.edu/Pub_folder/445.pdf">Mirror</a>)<a
+href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+</body>
+</html>

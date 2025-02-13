@@ -1,0 +1,48 @@
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{longtable,booktabs,array}
+\usepackage[margin=1in]{geometry}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{8pt}
+\usepackage{fontspec}    % For XeLaTeX or LuaLaTeX
+
+\usepackage[linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+%\hypersetup{colorlinks=true,
+%  linkcolor=blue,
+%  urlcolor=blue,
+%  citecolor=blue
+%}
+
+\usepackage{etoolbox}       % lets us run code at begin of environments
+\usepackage{pdflscape}
+
+\usepackage{microtype}
+
+
+
+% Enable code highlighting in LaTeX
+\usepackage{xcolor}
+\usepackage{listings}
+
+% Define colors for code blocks
+\definecolor{codebg}{RGB}{245, 245, 245}  % Light gray background
+\definecolor{codeborder}{RGB}{180, 180, 180}  % Dark gray border
+\definecolor{codefont}{RGB}{0, 0, 0}  % Black text
+
+% Define a custom style for code listings
+\lstdefinestyle{customcode}{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeborder},
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  keepspaces=true,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  captionpos=b
+}
+
+% Make Pandoc use `lstlisting` instead of raw verbatim
+\AtBeginEnvironment{Shaded}{\begin{lstlisting}[style=customcode]}
+\AtEndEnvironment{Shaded}{\end{lstlisting}}
+
+
