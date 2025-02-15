@@ -1,8 +1,8 @@
 ---
 title: "TDCI-CAP Manual"
 author:
-  - "Andy Durden"
-  - "Berny Schlegel"
+  - "Andrew S. Durden"
+  - "H. Bernhard Schlegel"
 date: "February 2025"
 lang: "en"
 toc: true
@@ -22,7 +22,7 @@ For strong field ionization, the molecule is surrounded by a complex absorbing p
 
 ![**Figure 1.** Hydrogen atom wavefunction (light blue), Coulomb potential (dark blue) and complex absorbing potential (dashed dark blue) without a field. The strong field from a laser pulse suppresses the Coulomb potential (red) and the wavefunction (orange) can go over the Coulomb barrier or tunnel through it and be absorbed by the complex potential (dashed red).](img/Figure1.png)
 
-For single ionization, the wavefunction includes the Hartree-Fock ground state and all singly excited configurations (CIS).[^1][^2]
+For single ionization, the wavefunction includes the Hartree-Fock ground state and all singly excited configurations (CIS).[^1],[^2]
 Ionization of cations can be modeled by a CISD-IP wavefunction which is built from singly ionized and singly excited, singly ionized configurations of the Hartree-Fock ground state of the neutral molecule.
 For molecules with heavy elements, spin-orbit coupling (SOC) can be included with an effective one electron SOC operator.[^5]
 The wavefunction is propagated with the exponential of the field-dependent Hamiltonian using a Trotter factorization.
@@ -327,19 +327,19 @@ After compilation completes, you will find the `tdci` executable in the `bin/` s
 ## Gaussian Input
 
 Before running TDCI, we must run a preliminary Gaussian Configuration Interaction Singles (CIS) calculation to obtain the necessary integrals.  
-The one-electron integrals are written in the atomic orbital basis and include the dipole moment, spin-orbit, and absorbing potential integrals ($Z_{\text{eff}}$ needs to be specified for each atom for spin-orbit calculations).  
+The one-electron integrals are written in the atomic orbital basis and include the dipole moment, spin-orbit, and absorbing potential integrals ($Z_{\text{eff}}$ needs to be specified for each atom for spin-orbit calculations, see Nuclei Props in in the [molecule spescification](https://gaussian.com/molspec/) section).  
 The transformed two-electron integrals are written in the molecular orbital basis in the Gaussian “bucket” format.  
 Since most strong field simulations use only a limited number of occupied orbitals and eliminate the highest energy virtual orbitals, the Gaussian input needs to specify the number of occupied and virtual orbitals for the integral transformation.  
-These files can be very large but can be used for multiple simulations as long as the molecular geometry is the same.  
+These files can be very large but can be used for multiple simulations as long as the molecular geometry and basis set are the same.  
 We use Gaussian development version gdvj28p.  
-Below is an example Gaussian input file. Several nonstandard inputs are necessary and are described in more detail below:
+Below is an example Gaussian input file. Several inputs options are necessary and are described in more detail below:
 
 ```bash
 %chk=h2o.chk
 %mem=10GB
 %nproc=10
-#P ucis(mo,nstates=5)/aug-cc-pVDZ extrabasis gfprint
-int(acc2e=12) Pop=Full IOp(3/194=10003501,3/195=10,6/18=1,8/10=91,8/37=2,8/38=-10,9/127=2)
+#P ucis(mo,nstates=5)/aug-cc-pVDZ extrabasis gfprint Pop=Full int(acc2e=12) 
+IOp(3/194=10003501,3/195=10,6/18=1,8/10=91,8/37=2,8/38=-10,9/127=2)
 OUTPUT=(faf,i4lab,Files=(619,751,870,1,2,3,4,5,6,7,8,9,10,11,12,13,14))
 
 h2o
@@ -363,27 +363,27 @@ MatrixElements.faf
 
 ```
 
-`IOp(3/194)` can set the absorbing potential parameters proportional to each atom's van der Waals radius in the following format:
-`aaabbb01` Where the outer boundary is set at aaa/10 times the atom's van der Waals radius, and the inner boundary is set at bbb/10 times the atom's van der Waals radius.
-For example, the `3/194=10003501` in the example sets the inner boundary to 3.5 radii, and the outer boundary to 10 radii.
+`IOp(3/194)` sets the absorbing potential parameters proportional to each atom's van der Waals radius in the following format:
+`bbbaaa01` Where the inner boundary ($R_{\text{A}}$) is set at aaa/10 times the atom's van der Waals radius, and the outer boundary ($R_{\text{B}}$) is set at bbb/10 times the atom's van der Waals radius.
+For example, the `3/194=10003501` in the example sets $R_{\text{A}}$ to 3.5 radii, and $R_{\text{B}}$ to 10 radii.
 
-`IOp(3/195)` sets the maximum value of the absorbing potential in atomic units. 10 is a good default.
+`IOp(3/195)` sets the maximum value of the absorbing potential ($V_{\text{max}}$) in atomic units. 10 is suitable.
 
-`IOp(6/18)=1` and `IOp(9/127)=2` are necessary for writing the MatrixElements.faf
+`IOp(6/18)=1` and `IOp(9/127)=2` are necessary for calculating some of the matrix elements that are written to MatrixElements.faf
 
-`IOp(8/10)=91` enables `IOp(8/37)` and `IOp(8/38)`, which specify the orbital cutoffs.
+`IOp(8/10)=91` enables `IOp(8/37)` and `IOp(8/38)`, which specify the active space.
 
-`IOp(8/37)=2` selects the first occupied orbital to be included in the active space. Excitations out of orbitals below will not be considered. Note that orbitals are indexed staring at 1, not 0.
+`IOp(8/37)=N` selects orbital N as the first occupied orbital to be included in the active space. Excitations out of orbitals below will not be considered. Note tIn Gaussian the orbitals are indexed staring at 1, not 0.
 
-`IOp(8/38)=-10` selects the end of the active space. If `IOp(8/38)=N` where N is positive, the last virtual orbital in the active space will be orbital `N`. If N is negative, the N highest energy virtual orbitals will be removed from the active space. In practice, we select this to ignore orbitals above about 3.0 Hartree. 
+`IOp(8/38)=N` If N is positive, selects orbital N as the last orbital to be included in the active space. If N is negative, the N highest energy virtual orbitals will be removed from the active space. In practice, we select this to ignore orbitals with energies above about 3.0 Hartree. 
 
-Don't change the line that starts with `OUTPUT=`, it specifies the indices of the various files to be included in the MatrixElements.faf file.
+Don't change the line that starts with `OUTPUT=`; it specifies the indices of the various files to be included in the MatrixElements.faf file.
 
-When selecting an active space, one must be careful to ensure degenerate orbitals remain in the same (non)-active set. If one degenerate orbital is left out of the active space while others are included, it will cause unphysical results.
+When selecting an active space, one must be careful to ensure degenerate orbitals remain in the same active or non-active set. If one degenerate orbital is left out of the active space while others are included, it will cause unphysical results.
 
-If you're having convergence difficulties, try combinations of these parameters: `int(acc2e=12) SCF(QC,NoVarAcc,NoIncFock,MaxCYC=64,VShift=500)`
+If you're having convergence difficulties, try combinations of these parameters: `SCF(QC,NoVarAcc,NoIncFock,MaxCYC=64,VShift=500)`
 
-For more information on the IOps, consult the [Gaussian overlay documentation](https://gaussian.com/overlay9/). The SCF parameters are documented [here](https://gaussian.com/scf/).
+For more information on the IOps, consult the [Gaussian overlay documentation](https://gaussian.com/iops/). The SCF parameters are documented [here](https://gaussian.com/scf/).
 
 NOTE: If you are using shared computing like WSU's Grid, please remember to follow their rules and policies. This means you should run Gaussian and TDCI from an sbatch script that is scheduled through SLURM. See your computing resource's documentation for more details.
 
@@ -392,8 +392,8 @@ Once your Gaussian calculation successfully finishes, there should be a MatrixEl
 
 ## TDCI input
 
-TDCI expects both `MatrixElements.faf` and `input` to be in the current working directory. Sample tdci input files can be found in the test/tests folder, or in the section below. To perform a tdci simulation, simply execute the tdci binary (or sbatch script) from inside the job directory.
-We recommend separating the gaussian and tdci job directories, and creating a [symbolic link (symlink)](https://en.wikipedia.org/wiki/Symbolic_link) to the MatrixElements.faf in your tdci directory.
+TDCI expects both `MatrixElements.faf` and `input` to be in the current working directory. Sample TDCI input files can be found in the test/tests folder, or in the section below. To perform a TDCI simulation, simply execute the tdci binary (or sbatch script) from inside the job directory.
+We recommend separating the Gaussian and TDCI job directories, and creating a [symbolic link (symlink)](https://en.wikipedia.org/wiki/Symbolic_link) to the MatrixElements.faf in your TDCI job directory.
 Here's how to set up a TDCI job directory in the recommended way. We assume that the Gaussian calculation is performed inside a directory called `gaussian_h2o`.
 
 ```bash
@@ -412,7 +412,7 @@ drwxr-xr-x 18 user user     4096 Sep 23 16:47 .
 lrwxrwxrwx  1 user user       39 Sep 22 18:42 MatrixElements.faf -> ../gaussian_h2o/MatrixElements.faf
 ```
 
-Then you can execute TDCI. If you are running on your own hardware, you can directly invoke the executable:
+Then you can run TDCI simulation. If you are running on your own hardware, you can directly invoke the executable:
 ```
 ~/TDCI-CAP/bin/tdci
 ```
@@ -433,7 +433,7 @@ The `input` file is separated into "namelist" sections that start with `&` and e
 
 A table with descriptions of each parameter is provided below.
 
-In this example, we set the initial wavefunction as a superposition between the $S_0$ and $S_2$ states with the `init_states` and `init_coeffs` parameters.
+In this example, we set the initial wavefunction as a superposition between the ground and second excited states with the `init_states` and `init_coeffs` parameters.
 
 The `FIELD` section specifies that a "static" field (slowly ramps up to a static value) will be applied to the system.
 
@@ -493,9 +493,7 @@ The parameters in the `SYSTEM` section control the propagation scheme, including
  tdcidatfile     = 'MatrixElements.faf'
  outputfile      = 'OUTPUT'
  restartbinfile  = 'OUTPUT_RESTART.bin'
- Qwrite_ion_coeff= .false.
- Qread_ion_coeff = .false.
- Qmo_dens        = .true.
+ Qmo_dens        = .false.
  /
 
 ```
@@ -508,37 +506,37 @@ Table of input parameters:
 | DYNAMICS           | init_states(i)      | Init_state(0) is the number of initial states. Init_state(i) for i>0 is the state index of state i.                 | N/A                                         |                                                                                                                                                                   |
 | DYNAMICS           | init_coeffs(i)      | Initial coefficient of state i                                                                                      | Complex (e.g., (1.00, 0.00))                | Example: Init_coeffs(1) = (1.0, 0.0)                                                                                                                              |
 | DYNAMICS           | restart             | Reads RESTART.bin to restart the propagation                                                                       | .true. or .false.                           |                                                                                                                                                                   |
-| DYNAMICS           | Qsave               | Creates RESTART.bin                                                                                                | N/A                                         |                                                                                                                                                                   |
-| FIELD_units        | omega_units         | Units for the omega parameter                                                                                       | ‘au’                                        | ‘au’ – Atomic units.                                                                                                                                             |
+| DYNAMICS           | Qsave               | Writes RESTART.bin                                                                                                | .true. or .false.                                        |                                                                                                                                                                   |
+| FIELD_units        | omega_units         | Units for the omega parameter                                                                                       | ‘au’                                        | ‘au’ angular frequency in atomic units<br>'nm' wavelength in nanometer                                                                                                                                             |
 | FIELD              | dirform             | Coordinate system used for FIELD_directions namelist.                                                              | ‘polar’, ‘cart’                             | ‘polar’: Polar coordinates<br>‘cart’: Cartesian coordinates                                                                                                       |
 | FIELD              | ellipt              | Ellipticity for circularly polarized fields                                                                        | Float from 0.0–1.0                          | A value of 1.0 corresponds to a circular pulse.                                                                                                                   |
-| FIELD              | envelope            | Envelope that outlines the carrier field.                                                                          | ‘none’, ‘cos2’, ‘trap’, ‘gaus’, ‘stat’, ‘band’, ‘ramp’, ‘sin2’, ‘cirl’, ‘cirr’ | For a full description of the options, see the relevant section in documentation.                                              |
-| FIELD              | ncyc                | Number of carrier field periods that are enclosed in the envelope                                                  | Positive integer                            | Does not apply to fields ‘none’, ‘static’, and ‘ramp’.                                                                                                            |
-| FIELD              | omega               | Frequency of the carrier field                                                                                     | Positive float                              | Units are set by the omega_units parameter.                                                                                                                       |
-| FIELD              | phase               | Carrier wave’s phase factor in degrees                                                                             | Positive float                              |                                                                                                                                                                   |
-| FIELD              | euler               | Sets the Euler angle (gamma) for elliptical pulses.                                                                | Non-negative float                          |                                                                                                                                                                   |
-| FIELD_strengths    | nemax               | Propagations to perform with different field strengths                                                             | Positive integer                            | Read_emax(i) must be set for i=1,…,nemax                                                                                                                           |
-| FIELD_strengths    | read_emax(i)        | Maximum field strength of field i.                                                                                 | Non-negative float (i must be $\geq$ 1)          |                                                                                                                                                                   |
+| FIELD              | envelope            | Envelope that outlines the pulse                                                                          | ‘none’, ‘cos2’, ‘trap’, ‘gaus’, ‘stat’, ‘band’, ‘ramp’, ‘sin2’, ‘cirl’, ‘cirr’ | For a full description of the options, see the relevant section in documentation.                                              |
+| FIELD              | ncyc                | Number of optical cycles that are enclosed by the envelope                                                  | Positive integer                            | Does not apply to fields ‘none’, ‘static’, and ‘ramp’.                                                                                                            |
+| FIELD              | omega               | Frequency of the pulse                                                                                   | Positive float                              | Units are set by the omega_units parameter.                                                                                                                       |
+| FIELD              | phase               | Carrier envelope phase (CEP) in degrees                                                                             | float                              |                                                                                                                                                                   |
+| FIELD              | euler               | Sets the Euler angle (gamma) for elliptical pulses.                                                                | float                          |                                                                                                                                                                   |
+| FIELD_strengths    | nemax               | Number of propagations to perform with different field strengths                                                             | Positive integer                            | Read_emax(i) must be set for i=1,…,nemax                                                                                                                           |
+| FIELD_strengths    | read_emax(i)        | Maximum field strength of field i.                                                                                 | Non-negative float (i=1,…,nemax)          |                                                                                                                                                                   |
 | FIELD_directions   | ndir                | Number of propagations to perform with different field polarization directions.                                    | Positive integer                            | Read_theta(i) and Read_phi(i) must be set for i=1,…,ndir. The total number of propagations will be nemax×ndir.                                                    |
-| FIELD_directions   | read_theta(i)       | Theta coordinate for field polarization direction i                                                                | Float from 0–360                            | Requires dirform=’polar’                                                                                                                                         |
+| FIELD_directions   | read_theta(i)       | Theta coordinate for field polarization direction i                                                                | Float from 0–180                            | Requires dirform=’polar’                                                                                                                                         |
 | FIELD_directions   | read_phi(i)         | Phi coordinate for field polarization direction i                                                                  | Float from 0–360                            | Requires dirform=’polar’                                                                                                                                         |
 | FIELD_directions   | read_x(i)           | x coordinate for field polarization direction i                                                                    | Float                                       | Requires dirform=’cart’                                                                                                                                          |
 | FIELD_directions   | read_y(i)           | y coordinate for field polarization direction i                                                                    | Float                                       | Requires dirform=’cart’                                                                                                                                          |
 | FIELD_directions   | read_z(i)           | z coordinate for field polarization direction i                                                                    | Float                                       | Requires dirform=’cart’                                                                                                                                          |
-| SYSTEM_units       | dt_units            | Units for the ‘dt’ parameter.                                                                                      | ‘au’                                        | ‘au’ – Atomic units                                                                                                                                              |
-| SYSTEM_units       | eigmax_units        | Units for the ‘eigmax’ parameter.                                                                                  | ‘au’                                        | ‘au’ – Atomic units                                                                                                                                              |
+| SYSTEM_units       | dt_units            | Units for the ‘dt’ parameter.                                                                                      | ‘au’                                        | ‘au’ atomic units<br>'as' -attosec<br>'fs' femtosec<br>'ps' picosec                                                                                                                                              |
+| SYSTEM_units       | eigmax_units        | Units for the ‘eigmax’ parameter.                                                                                  | ‘au’                                        | ‘au’ atomic units<br>'eV' electron volts                                                                                                                                              |
 | SYSTEM             | dt                  | Size of the propagation timestep                                                                                   | Positive float                              |                                                                                                                                                                   |
-| SYSTEM             | eigmax              | Ignore states above this energy                                                                                    | Positive float                              |                                                                                                                                                                   |
-| SYSTEM             | ionization          | Ionization parameter (details unspecified)                                                                         | Float                                       |                                                                                                                                                                   |
-| SYSTEM             | jobtype             | Selects the type of propagation to be performed                                                                    | ‘cis’, ‘cisip’, ‘soc’, ‘socip’              | ‘cis’: TD-CIS<br>‘cisip’: TD-CISD-ip<br>‘soc’: TD-CIS with spin-orbit coupling<br>‘socip’: TD-CISD-ip with spin-orbit coupling                                   |
+| SYSTEM             | eigmax              | Ignore states with energies above eigmax+ionization                                                                                    | Positive float                              |                                                                                                                                                                   |
+| SYSTEM             | ionization          | estimated ionization energy                                                                          | Float                                       | if ionization = -1.0, use -HOMO energy                                                                                                                                                                  |
+| SYSTEM             | jobtype             | Selects the type of propagation to be performed                                                                    | ‘cis’, ‘cisip’, ‘soc’, ‘socip’              | ‘cis’: TD-CIS<br>‘cisip’: TD-CISDIP<br>‘soc’: TD-CIS with spin-orbit coupling<br>‘socip’: TD-CISDIP with spin-orbit coupling                                   |
 | SYSTEM             | nstep               | Number of timesteps to be propagated                                                                               | Positive integer                            |                                                                                                                                                                   |
 | SYSTEM             | outstep             | Output data will only be written on step numbers divisible by outstep                                              | Positive integer                            | If nstep=50 and outstep=10, data will be written on steps 10, 20, 30, 40, and 50.                                                                                 |
-| SYSTEM             | nactive             | Number of active occupied orbitals (lower orbitals are ignored)                                                    | N/A                                         |                                                                                                                                                                   |
-| SYSTEM             | nvirtual            | Number of active virtual orbitals (higher orbitals are ignored)                                                    | N/A                                         |                                                                                                                                                                   |
-| SYSTEM             | socfac              | Spin-orbit coupling factor (details unspecified)                                                                   | N/A                                         |                                                                                                                                                                   |
-| SYSTEM             | socfacZ             | Scales z-component of spin-orbit coupling (development test)                                                       | N/A                                         |                                                                                                                                                                   |
-| SYSTEM             | IP_alpha_beta       |                                                                                                                     | .true. or .false.                           |                                                                                                                                                                   |
-| SYSTEM             | QeigenDC            |                                                                                                                     | .true. or .false.                           |                                                                                                                                                                   |
+| SYSTEM             | nactive             | Number of active occupied orbitals (lower orbitals are ignored)                                                    | positive integer                                         | nactive = 0 to use all occupied orbitals                                                                                                                                                                  |
+| SYSTEM             | nvirtual            | Number of active virtual orbitals (higher orbitals are ignored)                                                    | positive integer                                         | nvirtual = 0 to use all virtual orbitals                                                                                                                                                                  |
+| SYSTEM             | socfac              | Spin-orbit coupling scale factor                                                                  | float                                        |  socfac = 1.0 for full SOC<br>socfac = 0.0 to turn off SOC                                                                                                                                                                 |
+| SYSTEM             | socfacZ             | Scales z-component of spin-orbit coupling                                                       | N/A                                         |                                                                                                                                                                   |
+| SYSTEM             | IP_alpha_beta       |  Which electrons to ionize                                                                                                                   | .true. or .false.                           | .ture. ionize both alpha and beta<br>.false. ionize only beta electrons                                                                                                                                                                  |
+| SYSTEM             | QeigenDC            | use divide-and-conquer eigenvalue solver                                                                                                                    | .true. or .false.                           |                                                                                                                                                                   |
 | InOutFILES         | Qread_tdcidata      | Type of Gaussian data file to read                                                                                 | .true. or .false.                           | For legacy TDCI.dat files, use .true.<br>For new MatrixElements.faf files, use .false.                                                                            |
 | InOutFILES         | tdcidatfile         | Specifies the filename of the Gaussian data file                                                                   | String                                      |                                                                                                                                                                   |
 | InOutFILES         | outputfile          | Name of output log file                                                                                            | String                                      |                                                                                                                                                                   |
@@ -558,24 +556,31 @@ For example, the RESULTS file for the progataion with the first specified field 
 ### OUTPUT
 This is the main log file. Similar to a Gaussian log file, it contains both data tables and information about the progress of the calculation.
 After running a TDCI calculation, this should be the first place you check to make sure that it completed successfully.
-For example, each individual propagation will print out a small summary when it starts and finishes, including the final norm of the wavefunction.
+The parameters from 'input' and various control parameters are listed at the beginning of the file.
+OUTPUT also lists the molecule specification, dipole moment, number of basis functions, occupied orbitals, vitrual orbitals and states, specifications for the laser pulse, propagation time step,  simulation time, etc.
+For 'cis' or 'soc' calculations, energies and coefficients of the ionized state and the neutral state are listed next (for 'ip' or 'socip', the energies and coefficients are for the doubly ionized state and the singly ionized state).
+The coefficients of the CI determinants are C(i,a) for 'cis' and 'soc', and C(i) and C(i,j,a) for 'ip' and 'socip'.
+The indices are negative for alpha electrons, positive for beta electrons.
+Abs(i) runs from 1 to the number of occupied orbitals; abs(a) runs from 1 to the number of virtual orbitals.
+A summary is printed each individual propagation and includes the maximum field strength and direction, the final norm and dipole momentof the wavefunction.
 In a good ionization simulation, you should aim for a final norm between 0.3 and 0.6 in the direction with most ionization.
+You may have to play around with the Emax to achieve this.
 
 ### RESULTS-eX-dY.dat
 
-The RESULTS file tabulates values of interest at each timestep.
+The RESULTS file tabulates values of interest at each timestep (the first 3 lines describe the contents).
 It provides time, field, total norm, ionization rate, and dipole moment components (`mu_x,y,z`).
 The MO99 number describes the total number of orbitals needed to contribute 99% of the total ionization rate. NO99 is the same for a user-supplied set of orbitals.
-You may have to play around with the Emax or timestep values to achieve this.
+The rate data must be divided by norm2 to get the rate for a normalized wavefunction
 
 ### POP-eX-dY.dat
 
-Tracks the populations of occupied orbitals at each timestep.
-Also contains the partitioned ionization rate for each orbital, as described in equation REF.
+Tracks the populations of occupied orbitals at each timestep (the first 2 lines describe the contents).
+Also contains the ionization rate for the normalized wavefunction partitioned into contributions from each occupied or virtual orbital, as described in equation [^6].
 
 ### ION-eX-dY.dat
 
-Tracks the populations of orbitals and states in the ionized system.
+Tracks the populations of orbitals and states in the ionized system (the first line describe the contents).
 
 
 
