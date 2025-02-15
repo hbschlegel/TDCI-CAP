@@ -535,7 +535,7 @@ Table of input parameters:
 | SYSTEM             | nvirtual            | Number of active virtual orbitals (higher orbitals are ignored)                                                    | positive integer                                         | nvirtual = 0 to use all virtual orbitals                                                                                                                                                                  |
 | SYSTEM             | socfac              | Spin-orbit coupling scale factor                                                                  | float                                        |  socfac = 1.0 for full SOC<br>socfac = 0.0 to turn off SOC                                                                                                                                                                 |
 | SYSTEM             | socfacZ             | Scales z-component of spin-orbit coupling                                                       | N/A                                         |                                                                                                                                                                   |
-| SYSTEM             | IP_alpha_beta       |  Which electrons to ionize                                                                                                                   | .true. or .false.                           | .ture. ionize both alpha and beta<br>.false. ionize only beta electrons                                                                                                                                                                  |
+| SYSTEM             | IP_alpha_beta       |  Which electrons to ionize                                                                                                                   | .true. or .false.                           | .true. ionize both alpha and beta<br>.false. ionize only beta electrons                                                                                                                                                                  |
 | SYSTEM             | QeigenDC            | use divide-and-conquer eigenvalue solver                                                                                                                    | .true. or .false.                           |                                                                                                                                                                   |
 | InOutFILES         | Qread_tdcidata      | Type of Gaussian data file to read                                                                                 | .true. or .false.                           | For legacy TDCI.dat files, use .true.<br>For new MatrixElements.faf files, use .false.                                                                            |
 | InOutFILES         | tdcidatfile         | Specifies the filename of the Gaussian data file                                                                   | String                                      |                                                                                                                                                                   |
@@ -562,7 +562,7 @@ For 'cis' or 'soc' calculations, energies and coefficients of the ionized state 
 The coefficients of the CI determinants are C(i,a) for 'cis' and 'soc', and C(i) and C(i,j,a) for 'ip' and 'socip'.
 The indices are negative for alpha electrons, positive for beta electrons.
 Abs(i) runs from 1 to the number of occupied orbitals; abs(a) runs from 1 to the number of virtual orbitals.
-A summary is printed each individual propagation and includes the maximum field strength and direction, the final norm and dipole momentof the wavefunction.
+A summary is printed for each individual propagation and includes the maximum field strength and direction, the final norm and dipole momentof the wavefunction.
 In a good ionization simulation, you should aim for a final norm between 0.3 and 0.6 in the direction with most ionization.
 You may have to play around with the Emax to achieve this.
 
@@ -571,7 +571,7 @@ You may have to play around with the Emax to achieve this.
 The RESULTS file tabulates values of interest at each timestep (the first 3 lines describe the contents).
 It provides time, field, total norm, ionization rate, and dipole moment components (`mu_x,y,z`).
 The MO99 number describes the total number of orbitals needed to contribute 99% of the total ionization rate. NO99 is the same for a user-supplied set of orbitals.
-The rate data must be divided by norm2 to get the rate for a normalized wavefunction
+The rate data must be divided by norm2 to get the rate for a normalized wavefunction.
 
 ### POP-eX-dY.dat
 
