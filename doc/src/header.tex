@@ -5,12 +5,7 @@
 \setlength{\tabcolsep}{8pt}
 \usepackage{fontspec}    % For XeLaTeX or LuaLaTeX
 
-\usepackage[linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
-%\hypersetup{colorlinks=true,
-%  linkcolor=blue,
-%  urlcolor=blue,
-%  citecolor=blue
-%}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
 
 \usepackage{etoolbox}       % lets us run code at begin of environments
 \usepackage{pdflscape}
@@ -40,6 +35,10 @@
   numberstyle=\tiny\color{gray},
   captionpos=b
 }
+
+\usepackage{caption}
+\captionsetup[figure]{labelformat=empty}
+
 
 
 
