@@ -133,15 +133,18 @@ contains
     thread2 = 2
     write(iout,"(' DipX Thread # ',i0)") thread2
     call get_ao2mo( thread2, 'dipx' ) 
+    write(iout,*) "aaaa" ; flush(iout)
     call get_form1det( thread2, 'dipx') 
+    write(iout,*) "baaa" ; flush(iout)
     if ( Qalloc_Zcomplex ) then
-       call testherm(nstates,Ztdx,'TDxMO')
-       call Zform1cis(nstates,nstuse,Ztdx,Zcis_vec)
-       !call Zform1cis0(nstates,nstuse,Ztdx,Zcis_vec,Zwork2)
-       call testherm(nstuse,Ztdx,'TDxCI')
+      call testherm(nstates,Ztdx,'TDxMO')
+      call Zform1cis(nstates,nstuse,Ztdx,Zcis_vec)
+      !call Zform1cis0(nstates,nstuse,Ztdx,Zcis_vec,Zwork2)
+      call testherm(nstuse,Ztdx,'TDxCI')
     else 
-       call form1cis(nstates,nstuse,tdx,cis_vec)        
-       !call form1cis0(nstates,nstuse,tdx,cis_vec,work2)
+      call form1cis(nstates,nstuse,tdx,cis_vec)        
+      !call form1cis0(nstates,nstuse,tdx,cis_vec,work2)
+      write(iout,*) "caaa" ; flush(iout)
     end if
 
     !thread3 = OMP_get_thread_num()
