@@ -23,9 +23,17 @@ OBJECTS = $(F90_OBJECTS) $(F_OBJECTS)
 $(info SOURCES: $(SOURCES))
 $(info OBJECTS: $(OBJECTS))
 
+
+# If the working directory 'dirty' (does not exactly match the commit), append '+'
+dirty := $(shell if [ -z "$$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; \
+                 then echo ""; else echo "+"; fi)
+
+# Include git version number and dirty indicator
+GIT_HASH := $(shell git rev-parse --short HEAD)$(dirty)
+
 #FC = pgf95
 FC = nvfortran
-FFLAGS = -tp px -O3 -g
+FFLAGS = -tp=host -O3 -g -Mpreprocess -DGIT_HASH=\"$(GIT_HASH)\"
 LAPACK_LIBS = -llapack -lblas
 OPT_FLAGS = -Minfo -Mneginfo -time -fast -Mconcur=allcores -mp=allcores -Munroll -Mvect
 O_FLAGS = -module $(MOD) -I$(MOD)
@@ -108,7 +116,6 @@ update :
 	mkdir -p $(BIN)
 	mkdir -p $(OBJ)
 	mkdir -p $(MOD)
-	./CHANGE_DATE
 
 $(OBJ)/qcmatrixio.o : $(SRC)/qcmatrixio.F
 	pgfortran $(O_FLAGS) -c $< -o $@

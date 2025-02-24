@@ -261,7 +261,6 @@ contains
     
 300 format(1x,a3,1x,i2,1x,i4,3x,i2,':',i2,':',i2,':',i3,1x,a2)
 
-
   end subroutine dnt
   !:--------------------!
   ! subroutine stopme
@@ -291,10 +290,8 @@ contains
 
     character(*), intent(in) :: curr_sub, curr_mod, enter_or_leave
     
-
     select case( trim(enter_or_leave) )
     case( 'enter' )
-       write( iout,'(A)' ) divide
        write( iout,'(A)' ) ' in subroutine '//trim(curr_sub)//' in MODULE '//trim(curr_mod)
        write( iout,'(A)' ) ' '
     case( 'leave' )
@@ -302,9 +299,7 @@ contains
        write( iout,'(A)' ) ' leaving subroutine '//trim(curr_sub)
        write( iout,'(A)' ) divide
     end select
-    
     flush(iout)
-    
 
   end subroutine write_header
   !:----------------------------!

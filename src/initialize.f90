@@ -627,10 +627,11 @@ contains
           write(iout,100) 'fvect1', nstep  ; call track_mem( nstep )
           write(iout,100) 'Mol%field_env',    nstep  ; call track_mem( nstep )
           !: circular stuff
-          if ( .not.linear ) then
-             allocate( fvect2(nstep) )        ; fvect2 = 0.d0
-             write(iout,100) 'fvect2', nstep  ; call track_mem(nstep)
-          end if
+          !if ( .not.linear ) then
+          !: Shouldn't we calculate the field on the fly?
+          allocate( fvect2(nstep) )        ; fvect2 = 0.d0
+          write(iout,100) 'fvect2', nstep  ; call track_mem(nstep)
+          !end if
           allocate( tdciresults(nemax*ndir) ) 
           write(iout,"(' allocated tdciresults ')")
        end if
@@ -1215,6 +1216,11 @@ contains
     implicit none
     character(*), intent(in) :: myroutine
     character(*), intent(in) :: option
+#ifdef GIT_HASH
+    character(*), parameter :: commit_hash = GIT_HASH
+#else
+    character(*), parameter :: commit_hash = "UNKNOWN"
+#endif
 
     
     select case(trim(myroutine))
@@ -1225,10 +1231,8 @@ contains
           write(iout,'(A)') ' THIS IS A WONDERFUL DAY, I HAVE NEVER SEEN THIS ONE BEFORE'
           write(iout,'(A)') ' - Maya Angelous'
           write(iout,'(A)') divide
-       case( 'date' )          
-          write(iout,'(A)') ' I WAS COMPILED ON Thu Jan 30 07:47:59 PM EST 2025 '
-          write(iout,'(A)') ' I AM A REVISED CODE FOR CW PULSE GENERATION '
-          write(iout,'(A)') ' RAMPING PARAMETER SET TO RAMP_STEP=16000, NOT NSTEP'
+       case( 'date' )
+          write(iout,'(A)') ' git version ' // commit_hash
           call dnt(iout)          
           call write_header( 'read_input','initialize','enter' )
        end select

@@ -1,7 +1,0 @@
-#!/bin/bash
-
-
-
-mydate=$(date)
-sed -i "s/ I WAS COMPILED ON.*/ I WAS COMPILED ON $mydate '/" src/initialize.f90
-
