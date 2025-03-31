@@ -7,8 +7,8 @@ import os, sys, subprocess
 # Config variables for grid bounds (edit these)
 # Angstroms
 xmin = ( -16.0, -16.0, -16.0 ) # .cube region minimum corner
-xmax = ( 16.0, 16.0, 48.0 )    # .cube region maximum corner
-nsteps = 55                    # .cube grid points in each direction
+xmax = ( 16.0, 16.0, 16.0 )    # .cube region maximum corner
+nsteps = 30                    # .cube grid points in each direction
 
 # TDCI timesteps to create .cube files for
 start_timestep_default = 1
@@ -33,6 +33,8 @@ parser.add_option("--start_timestep", action="store", type="int", default=start_
 parser.add_option("--end_timestep", action="store", type="int", default=end_timestep_default, dest="end_timestep", help=f"Set the timestep to end on. Default {end_timestep_default}")
 parser.add_option("--isoval1", action="store", type="float", default="0.002", dest="isoval1", help=f"Inner isovalue in VMD render. Default 0.002")
 parser.add_option("--isoval2", action="store", type="float", default="0.00095", dest="isoval2", help=f"Outer isovalue in VMD render. Default 0.00095")
+parser.add_option("--diff", action="store", type="int", default="0", dest="diff", help=f"0 - Plot Density. 1 - Plot Density minus the HF density. 2 - Plot Density minus the density in the template fchk file. 3 - Plot Density minus the density at timestep 1. NOTE: OPTIONS 2 AND 3 ARE NOT CURRENTLY SUPPORTED")
+parser.add_option("--eidx", action="store", type="int", default="1", dest="eidx", help=f"Index of Emax. Ex: --eidx=2 will read MO_density-e2-d[dir].[timestep].bin . Default 1.")
 (opts, args) = parser.parse_args()
 
 
@@ -48,8 +50,11 @@ if NCPU > 3:
 
 
 
-# assuming there is only one in the directory, return path of chk file
+# assuming there is only one in the directory, return path of chk file or fchk file
 def find_chk_file(directory):
+    for filename in os.listdir(directory):
+        if filename.endswith('.fchk'):
+            return os.path.join(directory, filename)
     for filename in os.listdir(directory):
         if filename.endswith('.chk'):
             return os.path.join(directory, filename)
@@ -135,14 +140,14 @@ class cubemaker:
 
 
 # Call the density2fchk fortran program to insert the density from tdci into the template fchk file
-def density2fchk(tdci_dir, direction, timestep, nstep, nocc, norb):
+def density2fchk(tdci_dir, direction, timestep, nocc, norb):
   #!: density2fchk.f90 Usage:
-  #!:   density2fchk infile MOdensityfile nstep diff iscale
+  #!:   density2fchk infile MOdensityfile timestep diff iscale
   #!:
   #!: Command line input:
   #!:    infile -  full name of the template formatted checkpoint file (with ".fchk")
   #!:    MOdensityfile - full name of the ion coefficient file (e.g. MO_density-e1-d1.dat)
-  #!:    nstep - step number to be used for the constructiion of the NTOs and hole density
+  #!:    timestep - step number to be used for the constructiion of the NTOs and hole density
   #!:    diff = 0 - calculate the density
   #!:         = 1 - calculate the density minus the density of the field-free neutral
   #!:         = 2 - calculate the density minus the density in the template fchk file
@@ -155,14 +160,15 @@ def density2fchk(tdci_dir, direction, timestep, nstep, nocc, norb):
   #!:    total SCF density replaced bt the density or density difference
   # See density2fchk.f90 for more details
 
-  diff = 0
+  diff = opts.diff
   iscale = 0
   print(timestep)
-  # density2fchk template_fchk density_binary, nstep, diff, iscale, nocc, norb
+  # density2fchk template_fchk density_binary, timestep, diff, iscale, nocc, norb
   densfile = f"{tdci_dir}/matrices/MO_density-e1-d{direction}.{timestep}00.bin"
   # iscale=0 : dont scale
   # iscale=1 : read from maxrate.dat and scale by 1./maxrate (disabled)
-  p = subprocess.Popen(f"{tools}/density2fchk temp.fchk {densfile} {nstep} {diff} {iscale} {nocc} {norb} ", shell=True)
+  print(f"Running: {tools}/density2fchk temp.fchk {densfile} {timestep} {diff} {iscale} {nocc} {norb} ")
+  p = subprocess.Popen(f"{tools}/density2fchk temp.fchk {densfile} {timestep} {diff} {iscale} {nocc} {norb} ", shell=True)
   p.wait()
   return 0
 
@@ -237,10 +243,16 @@ def generate_cube_series(gaussian_dir, tdci_dir, direction, start_timestep, end_
   nocc, norb = parse_tdci_output(tdci_dir)
   # make fchk and get coords from it
   chkpath = find_chk_file(gaussian_dir)  
-  p = subprocess.Popen(f"cp {chkpath} temp.chk", shell=True)
-  p.wait()
-  p = subprocess.Popen(f"formchk temp.chk", shell=True)
-  p.wait()
+  if chkpath.endswith('.fchk'):
+    print(f"Found fchk! Copying: {chkpath} to be used.")
+    p = subprocess.Popen(f"cp {chkpath} temp.fchk", shell=True)
+    p.wait()
+  else:
+    print(f"Found chk! Copying: {chkpath} to be formatted and then used.")
+    p = subprocess.Popen(f"cp {chkpath} temp.chk", shell=True)
+    p.wait()
+    p = subprocess.Popen(f"formchk temp.chk", shell=True)
+    p.wait()
 
   # create input.cube template
   coords = read_fchk_coords("temp.fchk")
@@ -248,7 +260,7 @@ def generate_cube_series(gaussian_dir, tdci_dir, direction, start_timestep, end_
   cm.generate_template_cube( xmin, xmax, nsteps, coords )
   
   for i in range(start_timestep, end_timestep+1):
-    density2fchk(tdci_dir, direction, i, nsteps, nocc, norb) 
+    density2fchk(tdci_dir, direction, i, nocc, norb) 
     cubegen(i)
                                          
                                          

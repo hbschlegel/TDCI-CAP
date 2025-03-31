@@ -109,7 +109,7 @@ $(OBJ)/variables_units.o : $(SRC)/variables_units.f90
 $(OBJ)/sort.o : $(SRC)/sort.f90
 	$(FC) $(O_FLAGS) -c $< -o $@ 
 
-$(OBJ)/io_binary.o : $(SRC)/io_binary.f90
+$(OBJ)/io_binary.o : $(SRC)/io_binary.f90 $(OBJ)/variables_global.o
 	$(FC) $(O_FLAGS) -c $< -o $@ 
 
 update : 
