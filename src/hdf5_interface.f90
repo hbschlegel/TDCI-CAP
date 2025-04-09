@@ -1,90 +1,66 @@
-module hdf5_writer
+module hdf5_interface
 
 use, intrinsic :: iso_fortran_env, only: int64, real64
 use hdf5
 
 implicit none
 
-private
-
-type, public :: HDF5Writer
-  integer(HID_T) :: file_id = -1
-  character(len=:), allocatable :: filename
-  contains
-    procedure, public :: open_file        => h5w_open_file
-    procedure, public :: close_file       => h5w_close_file
-    procedure, public :: create_group     => h5w_create_group
-    procedure, public :: close_group      => h5w_close_group
-    procedure, public :: write_attribute  => h5w_write_attribute
-    procedure, public :: create_dataset_real    => h5w_create_dataset_real
-    procedure, public :: create_dataset_int     => h5w_create_dataset_int
-    procedure, public :: create_dataset_complex => h5w_create_dataset_complex
-    procedure, public :: append_real           => h5w_append_real
-    procedure, public :: append_int            => h5w_append_int
-    procedure, public :: append_complex        => h5w_append_complex
-end type HDF5Writer
-
 contains
 
 !------------------------------------------------------------------------------
 ! 1) Open an HDF5 file (create or overwrite) using modern Fortran bindings.
 !------------------------------------------------------------------------------
-subroutine h5w_open_file(this, fname)
-   class(HDF5Writer), intent(inout) :: this
-   character(len=*),  intent(in)    :: fname
+subroutine h5_open_file(fname, file_id)
+  character(len=*),  intent(in)    :: fname
+  integer(HID_T),     intent(inout) :: file_id
 
+  integer :: status
+
+  call h5fcreate_f(fname, H5F_ACC_TRUNC_F, file_id, status)
+  if (status /= 0) then
+    write(*,*) "Error creating HDF5 file: ", trim(fname)
+    stop
+  else
+    write(*,*) "Created H5 file: ", trim(fname), " with file_id : ", file_id
+  end if
+end subroutine h5_open_file
+
+subroutine h5_close_file(file_id)
+   integer(HID_T), intent(in) :: file_id
    integer :: status
 
-   this%filename = fname
-   ! The modern routine for creating a file is h5fcreate_f
-   call h5fcreate_f(fname, H5F_ACC_TRUNC_F, this%file_id, status)
-   if (status /= 0) then
-      write(*,*) "Error creating HDF5 file: ", trim(fname)
-      stop
+   if (file_id /= -1) then
+      call h5fclose_f(file_id, status)
+      file_id = -1
+      write(*,*) "Closed HDF5 file_id:", file_id
    end if
-end subroutine h5w_open_file
+end subroutine h5_close_file
 
 
 !------------------------------------------------------------------------------
-! 2) Close the HDF5 file
-!------------------------------------------------------------------------------
-subroutine h5w_close_file(this)
-   class(HDF5Writer), intent(inout) :: this
-   integer :: status
-
-   if (this%file_id /= -1) then
-      call h5fclose_f(this%file_id, status)
-      this%file_id = -1
-      write(*,*) "Closed HDF5 file:", trim(this%filename)
-   end if
-end subroutine h5w_close_file
-
-
-!------------------------------------------------------------------------------
-! 3) Create (or open) a group, e.g. "/direction_i/field_j".
+!    Create (or open) a group, e.g. "/direction_i/field_j".
 !    group_id is returned for further actions on that group.
 !------------------------------------------------------------------------------
-subroutine h5w_create_group(this, group_path, group_id)
-   class(HDF5Writer), intent(inout) :: this
+subroutine h5_create_group(file_id, group_path, group_id)
+   integer(HID_T),     intent(in) :: file_id
    character(len=*),   intent(in)  :: group_path
    integer(HID_T),     intent(out) :: group_id
 
    integer :: status
 
-   call h5gcreate_f(this%file_id, group_path, group_id, status)
+   call h5gcreate_f(file_id, group_path, group_id, status)
    if (status /= 0) then
       ! Possibly the group already exists; try opening it
-      call h5gopen_f(this%file_id, group_path, group_id, status)
+      call h5gopen_f(file_id, group_path, group_id, status)
       if (status /= 0) then
          write(*,*) "Error creating/opening group:", trim(group_path)
          stop
       end if
    end if
-end subroutine h5w_create_group
+end subroutine h5_create_group
 
 
-subroutine h5w_close_group(this, group_id)
-   class(HDF5Writer), intent(inout) :: this
+subroutine h5_close_group(group_id)
    integer(HID_T),     intent(in) :: group_id
 
    integer :: status
@@ -93,14 +69,13 @@ subroutine h5w_close_group(this, group_id)
    if (status /= 0) then
      write(*,*) "Error closing group:", group_id
    end if
-end subroutine h5w_close_group
+end subroutine h5_close_group
 
 
 !------------------------------------------------------------------------------
 ! 4) Write an attribute (e.g. a small real array) to a group
 !------------------------------------------------------------------------------
-subroutine h5w_write_attribute(this, group_id, attr_name, data)
-   class(HDF5Writer), intent(in)    :: this
+subroutine h5_write_attribute(group_id, attr_name, data)
    integer(HID_T),     intent(in)   :: group_id
    character(len=*),   intent(in)   :: attr_name
    real(8),       intent(in)   :: data(:)
@@ -125,14 +100,13 @@ subroutine h5w_write_attribute(this, group_id, attr_name, data)
 
    call h5aclose_f(attr_id, status)
    call h5sclose_f(aspace_id, status)
-end subroutine h5w_write_attribute
+end subroutine h5_write_attribute
 
 
 !------------------------------------------------------------------------------
 ! 5) Create an UNLIMITED dataset for real(8), shape [time, dim2, dim3, ...].
 !------------------------------------------------------------------------------
-subroutine h5w_create_dataset_real(this, group_id, dset_name, dims, dset_id)
-   class(HDF5Writer),                intent(inout) :: this
+subroutine h5_create_dataset_real(group_id, dset_name, dims, dset_id)
    integer(HID_T),                   intent(in)    :: group_id
    character(len=*),                 intent(in)    :: dset_name
    integer(HSIZE_T), dimension(:),   intent(in)    :: dims
@@ -187,14 +161,13 @@ subroutine h5w_create_dataset_real(this, group_id, dset_name, dims, dset_id)
 
    call h5pclose_f(dcpl_id, status)
    call h5sclose_f(space_id, status)
-end subroutine h5w_create_dataset_real
+end subroutine h5_create_dataset_real
 
 
 !------------------------------------------------------------------------------
 ! 6) Create an unlimited dataset for integer(8).
 !------------------------------------------------------------------------------
-subroutine h5w_create_dataset_int(this, group_id, dset_name, dims, dset_id)
-   class(HDF5Writer),                intent(inout) :: this
+subroutine h5_create_dataset_int(group_id, dset_name, dims, dset_id)
    integer(HID_T),                   intent(in)    :: group_id
    character(len=*),                 intent(in)    :: dset_name
    integer(HSIZE_T), dimension(:),   intent(in)    :: dims
@@ -243,15 +216,14 @@ subroutine h5w_create_dataset_int(this, group_id, dset_name, dims, dset_id)
 
    call h5pclose_f(dcpl_id, status)
    call h5sclose_f(space_id, status)
-end subroutine h5w_create_dataset_int
+end subroutine h5_create_dataset_int
 
 
 !------------------------------------------------------------------------------
 ! 7) Create an unlimited dataset for COMPLEX(8).
 !    We store an extra dimension of size 2 for real+imag.
 !------------------------------------------------------------------------------
-subroutine h5w_create_dataset_complex(this, group_id, dset_name, dims, dset_id)
-   class(HDF5Writer),                intent(inout) :: this
+subroutine h5_create_dataset_complex(group_id, dset_name, dims, dset_id)
    integer(HID_T),                   intent(in)    :: group_id
    character(len=*),                 intent(in)    :: dset_name
    integer(HSIZE_T), dimension(:),   intent(in)    :: dims
@@ -304,15 +276,14 @@ subroutine h5w_create_dataset_complex(this, group_id, dset_name, dims, dset_id)
 
    call h5pclose_f(dcpl_id, status)
    call h5sclose_f(space_id, status)
-end subroutine h5w_create_dataset_complex
+end subroutine h5_create_dataset_complex
 
 
 !------------------------------------------------------------------------------
 ! 8) Append a 1D real(8) array to an unlimited dataset of shape [time, Nx].
 !    Extends dimension 1 by 1, then writes data(:).
 !------------------------------------------------------------------------------
-subroutine h5w_append_real(this, dset_id, data)
-   class(HDF5Writer), intent(inout) :: this
+subroutine h5_append_real(dset_id, data)
    integer(HID_T),    intent(in)    :: dset_id
    real(real64), dimension(:), intent(in) :: data
 
@@ -372,14 +343,13 @@ subroutine h5w_append_real(this, dset_id, data)
    ! Cleanup
    call h5sclose_f(memspace_id, status)
    call h5sclose_f(filespace_id, status)
-end subroutine h5w_append_real
+end subroutine h5_append_real
 
 
 !------------------------------------------------------------------------------
 ! 9) Append a 1D integer(int64) array to an unlimited dataset of shape [time, Nx].
 !------------------------------------------------------------------------------
-subroutine h5w_append_int(this, dset_id, data)
-   class(HDF5Writer), intent(inout) :: this
+subroutine h5_append_int(dset_id, data)
    integer(HID_T),    intent(in)    :: dset_id
    integer(int64),    intent(in)    :: data(:)
 
@@ -435,14 +405,13 @@ subroutine h5w_append_int(this, dset_id, data)
 
    call h5sclose_f(memspace_id, status)
    call h5sclose_f(filespace_id, status)
-end subroutine h5w_append_int
+end subroutine h5_append_int
 
 
 !------------------------------------------------------------------------------
 ! 10) Append a 2D real array for COMPLEX(8) data to shape [time, Nx, 2].
 !------------------------------------------------------------------------------
-subroutine h5w_append_complex(this, dset_id, data)
-   class(HDF5Writer),           intent(inout) :: this
+subroutine h5_append_complex(dset_id, data)
    integer(HID_T),              intent(in)    :: dset_id
    real(real64), dimension(:,:),intent(in)    :: data
    ! data(:,1) = real part, data(:,2) = imag
@@ -502,6 +471,6 @@ subroutine h5w_append_complex(this, dset_id, data)
 
    call h5sclose_f(memspace_id, status)
    call h5sclose_f(filespace_id, status)
-end subroutine h5w_append_complex
+end subroutine h5_append_complex
 
-end module hdf5_writer
+end module hdf5_interface

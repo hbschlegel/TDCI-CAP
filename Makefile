@@ -71,7 +71,7 @@ $(OBJ)/davidson_ip.o : $(SRC)/davidson_ip.f90 $(OBJ)/variables_global.o $(OBJ)/u
 $(OBJ)/Zpropagate.o : $(SRC)/Zpropagate.f90 $(OBJ)/analysis.o $(OBJ)/util.o $(OBJ)/variables_global.o
 	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-$(OBJ)/propagate.o : $(SRC)/propagate.f90 $(OBJ)/analysis.o $(OBJ)/util.o $(OBJ)/variables_global.o $(OBJ)/sort.o $(OBJ)/io_binary.o
+$(OBJ)/propagate.o : $(SRC)/propagate.f90 $(OBJ)/analysis.o $(OBJ)/util.o $(OBJ)/variables_global.o $(OBJ)/sort.o $(OBJ)/io_binary.o $(OBJ)/hdf5_interface.o
 	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
 $(OBJ)/analysis.o : $(SRC)/analysis.f90 $(OBJ)/util.o

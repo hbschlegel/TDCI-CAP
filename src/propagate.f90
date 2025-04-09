@@ -6,12 +6,13 @@ use util
 use sort
 use io_binary  ! io_bin_test, write_dbin, read_dbin
 use hdf5
-use hdf5_writer, only: HDF5Writer
+use hdf5_interface
   
 implicit none
 
 
 type PropagationPrivate
+
   !: field info
   real(8) :: dirx1, diry1, dirz1, emax1, efield1
   real(8) :: dirx2, diry2, dirz2, emax2, efield2
@@ -44,6 +45,7 @@ type PropagationPrivate
 
   real(8) :: rate_density, rate_direct, rate_debug, rate_raw
 
+  integer(HID_T) :: file_id
   integer(HID_T) :: dir_grpid, field_grpid
   !: real(8) datasets
   integer(HID_T) :: time_dsid, efield1_dsid, efield2_dsid 
@@ -64,8 +66,6 @@ end type PropagationPrivate
     
 
 type PropagationShared
-
-  type(HDF5Writer) :: h5writer
 
   integer(8) :: &
     nva95maxmax, nva99maxmax, nva95maxmaxMO, nva99maxmaxMO, &
@@ -88,7 +88,6 @@ type PropagationShared
   contains
     procedure :: initialize => initialize_PropShared
     procedure :: deconstruct => deconstruct_PropShared
-    procedure :: init_h5file => init_h5file_PropShared
 
 end type PropagationShared
 
@@ -159,67 +158,72 @@ subroutine deconstruct_PropPriv(this)
 
 end subroutine deconstruct_PropPriv
 
-subroutine init_h5dir(Priv, Prop, idir)
+subroutine init_h5dir(Priv, idir)
   implicit none
   class(PropagationPrivate), intent(inout) :: Priv
-  class(PropagationShared), intent(inout) :: Prop
   integer(8), intent(in) ::  idir
 
-  integer(HID_T) :: grp_id, dset_id_real
-  real(8) :: tempd
-
+  integer(HID_T) :: file_id, grp_id, dset_id_real
   character(len=128) :: gpath, fpath
+  logical :: file_exists
+
+  write(fpath, '( "thread", i0, ".h5" )') idir
+  inquire(file=fpath, exist=file_exists)
+  if (file_exists) then
+    call execute_command_line("rm -f " // fpath)
+  end if
+  file_id = -1
+  call h5_open_file(fpath, file_id)
+  Priv%file_id = file_id
 
   write(gpath, '( "/direction_", i0 )') idir
-  call Prop%h5writer%create_group(gpath, grp_id)
-  call Prop%h5writer%write_attribute(grp_id, &
+  call h5_create_group(file_id, gpath, grp_id)
+  call h5_write_attribute(grp_id, &
          "field_direction", [Priv%dirx1,Priv%diry1,Priv%dirz1])
   Priv%dir_grpid = grp_id
-  !call Prop%h5writer%close_group(grp_id)
-  
 
 end subroutine init_h5dir
 
 !: Create the /directionX/fieldY direction
-subroutine init_h5emax(Priv, Prop, iemax, idir)
+subroutine init_h5emax(Priv, iemax, idir)
   class(PropagationPrivate), intent(inout) :: Priv
-  class(PropagationShared), intent(inout) :: Prop
   integer(8), intent(in) :: iemax, idir
   integer(HSIZE_T), dimension(1) :: tempdim
   
   character(len=128) :: gpath
   integer(HID_T) :: grp_id
 
+  grp_id = -1
   write(gpath, '( "/direction_", i0, "/field_", i0 )') idir, iemax
-  write(iout, *) "after open_file" ; flush(iout)
-  call Prop%h5writer%create_group(gpath, grp_id)
-
+  write(iout, *) "before create emax group ", Priv%file_id, gpath ; flush(iout)
+  !:call h5_create_group(Priv%file_id, gpath, grp_id)
+  call h5_create_group(Priv%dir_grpid, gpath, grp_id)
   Priv%field_grpid = grp_id
-  tempdim = [1]
-  call Prop%h5writer%create_dataset_real(grp_id, "time", tempdim, Priv%time_dsid)
-  call Prop%h5writer%create_dataset_real(grp_id, "efield1", tempdim, Priv%efield1_dsid)
-  call Prop%h5writer%create_dataset_real(grp_id, "efield2", tempdim, Priv%efield2_dsid)
-  call Prop%h5writer%create_dataset_real(grp_id, "efieldx", tempdim, Priv%efieldx_dsid)
-  call Prop%h5writer%create_dataset_real(grp_id, "efieldy", tempdim, Priv%efieldy_dsid)
-  call Prop%h5writer%create_dataset_real(grp_id, "efieldz", tempdim, Priv%efieldz_dsid)
-  call Prop%h5writer%create_dataset_real(grp_id, "norm2", tempdim, Priv%norm2_dsid)
-  call Prop%h5writer%create_dataset_real(grp_id, "mux", tempdim, Priv%mux_dsid)
-  call Prop%h5writer%create_dataset_real(grp_id, "muy", tempdim, Priv%muy_dsid)
-  call Prop%h5writer%create_dataset_real(grp_id, "muz", tempdim, Priv%muz_dsid)
-  call Prop%h5writer%create_dataset_real(grp_id, "rate", tempdim, Priv%rate_dsid)
+  write(iout, *) "emax group created: ", grp_id, Priv%field_grpid ; flush(iout)
 
-  call Prop%h5writer%create_dataset_int(grp_id, "nva99", tempdim, Priv%nva99_dsid)
-  
+  tempdim = [1]
+  call h5_create_dataset_real(grp_id, "time", tempdim, Priv%time_dsid)
+  call h5_create_dataset_real(grp_id, "efield1", tempdim, Priv%efield1_dsid)
+  call h5_create_dataset_real(grp_id, "efield2", tempdim, Priv%efield2_dsid)
+  call h5_create_dataset_real(grp_id, "efieldx", tempdim, Priv%efieldx_dsid)
+  call h5_create_dataset_real(grp_id, "efieldy", tempdim, Priv%efieldy_dsid)
+  call h5_create_dataset_real(grp_id, "efieldz", tempdim, Priv%efieldz_dsid)
+  call h5_create_dataset_real(grp_id, "norm2", tempdim, Priv%norm2_dsid)
+  call h5_create_dataset_real(grp_id, "mux", tempdim, Priv%mux_dsid)
+  call h5_create_dataset_real(grp_id, "muy", tempdim, Priv%muy_dsid)
+  call h5_create_dataset_real(grp_id, "muz", tempdim, Priv%muz_dsid)
+  call h5_create_dataset_real(grp_id, "rate", tempdim, Priv%rate_dsid)
+
+  call h5_create_dataset_int(grp_id, "nva99", tempdim, Priv%nva99_dsid)
 
 end subroutine init_h5emax
 
 
-subroutine write_h5_step(Priv, Prop, psi, psi1, psi_det0, Zion_coeff, &
+subroutine write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, &
                                   ion_coeff, scratch, itime, idata, pop1, ion)
   implicit none
 
   class(PropagationPrivate), intent(inout) :: Priv
-  class(PropagationShared), intent(inout) :: Prop
   
   complex(8), intent(inout) :: psi(nstuse), psi1(nstates), psi_det0(:)
   complex(8), intent(inout) :: Zion_coeff(:), ion_coeff(:)
@@ -229,21 +233,19 @@ subroutine write_h5_step(Priv, Prop, psi, psi1, psi_det0, Zion_coeff, &
   real(8), intent(inout) :: pop1(:), ion(:)
 
 
-  call Prop%h5writer%append_real(Priv%time_dsid , [dble(itime)*dt*au2fs])
-  call Prop%h5writer%append_real(Priv%efield1_dsid , [Priv%efield1])
-  call Prop%h5writer%append_real(Priv%efield2_dsid , [Priv%efield2])
-  call Prop%h5writer%append_real(Priv%efieldx_dsid , [Priv%efieldx])
-  call Prop%h5writer%append_real(Priv%efieldy_dsid , [Priv%efieldy])
-  call Prop%h5writer%append_real(Priv%efieldz_dsid , [Priv%efieldz])
-  call Prop%h5writer%append_real(Priv%norm2_dsid , [Priv%norm**2])
-  call Prop%h5writer%append_real(Priv%mux_dsid , [Priv%mux])
-  call Prop%h5writer%append_real(Priv%muy_dsid , [Priv%muy])
-  call Prop%h5writer%append_real(Priv%muz_dsid , [Priv%muz])
-  call Prop%h5writer%append_real(Priv%rate_dsid , [Priv%rate/au2fs])
+  call h5_append_real(Priv%time_dsid , [dble(itime)*dt*au2fs])
+  call h5_append_real(Priv%efield1_dsid , [Priv%efield1])
+  call h5_append_real(Priv%efield2_dsid , [Priv%efield2])
+  call h5_append_real(Priv%efieldx_dsid , [Priv%efieldx])
+  call h5_append_real(Priv%efieldy_dsid , [Priv%efieldy])
+  call h5_append_real(Priv%efieldz_dsid , [Priv%efieldz])
+  call h5_append_real(Priv%norm2_dsid , [Priv%norm**2])
+  call h5_append_real(Priv%mux_dsid , [Priv%mux])
+  call h5_append_real(Priv%muy_dsid , [Priv%muy])
+  call h5_append_real(Priv%muz_dsid , [Priv%muz])
+  call h5_append_real(Priv%rate_dsid , [Priv%rate/au2fs])
 
-  call Prop%h5writer%append_int(Priv%nva99_dsid , [Priv%nva99max_direct])
-
-
+  call h5_append_int(Priv%nva99_dsid , [Priv%nva99max_direct])
 
 end subroutine write_h5_step
 
@@ -688,7 +690,6 @@ end subroutine initialize_PropShared
 subroutine deconstruct_PropShared(this)
   class(PropagationShared), intent(inout) :: this
 
-  call this%h5writer%close_file()
   deallocate( this%opdm_avg , this%opdm_avg_abs )
   deallocate( this%natorb_occ, this%natorb_occ_abs )
   deallocate( this%U_NO, this%U_NO_abs )
@@ -696,21 +697,16 @@ subroutine deconstruct_PropShared(this)
 end subroutine deconstruct_PropShared
 
 
-subroutine init_h5file_PropShared(this)
+subroutine init_h5file_PropPriv(this)
   class(PropagationShared), intent(inout) :: this
 
   logical :: file_exists
   integer :: status
-  character(len=128) :: fpath
+  integer(HID_T) :: file_id
 
-  write(fpath, '( "data.h5" )')
-  inquire(file=fpath, exist=file_exists)
-  if (file_exists) then
-    call execute_command_line("rm -f data.h5")
-  end if
-  call this%h5writer%open_file(fpath)
+  
 
-end subroutine init_h5file_PropShared
+end subroutine init_h5file_PropPriv
 
 
 !==================================================================!
@@ -809,14 +805,7 @@ subroutine trotter_linear
   !: write psi0
   call writeme_propagate( 'trot_lin', 'psi0' )    
 
-  call Prop%init_h5file()
-
-
   !: Start loop over directions.
-
-  !if ( write_binaries .or. Qmo_dens ) then
-  !  call omp_set_num_threads(8) ! Limit threads when they have heavy I/O
-  !end if
 
   !$OMP PARALLEL DEFAULT(NONE),&
   !$OMP PRIVATE(Priv, i, idata, idir, iemax, ii, itime, j, jj, k, kk, ithread, &
@@ -853,10 +842,12 @@ subroutine trotter_linear
     Priv%diry1 = tdciresults(idir)%y0  
     Priv%dirz1 = tdciresults(idir)%z0  
 
+    !$OMP CRITICAL (IO_LOCK)
     write(iout,*) "before init h5dir ", idir ; flush(iout)
     !: Create the /direction_idir group in the h5 file
-    call init_h5dir(Priv, Prop, idir)
+    call init_h5dir(Priv, idir)
     write(iout,*) "after init h5dir ", idir ; flush(iout)
+    !$OMP END CRITICAL (IO_LOCK)
 
     !: get mu dot e-vector matrix elements in CIS basis.  diagonalize
     hp1(:) = Priv%dirx1*tdx(1:nstuse2) &
@@ -892,7 +883,7 @@ subroutine trotter_linear
 
       !$OMP CRITICAL (IO_LOCK)
       write(iout,*) "before init h5emax ", idir, iemax ; flush(iout)
-      call init_h5emax(Priv, Prop, iemax, idir)
+      call init_h5emax(Priv, iemax, idir)
       call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff, 0)
       if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
       write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
@@ -1075,7 +1066,7 @@ subroutine trotter_linear
             call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
                                scratch, itime, idata, pop1, ion)
 
-            call write_h5_step(Priv, Prop, psi, psi1, psi_det0, Zion_coeff, ion_coeff,&
+            call write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff,&
                                scratch, itime, idata, pop1, ion)
 
             !$OMP END CRITICAL (IO_LOCK)
@@ -1084,7 +1075,6 @@ subroutine trotter_linear
            
         end do timestep_loop
         
-        Priv%field_grpid = -1
         call cpu_time(Priv%finish2)
 
         if( Qci_save ) close(Priv%funit(1))
@@ -1098,7 +1088,9 @@ subroutine trotter_linear
         if( Qmo_dens ) close(Priv%funit(6))
 
         !$OMP CRITICAL (IO_LOCK)
-        call Prop%h5writer%close_group(Priv%field_grpid)
+        write(iout,*) "Closing h5 emax group ", idir, iemax, Priv%dir_grpid, Priv%field_grpid
+        call h5_close_group(Priv%field_grpid)
+        write(iout,*) "Done closing h5 emax group ", idir, iemax, Priv%dir_grpid, Priv%field_grpid
         !: record data at last timestep
         tdciresults( idir + (iemax-1)*ndir)%norm0 = Priv%norm**2
         tdciresults( idir + (iemax-1)*ndir)%dipx  = Priv%mux
@@ -1118,7 +1110,9 @@ subroutine trotter_linear
 
         !$OMP END CRITICAL (IO_LOCK)
      end do emax_loop
-    call Prop%h5writer%close_group(Priv%dir_grpid)
+    write(iout,*) "Closing h5 dir group ", idir, Priv%dir_grpid
+    call h5_close_group(Priv%dir_grpid)
+    write(iout,*) "Done closing h5 dir group ", idir, Priv%dir_grpid
     call Priv%deconstruct()
     deallocate(Priv)
 
