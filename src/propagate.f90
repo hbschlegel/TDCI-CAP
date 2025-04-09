@@ -5,6 +5,8 @@ use analysis
 use util
 use sort
 use io_binary  ! io_bin_test, write_dbin, read_dbin
+use hdf5
+use hdf5_writer, only: HDF5Writer
   
 implicit none
 
@@ -42,6 +44,15 @@ type PropagationPrivate
 
   real(8) :: rate_density, rate_direct, rate_debug, rate_raw
 
+  integer(HID_T) :: dir_grpid, field_grpid
+  !: real(8) datasets
+  integer(HID_T) :: time_dsid, efield1_dsid, efield2_dsid 
+  integer(HID_T) :: efieldx_dsid, efieldy_dsid, efieldz_dsid
+  integer(HID_T) :: norm2_dsid, mux_dsid, muy_dsid, muz_dsid
+  integer(HID_T) :: rate_dsid  
+  !: integer(8) datasets
+  integer(HID_T) :: nva99_dsid 
+
   contains
     procedure :: initialize => initialize_PropPriv
     procedure :: deconstruct => deconstruct_PropPriv
@@ -53,6 +64,8 @@ end type PropagationPrivate
     
 
 type PropagationShared
+
+  type(HDF5Writer) :: h5writer
 
   integer(8) :: &
     nva95maxmax, nva99maxmax, nva95maxmaxMO, nva99maxmaxMO, &
@@ -74,6 +87,8 @@ type PropagationShared
 
   contains
     procedure :: initialize => initialize_PropShared
+    procedure :: deconstruct => deconstruct_PropShared
+    procedure :: init_h5file => init_h5file_PropShared
 
 end type PropagationShared
 
@@ -126,49 +141,112 @@ subroutine initialize_PropPriv(this)
   !allocate( this%psi1(nstates) )
 
 
+
 end subroutine initialize_PropPriv
 
 subroutine deconstruct_PropPriv(this)
   implicit none
-
   class(PropagationPrivate), intent(inout) :: this
 
-  write(iout, *) "Deallocating Priv!"
-  write(iout, *) allocated(this%density_complex), allocated(this%transition_rates)
-  write(iout, *) allocated(this%rate_aa), allocated(this%rate_ab), allocated(this%rate_ba), allocated(this%rate_bb), allocated(this%rate_a), allocated(this%rate_b)
-  flush(iout)
-  write(iout, *) " !!!"
-  flush(iout)
-  write(iout, *) " deallocating density_complex"
-  flush(iout)
-
   deallocate( this%density_complex)
-  write(iout, *) " deallocating transition_rates"
-  flush(iout)
   deallocate( this%transition_rates )
-  write(iout, *) " deallocating rate_aa"
-  flush(iout)
   deallocate( this%rate_aa(noa*noa) )
-  write(iout, *) " deallocating rate_ab"
-  flush(iout)
   deallocate( this%rate_ab(noa*nob) )
-  write(iout, *) " deallocating rate_ba"
-  flush(iout)
   deallocate( this%rate_ba(nob*noa) )
-  write(iout, *) " deallocating rate_bb"
-  flush(iout)
   deallocate( this%rate_bb(nob*nob) )
-  write(iout, *) " deallocating rate_a"
-  flush(iout)
   deallocate( this%rate_a(noa) )
-  write(iout, *) " deallocating rate_b"
-  flush(iout)
   deallocate( this%rate_b(nob) )
-  write(iout, *) " after deallocates inside Priv"
-  flush(iout)
-
 
 end subroutine deconstruct_PropPriv
+
+subroutine init_h5dir(Priv, Prop, idir)
+  implicit none
+  class(PropagationPrivate), intent(inout) :: Priv
+  class(PropagationShared), intent(inout) :: Prop
+  integer(8), intent(in) ::  idir
+
+  integer(HID_T) :: grp_id, dset_id_real
+  real(8) :: tempd
+
+  character(len=128) :: gpath, fpath
+
+  write(gpath, '( "/direction_", i0 )') idir
+  call Prop%h5writer%create_group(gpath, grp_id)
+  call Prop%h5writer%write_attribute(grp_id, &
+         "field_direction", [Priv%dirx1,Priv%diry1,Priv%dirz1])
+  Priv%dir_grpid = grp_id
+  !call Prop%h5writer%close_group(grp_id)
+  
+
+end subroutine init_h5dir
+
+!: Create the /directionX/fieldY direction
+subroutine init_h5emax(Priv, Prop, iemax, idir)
+  class(PropagationPrivate), intent(inout) :: Priv
+  class(PropagationShared), intent(inout) :: Prop
+  integer(8), intent(in) :: iemax, idir
+  integer(HSIZE_T), dimension(1) :: tempdim
+  
+  character(len=128) :: gpath
+  integer(HID_T) :: grp_id
+
+  write(gpath, '( "/direction_", i0, "/field_", i0 )') idir, iemax
+  write(iout, *) "after open_file" ; flush(iout)
+  call Prop%h5writer%create_group(gpath, grp_id)
+
+  Priv%field_grpid = grp_id
+  tempdim = [1]
+  call Prop%h5writer%create_dataset_real(grp_id, "time", tempdim, Priv%time_dsid)
+  call Prop%h5writer%create_dataset_real(grp_id, "efield1", tempdim, Priv%efield1_dsid)
+  call Prop%h5writer%create_dataset_real(grp_id, "efield2", tempdim, Priv%efield2_dsid)
+  call Prop%h5writer%create_dataset_real(grp_id, "efieldx", tempdim, Priv%efieldx_dsid)
+  call Prop%h5writer%create_dataset_real(grp_id, "efieldy", tempdim, Priv%efieldy_dsid)
+  call Prop%h5writer%create_dataset_real(grp_id, "efieldz", tempdim, Priv%efieldz_dsid)
+  call Prop%h5writer%create_dataset_real(grp_id, "norm2", tempdim, Priv%norm2_dsid)
+  call Prop%h5writer%create_dataset_real(grp_id, "mux", tempdim, Priv%mux_dsid)
+  call Prop%h5writer%create_dataset_real(grp_id, "muy", tempdim, Priv%muy_dsid)
+  call Prop%h5writer%create_dataset_real(grp_id, "muz", tempdim, Priv%muz_dsid)
+  call Prop%h5writer%create_dataset_real(grp_id, "rate", tempdim, Priv%rate_dsid)
+
+  call Prop%h5writer%create_dataset_int(grp_id, "nva99", tempdim, Priv%nva99_dsid)
+  
+
+end subroutine init_h5emax
+
+
+subroutine write_h5_step(Priv, Prop, psi, psi1, psi_det0, Zion_coeff, &
+                                  ion_coeff, scratch, itime, idata, pop1, ion)
+  implicit none
+
+  class(PropagationPrivate), intent(inout) :: Priv
+  class(PropagationShared), intent(inout) :: Prop
+  
+  complex(8), intent(inout) :: psi(nstuse), psi1(nstates), psi_det0(:)
+  complex(8), intent(inout) :: Zion_coeff(:), ion_coeff(:)
+  real(8), intent(inout) :: scratch(:)
+
+  integer(8), intent(inout) :: itime, idata
+  real(8), intent(inout) :: pop1(:), ion(:)
+
+
+  call Prop%h5writer%append_real(Priv%time_dsid , [dble(itime)*dt*au2fs])
+  call Prop%h5writer%append_real(Priv%efield1_dsid , [Priv%efield1])
+  call Prop%h5writer%append_real(Priv%efield2_dsid , [Priv%efield2])
+  call Prop%h5writer%append_real(Priv%efieldx_dsid , [Priv%efieldx])
+  call Prop%h5writer%append_real(Priv%efieldy_dsid , [Priv%efieldy])
+  call Prop%h5writer%append_real(Priv%efieldz_dsid , [Priv%efieldz])
+  call Prop%h5writer%append_real(Priv%norm2_dsid , [Priv%norm**2])
+  call Prop%h5writer%append_real(Priv%mux_dsid , [Priv%mux])
+  call Prop%h5writer%append_real(Priv%muy_dsid , [Priv%muy])
+  call Prop%h5writer%append_real(Priv%muz_dsid , [Priv%muz])
+  call Prop%h5writer%append_real(Priv%rate_dsid , [Priv%rate/au2fs])
+
+  call Prop%h5writer%append_int(Priv%nva99_dsid , [Priv%nva99max_direct])
+
+
+
+end subroutine write_h5_step
+
 
 !: Run once for each thread at start of propagation
 !: Sets up the funit values and writes headers to .dat files.
@@ -607,6 +685,33 @@ subroutine initialize_PropShared(Prop)
 end subroutine initialize_PropShared
 
 
+subroutine deconstruct_PropShared(this)
+  class(PropagationShared), intent(inout) :: this
+
+  call this%h5writer%close_file()
+  deallocate( this%opdm_avg , this%opdm_avg_abs )
+  deallocate( this%natorb_occ, this%natorb_occ_abs )
+  deallocate( this%U_NO, this%U_NO_abs )
+  deallocate( this%U_NO_input )
+end subroutine deconstruct_PropShared
+
+
+subroutine init_h5file_PropShared(this)
+  class(PropagationShared), intent(inout) :: this
+
+  logical :: file_exists
+  integer :: status
+  character(len=128) :: fpath
+
+  write(fpath, '( "data.h5" )')
+  inquire(file=fpath, exist=file_exists)
+  if (file_exists) then
+    call execute_command_line("rm -f data.h5")
+  end if
+  call this%h5writer%open_file(fpath)
+
+end subroutine init_h5file_PropShared
+
 
 !==================================================================!
 !==================================================================!
@@ -704,6 +809,8 @@ subroutine trotter_linear
   !: write psi0
   call writeme_propagate( 'trot_lin', 'psi0' )    
 
+  call Prop%init_h5file()
+
 
   !: Start loop over directions.
 
@@ -736,13 +843,20 @@ subroutine trotter_linear
     tdvals1 = 0.d0 ;
 
     !write(iout, '(A, I5, L1)') "Priv allocated at start of thread ", ithread , allocated(Priv)
+    write(iout,*) "before init priv" ; flush(iout)
     allocate(Priv)
     call Priv%initialize()
+    write(iout,*) "after init priv" ; flush(iout)
 
     !: get directions stored in TDCItdciresults
     Priv%dirx1 = tdciresults(idir)%x0  
     Priv%diry1 = tdciresults(idir)%y0  
     Priv%dirz1 = tdciresults(idir)%z0  
+
+    write(iout,*) "before init h5dir ", idir ; flush(iout)
+    !: Create the /direction_idir group in the h5 file
+    call init_h5dir(Priv, Prop, idir)
+    write(iout,*) "after init h5dir ", idir ; flush(iout)
 
     !: get mu dot e-vector matrix elements in CIS basis.  diagonalize
     hp1(:) = Priv%dirx1*tdx(1:nstuse2) &
@@ -767,6 +881,7 @@ subroutine trotter_linear
     hp1 = scratch(1:nstuse*nstuse)
 
     call cpu_time(finish1)
+    write(iout,*) "before emax_loop ", idir ; flush(iout)
      
     !: loop over intensities
     emax_loop : do iemax=1, nemax
@@ -775,8 +890,9 @@ subroutine trotter_linear
       !: get emax
       Priv%emax1 = tdciresults(1+(iemax-1)*ndir)%fstrength0
 
-
       !$OMP CRITICAL (IO_LOCK)
+      write(iout,*) "before init h5emax ", idir, iemax ; flush(iout)
+      call init_h5emax(Priv, Prop, iemax, idir)
       call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff, 0)
       if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
       write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
@@ -939,7 +1055,7 @@ subroutine trotter_linear
               write(iout,*) "before make_transition_rate  ", ithread, " ", itime 
               flush(iout)
               call make_transition_rate((noa+nva), Mol%ham_mo, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Priv%efieldx, &
-                     Priv%efieldy, Priv%efieldz, Mol%vabsmoa, Priv%density_complex, Priv%transition_rates)
+                     Priv%efieldy, Priv%efieldz, Mol%vabsmoa, Priv%density_complex, Mol%orben, Priv%transition_rates)
 
               write( Priv%datafile, '(A,A,A,A,A,I0,A)') "matrices/MO_TransitionRate-e",&
                 trim(Priv%emaxstr),"-d", trim(Priv%dirstr), ".", itime, ".bin"
@@ -959,11 +1075,16 @@ subroutine trotter_linear
             call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
                                scratch, itime, idata, pop1, ion)
 
+            call write_h5_step(Priv, Prop, psi, psi1, psi_det0, Zion_coeff, ion_coeff,&
+                               scratch, itime, idata, pop1, ion)
+
             !$OMP END CRITICAL (IO_LOCK)
 
           end if analysis
            
         end do timestep_loop
+        
+        Priv%field_grpid = -1
         call cpu_time(Priv%finish2)
 
         if( Qci_save ) close(Priv%funit(1))
@@ -977,6 +1098,7 @@ subroutine trotter_linear
         if( Qmo_dens ) close(Priv%funit(6))
 
         !$OMP CRITICAL (IO_LOCK)
+        call Prop%h5writer%close_group(Priv%field_grpid)
         !: record data at last timestep
         tdciresults( idir + (iemax-1)*ndir)%norm0 = Priv%norm**2
         tdciresults( idir + (iemax-1)*ndir)%dipx  = Priv%mux
@@ -996,7 +1118,7 @@ subroutine trotter_linear
 
         !$OMP END CRITICAL (IO_LOCK)
      end do emax_loop
-
+    call Prop%h5writer%close_group(Priv%dir_grpid)
     call Priv%deconstruct()
     deallocate(Priv)
 
@@ -1005,6 +1127,7 @@ subroutine trotter_linear
   !$OMP END DO
   !$OMP END PARALLEL
 
+  call Prop%deconstruct()
   call write_header( 'trotter_linear','propagate','leave' )
   call cpu_time(finish)
   write(iout,"(2x,'Total propagation time:',f12.4,' s')") finish - start  
@@ -1602,501 +1725,6 @@ subroutine generate_natural_orbitals( opdm, U_NO, evals, verbosity )
 end subroutine generate_natural_orbitals
 
 
-subroutine NO_rate_sanity( opdm, U_NO, NO_occ, Vabs, C_AO )
-  implicit none
-
-  real(8), intent(in) :: opdm(norb*norb) !: One-particle density matrix in MO basis
-  real(8), intent(in) :: U_NO(norb*norb) !: Transformation matrix from MO -> NO.
-  real(8), intent(in) :: NO_occ(norb)    !: NO occupations (eigenvalues)
-  real(8), intent(in) :: Vabs(norb*norb) !: Expectation value <n|Vabs|m> in MO basis
-  real(8), intent(in) :: C_AO(norb*norb) !: AO -> MO Coefficients
-
-  real(8) :: rate_NO, rate_MO, rate_NO_abs, rate_MO_abs, rate_NO2 
-  integer :: nva95_NO, nva99_NO, nva95_MO, nva99_MO
-  real(8) :: tmp_NO, tmp_MO
- 
-  integer :: i, j, k, ndim
-  real(8) :: temp(norb*norb), temp2(norb*norb) !: Temporary matrix for multiplication
-  real(8) :: tmprate_NO(norb), tmprate_MO(norb)
-  real(8) :: opdm_NO(norb*norb) !: opdm in NO basis
-  real(8) :: Vabs_NO(norb*norb) !: Expectation value <n|Vabs|m> in NO basis
-  logical :: verbose
-
-  temp = 0.d0
-  opdm_NO = 0.d0
-  Vabs_NO = 0.d0
-  tmprate_NO = 0.d0
-  tmprate_MO = 0.d0
-  verbose = .false.
-  !: LATER ADD CASES FOR UHF
-  ndim = noa+nvb
-
-  !: Write U_NO
-  if (verbose) then
-    write(iout, '(A)') 'U_NO:'
-    do i = 1, ndim
-      do j = 1, ndim
-        write(iout, *, advance='no') U_NO((i-1)*ndim+j)
-      end do
-      write(iout, *) ! New line after each row
-    end do
-  end if
-
-  !: Write Vabs (MO)
-  if (verbose) then
-    write(iout, '(A)') 'Vabs (MO):'
-    do i = 1, ndim
-      do j = 1, ndim
-        write(iout, *, advance='no') Vabs((i-1)*ndim+j)
-      end do
-      write(iout, *) ! New line after each row
-    end do
-  end if
-
-  !: Transform Vabs to NO basis
-  !: U_NO^T * Vabs * U_NO = Vabs_NO
-  call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_NO, ndim, Vabs, ndim, 0.d0, temp, ndim)
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_NO, ndim, 0.d0, Vabs_NO, ndim)
-
-  !: Transform opdm to NO basis
-  !: U_NO^T * opdm * U_NO = opdm_NO
-  temp = 0.d0
-  call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_NO, ndim, opdm, ndim, 0.d0, temp, ndim)
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_NO, ndim, 0.d0, opdm_NO, ndim)
-
-
-  !: rate = 2*Tr(opdm_NO * Vabs_NO)
-  !: temp = opdm_NO * Vabs_NO
-  temp = 0.d0
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, opdm_NO, ndim, Vabs_NO, ndim, 0.d0, temp, ndim)
-  !: temp2 = opdm_MO * Vabs_MO
-  temp2 = 0.d0
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, opdm, ndim, Vabs, ndim, 0.d0, temp2, ndim)
-
-
-  !: Write opdm_NO
-  if (verbose) then
-    write(iout, '(A)') 'opdm_NO:'
-    do i = 1, ndim
-      do j = 1, ndim
-        write(iout, *, advance='no') opdm_NO((i-1)*ndim+j)
-      end do
-      write(iout, *) ! New line after each row
-    end do
-  end if
-
-  !: Calculate rate (Matrix multiply method)
-  rate_NO = 0.d0
-  rate_MO = 0.d0
-  rate_NO_abs = 0.d0
-  rate_MO_abs = 0.d0
-  do i = 1, ndim
-    rate_NO = rate_NO + 2.d0*(temp((i-1)*ndim+i))  !: temp[i][i]
-    rate_MO = rate_MO + 2.d0*(temp2((i-1)*ndim+i)) !: temp2[i][i]
-    rate_NO_abs = rate_NO_abs + 2.d0*abs(temp((i-1)*ndim+i))  !: temp[i][i]
-    rate_MO_abs = rate_MO_abs + 2.d0*abs(temp2((i-1)*ndim+i)) !: temp2[i][i]
-  end do
-
-  !: Calculate rate as dot(occ,Vabs_NO) since Vabs_NO is diagonal
-  rate_NO2 = 0.d0
-  do i=1,ndim
-    rate_NO2 = rate_NO2 + 2.d0*NO_occ(i)*Vabs_NO((i-1)*ndim+i)
-  end do
-
-  !write(iout, '(A)') 'Natural Orbital Rate Analysis (Matrix Multiply):'
-  !write(iout, '(A)') '  Orb#  Occ            Vabs_NO        Rate'
-  !write(iout, '(A)') '=========================================='
-  !do i = ndim,1, -1
-  !  write(iout,'(I5, A, F12.10, A, F12.10, A, F12.10)') i, ",  ", NO_occ(i), &
-  !   ",  ", Vabs_NO((i-1)*ndim+i), ",  ", abs(2.d0*temp((i-1)*ndim+i))
-  !end do
-
-  write(iout, '(A, E24.16)') '2*Tr(    opdm_NO * Vabs_NO)):   ', rate_NO
-  write(iout, '(A, E24.16)') '2*Tr(    opdm_MO * Vabs_MO)):   ', rate_MO
-  write(iout, '(A, E24.16)') '2*Tr(abs(opdm_NO * Vabs_NO)):   ', rate_NO_abs
-  write(iout, '(A, E24.16)') '2*Tr(abs(opdm_MO * Vabs_MO)):   ', rate_MO_abs
-  write(iout, '(A, E24.16)') 'dot(NO_occ, diag(Vabs_NO)   : ', rate_NO2
-
-  !: Calculate rate for Matrix Multiply rate = 2*Tr(abs(opdm*Vabs))
-  tmp_NO = 0.d0
-  tmp_MO = 0.d0
-  nva95_NO = 0
-  nva99_NO = 0
-  nva95_MO = 0
-  nva99_MO = 0
-  ! U_NO should be sorted by descending evals
-  !do i=ndim,1, -1
-  do i=1,ndim
-    !write(iout, '(I5, A, F12.10)' ) i, ' NO: ', 2*temp((i-1)*ndim+i)
-    tmp_NO = tmp_NO + abs(2.d0*temp((i-1)*ndim+i))
-    if (tmp_NO/rate_NO .lt. 0.95d0) nva95_NO = nva95_NO + 1
-    if (tmp_NO/rate_NO .lt. 0.99d0) nva99_NO = nva99_NO + 1
-  end do
-  do i=1,ndim
-    !write(iout, '(I5, A, F12.10)' ) i, ' MO: ', 2*temp2((i-1)*ndim+i)
-    tmp_MO = tmp_MO + abs(2.d0*temp2((i-1)*ndim+i))
-    if (tmp_MO/rate_MO .lt. 0.95d0) nva95_MO = i
-    if (tmp_MO/rate_MO .lt. 0.99d0) nva99_MO = i
-  end do
-
-  write(iout, '(A)') "Rate with matrix multiply rate = 2*Tr(opdm*Vabs):"
-  !write(iout, '(A, I5, I5, I5, I5, I5)') "nva, nva95_NO, nva99_NO, nva95_MO, nva99_MO: ", nvb, &
-  !  nva95_NO, nva99_NO, nva95_MO, nva99_MO
-
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",rate_NO,", nva=",nva, &
-    ", nva95_NO= ",nva95_NO,", nva99_NO= ",nva99_NO
-
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",rate_MO,", nva=",nva, &
-    ", nva95_MO= ",nva95_MO,", nva99_MO= ",nva99_MO
-
-
-  write(iout, '(A)') "Rate with rate = sum_{i,j} abs(opdm_{i,j} * Vabs_{i,j}):"
-
-  !: Calculate rate component-wise way rate = sum_{i,j} abs(opdm_{i,j} * Vabs_{i,j})
-  tmp_NO = 0.d0
-  tmp_MO = 0.d0
-  nva95_NO = 0
-  nva99_NO = 0
-  nva95_MO = 0
-  nva99_MO = 0
-  tmprate_MO(1) = 2*abs( opdm(1) * Vabs(1) )
-  do i=2,ndim
-    tmprate_MO(i) = tmprate_MO(i-1) + 2*abs(opdm((i-1)*ndim+i) * Vabs((i-1)*ndim+i) )
-    do j=1,i-1
-      tmprate_MO(i) = tmprate_MO(i) + 2*abs(opdm((i-1)*ndim+j) * Vabs((i-1)*ndim+j) )
-      tmprate_MO(i) = tmprate_MO(i) + 2*abs(opdm((j-1)*ndim+i) * Vabs((j-1)*ndim+i) )
-    end do
-  end do
-  do i=1,ndim
-    if(tmprate_MO(i).lt.0.95d0*tmprate_MO(ndim)) nva95_MO = i
-    if(tmprate_MO(i).lt.0.99d0*tmprate_MO(ndim)) nva99_MO = i
-  end do
-  
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmprate_MO(ndim),", nva=",nva, &
-    ", nva95_MO= ",nva95_MO,", nva99_MO= ",nva99_MO
-
-
-  tmprate_NO(1) = 2*abs( opdm_NO(1) * Vabs_NO(1) )
-  do i=2,ndim
-    tmprate_NO(i) = tmprate_NO(i-1) + 2*abs(opdm_NO((i-1)*ndim+i) * Vabs_NO((i-1)*ndim+i) )
-    do j=1,i-1
-      tmprate_NO(i) = tmprate_NO(i) + 2*abs(opdm_NO((i-1)*ndim+j) * Vabs_NO((i-1)*ndim+j) )
-      tmprate_NO(i) = tmprate_NO(i) + 2*abs(opdm_NO((j-1)*ndim+i) * Vabs_NO((j-1)*ndim+i) )
-    end do
-  end do
-  do i=1,ndim
-    if(tmprate_NO(i).lt.0.95d0*tmprate_NO(ndim)) nva95_NO = i
-    if(tmprate_NO(i).lt.0.99d0*tmprate_NO(ndim)) nva99_NO = i
-  end do
-  
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmprate_NO(ndim),", nva=",nva, &
-    ", nva95_NO= ",nva95_NO,", nva99_NO= ",nva99_NO
-
-
-  !write(iout, '(A)') 'Natural Orbital Rate Analysis (Component-wise):'
-  !write(iout, '(A)') '  Orb#  Occ          Vabs_NO(i,i)   Cumulative Rate'
-  !write(iout, '(A)') '====================================================='
-  !!do i = ndim,1, -1
-  !do i = 1,ndim
-  !  write(iout,'(I5, A, F12.10, A, F12.10, A, F12.10)') i, ",  ", NO_occ(i), &
-  !   ",  ", Vabs_NO((i-1)*ndim+i), ",  ", tmprate_NO(i)
-  !end do
-
-  !write(iout, '(A)') 'Molecular Orbital Rate Analysis (Component-wise):'
-  !write(iout, '(A)') '  Orb#            Vabs_MO(i,i)   Cumulative Rate'
-  !write(iout, '(A)') '================================================='
-  !!do i = ndim,1, -1
-  !do i = 1,ndim
-  !  write(iout,'(I5, A, F12.10, A, F12.10)') i,  &
-  !   ",  ", Vabs((i-1)*ndim+i), ",  ", tmprate_MO(i)
-  !end do
-  flush(iout)    
-
-end subroutine NO_rate_sanity
-
-!: Sorry to code replicate!
-!: This one includes analysis for the abs, keeping the old one for each-step analysis.
-subroutine NO_rate_sanity2( opdm, U_NO, NO_occ, opdm_abs, U_absNO, NO_occ_abs, Vabs, C_AO )
-  implicit none
-
-  real(8), intent(in) :: opdm(norb*norb) !: One-particle density matrix in MO basis
-  real(8), intent(in) :: U_NO(norb*norb) !: Transformation matrix from MO -> NO.
-  real(8), intent(in) :: NO_occ(norb)    !: NO occupations (eigenvalues)
-  real(8), intent(in) :: opdm_abs(norb*norb) !: One-particle density matrix in MO basis
-  real(8), intent(in) :: U_absNO(norb*norb) !: Transformation matrix from MO -> NO.
-  real(8), intent(in) :: NO_occ_abs(norb)    !: NO occupations (eigenvalues)
-  real(8), intent(in) :: Vabs(norb*norb) !: <n|Vabs|m> in MO basis
-  real(8), intent(in) :: C_AO(norb*norb) !: AO -> MO Coefficients
-
-  real(8) :: rate_NO, rate_MO, rate_NO_abs, rate_MO_abs, rate_NO2 
-  real(8) :: rate_absNO, rate_absNO2
-  integer :: nva95_NO, nva99_NO, nva95_MO, nva99_MO
-  integer :: nva95_absNO, nva99_absNO
-  real(8) :: tmp_NO, tmp_MO, tmp_absNO
- 
-  integer :: i, j, k, ndim
-  real(8) :: temp(norb*norb), temp2(norb*norb), temp3(norb*norb) !: Temporary matrix for multiplication
-  real(8) :: tmprate_NO(norb), tmprate_MO(norb), tmprate_absNO(norb)
-  real(8) :: opdm_NO(norb*norb), opdm_absNO(norb*norb) !: opdm in NO basis
-  real(8) :: Vabs_NO(norb*norb), Vabs_absNO(norb*norb) !: Expectation value <n|Vabs|m> in NO basis
-  logical :: verbose
-
-  temp = 0.d0
-  opdm_NO = 0.d0
-  Vabs_NO = 0.d0
-  tmprate_NO = 0.d0
-  tmprate_MO = 0.d0
-  verbose = .false.
-  !: LATER ADD CASES FOR UHF
-  ndim = noa+nvb
-
-  !: Write U_NO
-  if (verbose) then
-    write(iout, '(A)') 'U_NO:'
-    do i = 1, ndim
-      do j = 1, ndim
-        write(iout, *, advance='no') U_NO((i-1)*ndim+j)
-      end do
-      write(iout, *) ! New line after each row
-    end do
-  end if
-
-  !: Write Vabs (MO)
-  if (verbose) then
-    write(iout, '(A)') 'Vabs (MO):'
-    do i = 1, ndim
-      do j = 1, ndim
-        write(iout, *, advance='no') Vabs((i-1)*ndim+j)
-      end do
-      write(iout, *) ! New line after each row
-    end do
-  end if
-
-  !: Transform Vabs to NO basis
-  !: U_NO^T * Vabs * U_NO = Vabs_NO
-  call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_NO, ndim, Vabs, ndim, 0.d0, temp, ndim)
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_NO, ndim, 0.d0, Vabs_NO, ndim)
-
-  !: Transform opdm to NO basis
-  !: U_NO^T * opdm * U_NO = opdm_NO
-  temp = 0.d0
-  call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_NO, ndim, opdm, ndim, 0.d0, temp, ndim)
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_NO, ndim, 0.d0, opdm_NO, ndim)
-
-
-  !: Transform Vabs to absNO basis
-  !: U_absNO^T * Vabs * U_absNO = Vabs_absNO
-  temp = 0.d0
-  call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_absNO, ndim, Vabs, ndim, 0.d0, temp, ndim)
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_absNO, ndim, 0.d0, Vabs_absNO, ndim)
-
-  !: Transform opdm_abs to absNO basis
-  !: U_absNO^T * opdm_abs * U_absNO = opdm_absNO
-  temp = 0.d0
-  call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_absNO, ndim, opdm_abs, ndim, 0.d0, temp, ndim)
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_absNO, ndim, 0.d0, opdm_absNO, ndim)
-
-
-  !: rate = 2*Tr(opdm_NO * Vabs_NO)
-  !: temp = opdm_NO * Vabs_NO
-  temp = 0.d0
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, opdm_NO, ndim, Vabs_NO, ndim, 0.d0, temp, ndim)
-  !: temp2 = opdm_MO * Vabs_MO
-  temp2 = 0.d0
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, opdm, ndim, Vabs, ndim, 0.d0, temp2, ndim)
-  !: temp3 = opdm_absNO * Vabs_absNO
-  temp3 = 0.d0
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, opdm_absNO, ndim, Vabs_absNO, ndim, 0.d0, temp3, ndim)
-
-
-  !: Write opdm_NO
-  if (verbose) then
-    write(iout, '(A)') 'opdm_NO:'
-    do i = 1, ndim
-      do j = 1, ndim
-        write(iout, *, advance='no') opdm_NO((i-1)*ndim+j)
-      end do
-      write(iout, *) ! New line after each row
-    end do
-  end if
-
-  !: Calculate rate (Matrix multiply method)
-  rate_NO = 0.d0
-  rate_MO = 0.d0
-  rate_NO_abs = 0.d0
-  rate_MO_abs = 0.d0
-  rate_absNO = 0.d0
-
-  do i = 1, ndim
-    rate_NO = rate_NO + 2.d0*(temp((i-1)*ndim+i))  !: temp[i][i]
-    rate_MO = rate_MO + 2.d0*(temp2((i-1)*ndim+i)) !: temp2[i][i]
-    rate_NO_abs = rate_NO_abs + 2.d0*abs(temp((i-1)*ndim+i))  !: temp[i][i]
-    rate_MO_abs = rate_MO_abs + 2.d0*abs(temp2((i-1)*ndim+i)) !: temp2[i][i]
-    rate_absNO = rate_absNO + 2.d0*abs(temp3((i-1)*ndim+i))
-  end do
-
-  !: Calculate rate as dot(occ,Vabs_NO) since Vabs_NO is diagonal
-  rate_NO2 = 0.d0
-  do i=1,ndim
-    rate_NO2 = rate_NO2 + 2.d0*NO_occ(i)*Vabs_NO((i-1)*ndim+i)
-  end do
-  rate_absNO2 = 0.d0
-  do i=1,ndim
-    rate_absNO2 = rate_absNO2 + 2.d0*NO_occ_abs(i)*Vabs_absNO((i-1)*ndim+i)
-  end do
-
-  !write(iout, '(A)') 'Natural Orbital Rate Analysis (Matrix Multiply):'
-  !write(iout, '(A)') '  Orb#  Occ            Vabs_NO        Rate'
-  !write(iout, '(A)') '=========================================='
-  !do i = ndim,1, -1
-  !  write(iout,'(I5, A, F12.10, A, F12.10, A, F12.10)') i, ",  ", NO_occ(i), &
-  !   ",  ", Vabs_NO((i-1)*ndim+i), ",  ", abs(2.d0*temp((i-1)*ndim+i))
-  !end do
-
-  write(iout, '(A, E24.16)') '2*Tr(    opdm_NO * Vabs_NO) :   ', rate_NO
-  write(iout, '(A, E24.16)') '2*Tr(    opdm_MO * Vabs_MO) :   ', rate_MO
-  write(iout, '(A, E24.16)') '2*Tr(abs(opdm_NO * Vabs_NO)):   ', rate_NO_abs
-  write(iout, '(A, E24.16)') '2*Tr(abs(opdm_MO * Vabs_MO)):   ', rate_MO_abs
-  write(iout, '(A, E24.16)') '2*Tr(opdm_absNO * Vabs_absNO):   ', rate_absNO
-  write(iout, '(A, E24.16)') 'dot(NO_occ, diag(Vabs_NO)   : ', rate_NO2
-  write(iout, '(A, E24.16)') 'dot(NO_occ_abs, diag(Vabs_absNO)   : ', rate_absNO2
-
-  !: Calculate rate for Matrix Multiply rate = 2*Tr(abs(opdm*Vabs))
-  tmp_NO = 0.d0
-  tmp_MO = 0.d0
-  tmp_absNO = 0.d0
-  nva95_NO = 0
-  nva99_NO = 0
-  nva95_MO = 0
-  nva99_MO = 0
-  nva95_absNO = 0
-  nva99_absNO = 0
-  ! U_NO should be sorted by descending evals
-  !do i=ndim,1, -1
-  do i=1,ndim
-    !write(iout, '(I5, A, F12.10)' ) i, ' NO: ', 2*temp((i-1)*ndim+i)
-    tmp_NO = tmp_NO + abs(2.d0*temp((i-1)*ndim+i))
-    if (tmp_NO/rate_NO .lt. 0.95d0) nva95_NO = nva95_NO + 1
-    if (tmp_NO/rate_NO .lt. 0.99d0) nva99_NO = nva99_NO + 1
-  end do
-  do i=1,ndim
-    !write(iout, '(I5, A, F12.10)' ) i, ' MO: ', 2*temp2((i-1)*ndim+i)
-    tmp_MO = tmp_MO + abs(2.d0*temp2((i-1)*ndim+i))
-    if (tmp_MO/rate_MO .lt. 0.95d0) nva95_MO = i
-    if (tmp_MO/rate_MO .lt. 0.99d0) nva99_MO = i
-  end do
-  do i=1,ndim
-    !write(iout, '(I5, A, F12.10)' ) i, ' NO: ', 2*temp((i-1)*ndim+i)
-    tmp_absNO = tmp_absNO + abs(2.d0*temp3((i-1)*ndim+i))
-    if (tmp_absNO/rate_absNO .lt. 0.95d0) nva95_absNO = nva95_absNO + 1
-    if (tmp_absNO/rate_absNO .lt. 0.99d0) nva99_absNO = nva99_absNO + 1
-  end do
-
-  write(iout, '(A)') "Rate with matrix multiply rate = 2*Tr(opdm*Vabs):"
-  !write(iout, '(A, I5, I5, I5, I5, I5)') "nva, nva95_NO, nva99_NO, nva95_MO, nva99_MO: ", nvb, &
-  !  nva95_NO, nva99_NO, nva95_MO, nva99_MO
-
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",rate_NO,", nva=",nva, &
-    ", nva95_NO= ",nva95_NO,", nva99_NO= ",nva99_NO
-
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",rate_MO,", nva=",nva, &
-    ", nva95_MO= ",nva95_MO,", nva99_MO= ",nva99_MO
-
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",rate_absNO,", nva=",nva, &
-    ", nva95_absNO= ",nva95_absNO,", nva99_absNO= ",nva99_absNO
-
-  write(iout, '(A)') "Rate with rate = sum_{i,j} abs(opdm_{i,j} * Vabs_{i,j}):"
-
-  !: Calculate rate component-wise way rate = sum_{i,j} abs(opdm_{i,j} * Vabs_{i,j})
-  tmp_NO = 0.d0
-  tmp_MO = 0.d0
-  tmp_absNO = 0.d0
-  nva95_NO = 0
-  nva99_NO = 0
-  nva95_MO = 0
-  nva99_MO = 0
-  nva95_absNO = 0
-  nva99_absNO = 0
-  tmprate_MO(1) = 2*abs( opdm(1) * Vabs(1) )
-  do i=2,ndim
-    tmprate_MO(i) = tmprate_MO(i-1) + 2*abs(opdm((i-1)*ndim+i) * Vabs((i-1)*ndim+i) )
-    do j=1,i-1
-      tmprate_MO(i) = tmprate_MO(i) + 2*abs(opdm((i-1)*ndim+j) * Vabs((i-1)*ndim+j) )
-      tmprate_MO(i) = tmprate_MO(i) + 2*abs(opdm((j-1)*ndim+i) * Vabs((j-1)*ndim+i) )
-    end do
-  end do
-  do i=1,ndim
-    if(tmprate_MO(i).lt.0.95d0*tmprate_MO(ndim)) nva95_MO = i
-    if(tmprate_MO(i).lt.0.99d0*tmprate_MO(ndim)) nva99_MO = i
-  end do
-  
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmprate_MO(ndim),", nva=",nva, &
-    ", nva95_MO= ",nva95_MO,", nva99_MO= ",nva99_MO
-
-
-  tmprate_NO(1) = 2*abs( opdm_NO(1) * Vabs_NO(1) )
-  do i=2,ndim
-    tmprate_NO(i) = tmprate_NO(i-1) + 2*abs(opdm_NO((i-1)*ndim+i) * Vabs_NO((i-1)*ndim+i) )
-    do j=1,i-1
-      tmprate_NO(i) = tmprate_NO(i) + 2*abs(opdm_NO((i-1)*ndim+j) * Vabs_NO((i-1)*ndim+j) )
-      tmprate_NO(i) = tmprate_NO(i) + 2*abs(opdm_NO((j-1)*ndim+i) * Vabs_NO((j-1)*ndim+i) )
-    end do
-  end do
-  do i=1,ndim
-    if(tmprate_NO(i).lt.0.95d0*tmprate_NO(ndim)) nva95_NO = i
-    if(tmprate_NO(i).lt.0.99d0*tmprate_NO(ndim)) nva99_NO = i
-  end do
-  
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmprate_NO(ndim),", nva=",nva, &
-    ", nva95_NO= ",nva95_NO,", nva99_NO= ",nva99_NO
-
-  tmprate_absNO(1) = 2*abs( opdm_absNO(1) * Vabs_absNO(1) )
-  do i=2,ndim
-    tmprate_absNO(i) = tmprate_absNO(i-1) + 2*abs(opdm_absNO((i-1)*ndim+i) * Vabs_absNO((i-1)*ndim+i) )
-    do j=1,i-1
-      tmprate_absNO(i) = tmprate_absNO(i) + 2*abs(opdm_absNO((i-1)*ndim+j) * Vabs_absNO((i-1)*ndim+j) )
-      tmprate_absNO(i) = tmprate_absNO(i) + 2*abs(opdm_absNO((j-1)*ndim+i) * Vabs_absNO((j-1)*ndim+i) )
-    end do
-  end do
-  do i=1,ndim
-    if(tmprate_absNO(i).lt.0.95d0*tmprate_absNO(ndim)) nva95_absNO = i
-    if(tmprate_absNO(i).lt.0.99d0*tmprate_absNO(ndim)) nva99_absNO = i
-  end do
-  
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmprate_absNO(ndim),", nva=",nva, &
-    ", nva95_absNO= ",nva95_absNO,", nva99_absNO= ",nva99_absNO
-
-  !write(iout, '(A)') 'Natural Orbital Rate Analysis (Component-wise):'
-  !write(iout, '(A)') '  Orb#  Occ          Vabs_NO(i,i)   Cumulative Rate'
-  !write(iout, '(A)') '====================================================='
-  !!do i = ndim,1, -1
-  !do i = 1,ndim
-  !  write(iout,'(I5, A, F12.10, A, F12.10, A, F12.10)') i, ",  ", NO_occ(i), &
-  !   ",  ", Vabs_NO((i-1)*ndim+i), ",  ", tmprate_NO(i)
-  !end do
-
-  !write(iout, '(A)') 'Molecular Orbital Rate Analysis (Component-wise):'
-  !write(iout, '(A)') '  Orb#            Vabs_MO(i,i)   Cumulative Rate'
-  !write(iout, '(A)') '================================================='
-  !!do i = ndim,1, -1
-  !do i = 1,ndim
-  !  write(iout,'(I5, A, F12.10, A, F12.10)') i,  &
-  !   ",  ", Vabs((i-1)*ndim+i), ",  ", tmprate_MO(i)
-  !end do
-
-
-  write(iout, '(A)') 'ABS Natural Orbital Rate Analysis (Component-wise):'
-  write(iout, '(A)') '  Orb#  Occ       Vabs_absNO(i,i)   Cumulative Rate'
-  write(iout, '(A)') '====================================================='
-  !do i = ndim,1, -1
-  do i = 1,ndim
-    write(iout,'(I5, A, F12.10, A, F12.10, A, F12.10)') i, ",  ", NO_occ_abs(i), &
-     ",  ", Vabs_absNO((i-1)*ndim+i), ",  ", tmprate_absNO(i)
-  end do
-
-  flush(iout)    
-
-end subroutine NO_rate_sanity2
 
 subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
                           nva95maxMO_sort, nva99maxMO_sort, nva95maxNO_sort, nva99maxNO_sort, &

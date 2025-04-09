@@ -18,11 +18,13 @@ program main
   use propagate
   use Zpropagate 
   use davidson_ip  !: only to check Hamiltonian
+  use hdf5
 
   
   implicit none
   integer(8) :: i,j,a,b,ia, istate, iout2 !: temporary cisd variables
   real(8)  :: masterstart, masterfinish
+  integer :: hdferr
   
 
   !: output opened in read_input with iout=42   
@@ -30,6 +32,12 @@ program main
   
   !: Allocate MolInfo class instance
   allocate(Mol)
+
+  !: Initialize hdf5 library
+  call h5open_f(hdferr)
+  if (hdferr /= 0) then
+    write(iout,*) "Error initializing HDF5"
+  end if
   
   !: read and set input parameters (module initialize) 
   if( Qread_input       ) call read_input  

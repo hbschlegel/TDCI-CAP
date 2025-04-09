@@ -2604,7 +2604,7 @@ contains
 
 
 
-  subroutine make_transition_rate(nrorb, ham_mo, dipxmoa, dipymoa, dipzmoa, efieldx, efieldy, efieldz, vabsmoa, density_MO, transition_rates)
+  subroutine make_transition_rate(nrorb, ham_mo, dipxmoa, dipymoa, dipzmoa, efieldx, efieldy, efieldz, vabsmoa, density_MO, orben, transition_rates)
 
     ! Arguments
     implicit none
@@ -2616,6 +2616,7 @@ contains
     real(8), intent(in) :: efieldx, efieldy, efieldz
     real(8), intent(in) :: vabsmoa(nrorb*nrorb)
     complex(8), intent(in) :: density_MO(nrorb*nrorb)
+    real(8), intent(in) :: orben(2*nrorb)
     real(8), intent(out) :: transition_rates(nrorb*nrorb)
 
     ! Local variables
@@ -2635,17 +2636,19 @@ contains
     do i = 1, nrorb
         do j = 1, nrorb
             idx = (i-1)*nrorb+j
+            ! Avoid cyclic flows from degenerate orbitals
+            if( abs(orben(i)-orben(j)).gt.0.003 ) then !: about 0.03 eV
 
-            ! Add field contributions: E(t) * mu
-            field_contribution = efieldx * dipxmoa(idx) + efieldy * dipymoa(idx) + efieldz * dipzmoa(idx)
+              ! Add field contributions: E(t) * mu
+              field_contribution = efieldx * dipxmoa(idx) + efieldy * dipymoa(idx) + efieldz * dipzmoa(idx)
 
-            ! Total Hamiltonian element including time-dependent contributions
-            hamT_idx = ham_mo(idx) + field_contribution + vabsmoa(idx)
+              ! Total Hamiltonian element including time-dependent contributions
+              hamT_idx = ham_mo(idx) + field_contribution + vabsmoa(idx)
 
-            ! Compute transition rate contribution
-            !: The 2.0 factor is from the Liouville-von Neumann expansion, not the restricted density matrix.
-            transition_rates(idx) = 2.d0*aimag(hamT_idx * conjg(density_MO(idx)))
-
+              ! Compute transition rate contribution
+              !: The 2.0 factor is from the Liouville-von Neumann expansion, not the restricted density matrix.
+              transition_rates(idx) = 2.d0*aimag(hamT_idx * conjg(density_MO(idx)))
+            end if
         end do
     end do
 

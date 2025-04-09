@@ -4,6 +4,12 @@
 SHELL := /bin/bash
 
 
+HDF5_DIR = dep/hdf5-1.14.4-3/hdf5-install
+HDF5_INCLUDES = -I$(HDF5_DIR)/include
+HDF5_LIBS = -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5
+MPI_INCLUDES = -I/opt/nvidia/hpc_sdk/Linux_x86_64/24.1/comm_libs/openmpi/openmpi-3.1.5/lib
+MPI_LIBS = -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.1/comm_libs/openmpi/openmpi-3.1.5/lib -lmpi
+
 # Directories
 # Source, object, binary, and module directories
 SRC = src
@@ -31,10 +37,11 @@ dirty := $(shell if [ -z "$$(git status --porcelain --untracked-files=no 2>/dev/
 # Include git version number and dirty indicator
 GIT_HASH := $(shell git rev-parse --short HEAD)$(dirty)
 
+
 #FC = pgf95
 FC = nvfortran
 FFLAGS = -tp=host -O3 -g -Mpreprocess -DGIT_HASH=\"$(GIT_HASH)\"
-LAPACK_LIBS = -llapack -lblas
+LAPACK_LIBS = -llapack -lblas $(HDF5_INCLUDES) $(HDF5_LIBS) $(MPI_INCLUDES) $(MPI_LIBS) 
 OPT_FLAGS = -Minfo -Mneginfo -time -fast -Mconcur=allcores -mp=allcores -Munroll -Mvect
 O_FLAGS = -module $(MOD) -I$(MOD)
 
@@ -109,8 +116,11 @@ $(OBJ)/variables_units.o : $(SRC)/variables_units.f90
 $(OBJ)/sort.o : $(SRC)/sort.f90
 	$(FC) $(O_FLAGS) -c $< -o $@ 
 
-$(OBJ)/io_binary.o : $(SRC)/io_binary.f90
+$(OBJ)/io_binary.o : $(SRC)/io_binary.f90 $(OBJ)/variables_global.o
 	$(FC) $(O_FLAGS) -c $< -o $@ 
+
+$(OBJ)/hdf5_interface.o : $(SRC)/hdf5_interface.f90 $(OBJ)/variables_global.o
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
 update : 
 	mkdir -p $(BIN)
