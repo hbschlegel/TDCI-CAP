@@ -7,9 +7,31 @@ implicit none
 
 contains
 
-!------------------------------------------------------------------------------
-! 1) Open an HDF5 file (create or overwrite) using modern Fortran bindings.
-!------------------------------------------------------------------------------
+!: Not sure why, but this subroutine doesn't work.
+subroutine h5_merge_threadfiles(ndir)
+  integer(8), intent(in) :: ndir
+  integer(8) :: idir
+  logical :: file_exists
+  character(len=2048) :: opath, tmppath, tmpcmd
+  character(len=128) :: str_id
+  write(opath, '( "data.h5" )')
+  inquire(file=opath, exist=file_exists)
+  if (file_exists) then
+    call execute_command_line("rm -f " // opath)
+  end if
+  do idir=1,ndir
+    write(tmppath, '( "thread", i0, ".h5" )') idir
+    write(str_id, '( i0 )') idir
+    tmpcmd = "h5copy -i "//trim(tmppath)//     &
+             " -o "//trim(opath)//            &
+             " -s /direction_"//trim(str_id)//&
+             " -d /direction_"//trim(str_id)//&
+             " && rm -f "//trim(tmppath)
+    write(*,*) trim(tmpcmd)
+    call execute_command_line(trim(tmpcmd), wait=.true.)
+  end do
+end subroutine h5_merge_threadfiles
+
 subroutine h5_open_file(fname, file_id)
   character(len=*),  intent(in)    :: fname
   integer(HID_T),     intent(inout) :: file_id
@@ -26,14 +48,16 @@ subroutine h5_open_file(fname, file_id)
 end subroutine h5_open_file
 
 subroutine h5_close_file(file_id)
-   integer(HID_T), intent(in) :: file_id
-   integer :: status
+  integer(HID_T), intent(in) :: file_id
+  integer :: status
 
-   if (file_id /= -1) then
-      call h5fclose_f(file_id, status)
-      file_id = -1
-      write(*,*) "Closed HDF5 file_id:", file_id
-   end if
+  if (file_id /= -1) then
+    call h5fclose_f(file_id, status)
+    write(*,*) "Closed HDF5 file_id:", file_id, status
+    file_id = -1
+  else
+    write(*,*) "Can't close HDF5 file_id", file_id
+  end if
 end subroutine h5_close_file
 
 
@@ -413,14 +437,24 @@ end subroutine h5_append_int
 !------------------------------------------------------------------------------
 subroutine h5_append_complex(dset_id, data)
    integer(HID_T),              intent(in)    :: dset_id
-   real(real64), dimension(:,:),intent(in)    :: data
+   complex(8), dimension(:),intent(in)    :: data
    ! data(:,1) = real part, data(:,2) = imag
 
    integer :: status
    integer(HID_T) :: filespace_id, memspace_id
    integer(HSIZE_T), allocatable :: dset_dims(:), dset_dims_max(:), newsize(:), start(:), count(:)
-   integer :: rank
+   integer :: rank, Nx, i
    integer(HSIZE_T) :: tempdims(3)
+   real(real64), allocatable :: data2d(:,:)
+
+
+   Nx = size(data)
+   allocate(data2d(Nx, 2))
+   do i = 1, Nx
+     data2d(i,1) = real(data(i))
+     data2d(i,2) = aimag(data(i))
+   end do
+
 
    ! 1) Get the current dataspace & rank
    call h5dget_space_f(dset_id, filespace_id, status)
@@ -432,6 +466,7 @@ subroutine h5_append_complex(dset_id, data)
 
    ! 2) Extend time dimension by 1
    newsize = dset_dims
+   write(*,*) "dset_dims:", dset_dims
    newsize(1) = newsize(1) + 1
    call h5dextend_f(dset_id, newsize, status)
    if (status /= 0) stop "Error extending complex dataset."
@@ -445,7 +480,7 @@ subroutine h5_append_complex(dset_id, data)
    if (rank /= 3) stop "Append complex: expected rank=3 dataset (time x Nx x 2)."
 
    start(2) = 0
-   count(2) = size(data,1)
+   count(2) = size(data2d,1)
 
    start(3) = 0
    count(3) = 2
@@ -454,7 +489,8 @@ subroutine h5_append_complex(dset_id, data)
    if (status /= 0) stop "Error selecting hyperslab for complex."
 
    ! 4) Create a 3D memspace [1, Nx, 2]
-   tempdims = [1, size(data,1), 2]
+   tempdims = [1, size(data2d,1), 2]
+   write(*,*) "tempdims:", tempdims
    call h5screate_simple_f(3, tempdims, memspace_id, status)
    if (status /= 0) stop "Error creating memspace for complex data."
 
@@ -462,7 +498,7 @@ subroutine h5_append_complex(dset_id, data)
    call h5dwrite_f(                                 &
         dset_id       = dset_id,                    &
         mem_type_id   = H5T_NATIVE_DOUBLE,           &
-        buf           = data,                       &
+        buf           = data2d,                       &
         dims          = tempdims,        &
         hdferr        = status,                     &
         file_space_id = filespace_id,               &

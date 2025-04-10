@@ -53,6 +53,7 @@ contains
                                 Qmo_dens, Qci_save, write_binaries, write_orb_transitionrates
     namelist /DAVIDSON/         flag_davidson
     namelist /ReadU_NO/         flag_ReadU_NO
+    namelist /hdf5/             h5inc_density
     
 
     !: set default optional parameters

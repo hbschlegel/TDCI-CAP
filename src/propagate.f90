@@ -51,7 +51,9 @@ type PropagationPrivate
   integer(HID_T) :: time_dsid, efield1_dsid, efield2_dsid 
   integer(HID_T) :: efieldx_dsid, efieldy_dsid, efieldz_dsid
   integer(HID_T) :: norm2_dsid, mux_dsid, muy_dsid, muz_dsid
-  integer(HID_T) :: rate_dsid  
+  integer(HID_T) :: rate_dsid, pop1_dsid, rate_aa_dsid, rate_ab_dsid, &
+    rate_bb_dsid, rate_a_dsid, rate_b_dsid, ion_dsid, ion_coeff_dsid
+  integer(HID_T) :: dens_dsid
   !: integer(8) datasets
   integer(HID_T) :: nva99_dsid 
 
@@ -153,8 +155,8 @@ subroutine deconstruct_PropPriv(this)
   deallocate( this%rate_ab(noa*nob) )
   deallocate( this%rate_ba(nob*noa) )
   deallocate( this%rate_bb(nob*nob) )
-  deallocate( this%rate_a(noa) )
-  deallocate( this%rate_b(nob) )
+  deallocate( this%rate_a(noa+nva) )
+  deallocate( this%rate_b(nob+nva+2) )
 
 end subroutine deconstruct_PropPriv
 
@@ -188,7 +190,9 @@ end subroutine init_h5dir
 subroutine init_h5emax(Priv, iemax, idir)
   class(PropagationPrivate), intent(inout) :: Priv
   integer(8), intent(in) :: iemax, idir
-  integer(HSIZE_T), dimension(1) :: tempdim
+  integer(HSIZE_T), dimension(1) :: one_dim, nrorb_dim, nrorb2_dim, norb_dim
+  integer(HSIZE_T), dimension(1) :: noa_dim, nob_dim, noa2_dim, noanob_dim, nob2_dim, &
+    ip_states_dim, rate_b_dim, ion_coeff_dim
   
   character(len=128) :: gpath
   integer(HID_T) :: grp_id
@@ -201,20 +205,53 @@ subroutine init_h5emax(Priv, iemax, idir)
   Priv%field_grpid = grp_id
   write(iout, *) "emax group created: ", grp_id, Priv%field_grpid ; flush(iout)
 
-  tempdim = [1]
-  call h5_create_dataset_real(grp_id, "time", tempdim, Priv%time_dsid)
-  call h5_create_dataset_real(grp_id, "efield1", tempdim, Priv%efield1_dsid)
-  call h5_create_dataset_real(grp_id, "efield2", tempdim, Priv%efield2_dsid)
-  call h5_create_dataset_real(grp_id, "efieldx", tempdim, Priv%efieldx_dsid)
-  call h5_create_dataset_real(grp_id, "efieldy", tempdim, Priv%efieldy_dsid)
-  call h5_create_dataset_real(grp_id, "efieldz", tempdim, Priv%efieldz_dsid)
-  call h5_create_dataset_real(grp_id, "norm2", tempdim, Priv%norm2_dsid)
-  call h5_create_dataset_real(grp_id, "mux", tempdim, Priv%mux_dsid)
-  call h5_create_dataset_real(grp_id, "muy", tempdim, Priv%muy_dsid)
-  call h5_create_dataset_real(grp_id, "muz", tempdim, Priv%muz_dsid)
-  call h5_create_dataset_real(grp_id, "rate", tempdim, Priv%rate_dsid)
+  !: We have to declare these as integer(HSIZE_T) arrays
+  one_dim = [1]
+  nrorb_dim = [nrorb]
+  norb_dim = [norb]
+  nrorb2_dim = [nrorb*nrorb]
+  noa2_dim = [noa*noa]
+  noanob_dim = [noa*nob]
+  nob2_dim = [nob*nob]
+  noa_dim = [noa]
+  nob_dim = [nob]
+  ip_states_dim = [ip_states]
+  write(*,*) "ip_states:", ip_states
+  rate_b_dim = [nrorb+2]
+  ion_coeff_dim = [max(2*ip_states*(nva+nvb),ip_states*ip_states)]
+  call h5_create_dataset_real(grp_id, "time", one_dim, Priv%time_dsid)
+  call h5_create_dataset_real(grp_id, "efield1", one_dim, Priv%efield1_dsid)
+  call h5_create_dataset_real(grp_id, "efield2", one_dim, Priv%efield2_dsid)
+  call h5_create_dataset_real(grp_id, "efieldx", one_dim, Priv%efieldx_dsid)
+  call h5_create_dataset_real(grp_id, "efieldy", one_dim, Priv%efieldy_dsid)
+  call h5_create_dataset_real(grp_id, "efieldz", one_dim, Priv%efieldz_dsid)
+  call h5_create_dataset_real(grp_id, "norm2", one_dim, Priv%norm2_dsid)
+  call h5_create_dataset_real(grp_id, "mux", one_dim, Priv%mux_dsid)
+  call h5_create_dataset_real(grp_id, "muy", one_dim, Priv%muy_dsid)
+  call h5_create_dataset_real(grp_id, "muz", one_dim, Priv%muz_dsid)
+  call h5_create_dataset_real(grp_id, "rate", one_dim, Priv%rate_dsid)
 
-  call h5_create_dataset_int(grp_id, "nva99", tempdim, Priv%nva99_dsid)
+  call h5_create_dataset_int(grp_id, "nva99", one_dim, Priv%nva99_dsid)
+
+  call h5_create_dataset_real(grp_id, "density", nrorb2_dim, Priv%dens_dsid)
+
+  !: funit(3)
+  call h5_create_dataset_real(grp_id, "pop1", norb_dim, Priv%pop1_dsid)
+  if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
+
+    call h5_create_dataset_real(grp_id, "rate_aa", noa2_dim, Priv%rate_aa_dsid)
+    call h5_create_dataset_real(grp_id, "rate_ab", noanob_dim, Priv%rate_ab_dsid)
+    call h5_create_dataset_real(grp_id, "rate_bb", nob2_dim, Priv%rate_bb_dsid)
+
+  else !: flag_cis, flag_soc
+    call h5_create_dataset_real(grp_id, "rate_a", nrorb_dim, Priv%rate_a_dsid)
+    call h5_create_dataset_real(grp_id, "rate_b", rate_b_dim, Priv%rate_b_dsid)
+  end if
+
+  !: funit(4)
+  call h5_create_dataset_real(grp_id, "ion", norb_dim, Priv%ion_dsid)
+  call h5_create_dataset_complex(grp_id, "ion_coeff", ion_coeff_dim, Priv%ion_coeff_dsid)
+
 
 end subroutine init_h5emax
 
@@ -231,7 +268,9 @@ subroutine write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, &
 
   integer(8), intent(inout) :: itime, idata
   real(8), intent(inout) :: pop1(:), ion(:)
+  integer(8) :: ndim2
 
+  ndim2 = (noa+nva)*(noa+nva)
 
   call h5_append_real(Priv%time_dsid , [dble(itime)*dt*au2fs])
   call h5_append_real(Priv%efield1_dsid , [Priv%efield1])
@@ -246,6 +285,23 @@ subroutine write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, &
   call h5_append_real(Priv%rate_dsid , [Priv%rate/au2fs])
 
   call h5_append_int(Priv%nva99_dsid , [Priv%nva99max_direct])
+
+  call h5_append_real(Priv%dens_dsid, scratch(:ndim2))
+
+  call h5_append_real(Priv%pop1_dsid, pop1)
+  if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
+    call h5_append_real(Priv%rate_aa_dsid, Priv%rate_aa)
+    call h5_append_real(Priv%rate_ab_dsid, Priv%rate_ab)
+    call h5_append_real(Priv%rate_bb_dsid, Priv%rate_bb)
+  else !: flag_cis, flag_soc
+    call h5_append_real(Priv%rate_a_dsid, Priv%rate_a)
+    call h5_append_real(Priv%rate_b_dsid, Priv%rate_b)
+  end if
+  call h5_append_real(Priv%ion_dsid, ion)
+  write(*,*) "test", max(2*ip_states*(nva+nvb),ip_states*ip_states), size(ion_coeff)
+  call h5_append_complex(Priv%ion_coeff_dsid, ion_coeff)
+
+
 
 end subroutine write_h5_step
 
@@ -697,16 +753,6 @@ subroutine deconstruct_PropShared(this)
 end subroutine deconstruct_PropShared
 
 
-subroutine init_h5file_PropPriv(this)
-  class(PropagationShared), intent(inout) :: this
-
-  logical :: file_exists
-  integer :: status
-  integer(HID_T) :: file_id
-
-  
-
-end subroutine init_h5file_PropPriv
 
 
 !==================================================================!
@@ -1110,9 +1156,15 @@ subroutine trotter_linear
 
         !$OMP END CRITICAL (IO_LOCK)
      end do emax_loop
+    !$OMP CRITICAL (IO_LOCK)
     write(iout,*) "Closing h5 dir group ", idir, Priv%dir_grpid
     call h5_close_group(Priv%dir_grpid)
+
     write(iout,*) "Done closing h5 dir group ", idir, Priv%dir_grpid
+    write(iout,*) "Closing h5 dir file ", idir, Priv%file_id
+    call h5_close_file(Priv%file_id)
+    write(iout,*) "Done closing h5 dir file ", idir, Priv%file_id
+    !$OMP END CRITICAL (IO_LOCK)
     call Priv%deconstruct()
     deallocate(Priv)
 
@@ -1120,6 +1172,9 @@ subroutine trotter_linear
 
   !$OMP END DO
   !$OMP END PARALLEL
+
+
+  !:call h5_merge_threadfiles(ndir)
 
   call Prop%deconstruct()
   call write_header( 'trotter_linear','propagate','leave' )

@@ -121,7 +121,10 @@ module variables_global
        outputfile,      & !: defaults to 'OUTPUT' if not specified
        restartbinfile     !: restart bin file
   
-  
+  !: /hdf5/ variables
+  logical :: h5inc_density
+
+
   !: data from tdci.dat
   integer(8) :: &
        nbasis, & !: total number of basis functions
