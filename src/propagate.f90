@@ -560,6 +560,9 @@ subroutine initialize_PropShared(Prop)
 
   call write_dbin_safe( Mol%vabsmoa, nrorb*nrorb, "matrices/Vabs_MO.bin" )
   call write_dbin_safe( Mol%cmo_a, nbasis*nrorb, "matrices/CMO.bin" )
+  call write_dbin_safe( Mol%dipxmoa, nbasis*nrorb, "matrices/dipxmoa.bin" )
+  call write_dbin_safe( Mol%dipymoa, nbasis*nrorb, "matrices/dipymoa.bin" )
+  call write_dbin_safe( Mol%dipzmoa, nbasis*nrorb, "matrices/dipzmoa.bin" )
 
   write(iout, "('Maximum(cis_eig)=',f10.4)") maxval(cis_eig, 1)
   write(iout, "('Minimum(cis_eig)=',f10.4)") minval(cis_eig, 1)
