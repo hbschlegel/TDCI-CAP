@@ -160,6 +160,65 @@ subroutine deconstruct_PropPriv(this)
 
 end subroutine deconstruct_PropPriv
 
+subroutine write_h5metadata()
+
+  integer(HID_T) :: file_id, group_id
+  logical :: file_exists
+  character(len=2048) :: opath, group_path
+  character(len=128) :: str_id
+  integer(8) :: datetime(8)
+  write(opath, '( "metadata.h5" )')
+  write(group_path, '( "/metadata" )')
+  inquire(file=opath, exist=file_exists)
+  if (file_exists) then
+    call execute_command_line("rm -f " // opath)
+  end if
+  call h5_open_file(trim(opath), file_id)
+  call h5_create_group(file_id, group_path, group_id)
+  call h5_write_attribute_int(group_id, "nemax", [nemax])
+  call h5_write_attribute_int(group_id, "ndir", [ndir])
+  call h5_write_attribute_int(group_id, "nbasis", [nbasis])
+  call h5_write_attribute_int(group_id, "nrorb", [nrorb])
+  call h5_write_attribute_int(group_id, "noa", [noa])
+  call h5_write_attribute_int(group_id, "nob", [nob])
+  call h5_write_attribute_int(group_id, "nva", [nva])
+  call h5_write_attribute_int(group_id, "nvb", [nvb])
+  call DATE_AND_TIME(VALUES=datetime)
+  call h5_write_attribute_int(group_id, "datetime_start", datetime)
+  call h5_write_attribute_real(group_id, "orben", Mol%orben)
+
+  call h5_close_group(group_id)
+  call h5_close_file(file_id)
+
+end subroutine write_h5metadata
+
+subroutine write_h5endtime()
+  integer(HID_T) :: file_id, group_id
+  logical :: file_exists
+  character(len=2048) :: opath, group_path
+  character(len=128) :: str_id
+  integer(8) :: datetime(8)
+  write(opath, '( "metadata.h5" )')
+  write(group_path, '( "/metadata" )')
+  inquire(file=opath, exist=file_exists)
+  if (file_exists) then
+    call execute_command_line("rm -f " // opath)
+  end if
+  call h5_open_file(trim(opath), file_id)
+  !: open the already existing group
+  call h5_create_group(file_id, group_path, group_id)
+  call DATE_AND_TIME(VALUES=datetime)
+  call h5_write_attribute_int(group_id, "datetime_end", datetime)
+
+  call h5_close_group(group_id)
+  call h5_close_file(file_id)
+
+
+end subroutine
+
+
+
+!: Create new h5 file for the direction thread
 subroutine init_h5dir(Priv, idir)
   implicit none
   class(PropagationPrivate), intent(inout) :: Priv
@@ -180,7 +239,7 @@ subroutine init_h5dir(Priv, idir)
 
   write(gpath, '( "/direction_", i0 )') idir
   call h5_create_group(file_id, gpath, grp_id)
-  call h5_write_attribute(grp_id, &
+  call h5_write_attribute_real(grp_id, &
          "field_direction", [Priv%dirx1,Priv%diry1,Priv%dirz1])
   Priv%dir_grpid = grp_id
 
@@ -848,6 +907,9 @@ subroutine trotter_linear
   !: allocation and exphel = exp(-iH*dt/2)
   call trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, ion_coeff, Zion_coeff, iwork, scratch)
 
+  !: Can move this up/earlier in scope somewhere
+  call write_h5metadata()
+
   !: write psi0
   call writeme_propagate( 'trot_lin', 'psi0' )    
 
@@ -1181,6 +1243,7 @@ subroutine trotter_linear
   call cpu_time(finish)
   write(iout,"(2x,'Total propagation time:',f12.4,' s')") finish - start  
   flush(iout)
+  call write_h5endtime()
 
 end subroutine trotter_linear
 ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!

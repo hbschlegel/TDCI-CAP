@@ -7,6 +7,8 @@ implicit none
 
 contains
 
+
+
 !: Not sure why, but this subroutine doesn't work.
 subroutine h5_merge_threadfiles(ndir)
   integer(8), intent(in) :: ndir
@@ -99,7 +101,7 @@ end subroutine h5_close_group
 !------------------------------------------------------------------------------
 ! 4) Write an attribute (e.g. a small real array) to a group
 !------------------------------------------------------------------------------
-subroutine h5_write_attribute(group_id, attr_name, data)
+subroutine h5_write_attribute_real(group_id, attr_name, data)
    integer(HID_T),     intent(in)   :: group_id
    character(len=*),   intent(in)   :: attr_name
    real(8),       intent(in)   :: data(:)
@@ -124,7 +126,67 @@ subroutine h5_write_attribute(group_id, attr_name, data)
 
    call h5aclose_f(attr_id, status)
    call h5sclose_f(aspace_id, status)
-end subroutine h5_write_attribute
+end subroutine h5_write_attribute_real
+
+
+subroutine h5_write_attribute_int(group_id, attr_name, data)
+   integer(HID_T),     intent(in)   :: group_id
+   character(len=*),   intent(in)   :: attr_name
+   integer(int64),       intent(in)   :: data(:)
+
+   integer :: status
+   integer(HID_T) :: attr_id, aspace_id
+   integer(HSIZE_T), dimension(1) :: dims
+
+   !real(H5T_IEEE_F64LE), allocatable :: tempdata(:)
+
+   dims(1) = size(data)
+   !allocate(tempdata(size(data)))
+
+   call h5screate_simple_f(1, dims, aspace_id, status)
+   if (status /= 0) stop "Error creating attribute dataspace."
+
+   call h5acreate_f(group_id, attr_name, H5T_STD_I64LE, aspace_id, attr_id, status)
+   if (status /= 0) stop "Error creating attribute."
+
+   call h5awrite_f(attr_id, H5T_STD_I64LE, data, dims, status)
+   if (status /= 0) stop "Error writing attribute."
+
+   call h5aclose_f(attr_id, status)
+   call h5sclose_f(aspace_id, status)
+end subroutine h5_write_attribute_int
+
+subroutine h5_write_attribute_str(group_id, attr_name, attr_value)
+  integer(HID_T), intent(in) :: group_id
+  character(len=*), intent(in) :: attr_name
+  character(len=*), intent(in) :: attr_value
+
+  integer(HID_T) :: attr_id, attr_space_id, type_id
+  integer :: hdferr
+  integer(HID_T) :: strlen
+
+  ! Create a scalar dataspace for the attribute
+  call h5screate_f(H5S_SCALAR_F, attr_space_id, hdferr)
+
+  ! Create a string datatype (variable-length)
+  call h5tcopy_f(H5T_C_S1, type_id, hdferr)
+  strlen = len_trim(attr_value)
+  call h5tset_size_f(type_id, strlen, hdferr)
+  call h5tset_strpad_f(type_id, H5T_STR_NULLTERM_F, hdferr)
+
+  ! Create attribute
+  call h5acreate_f(group_id, attr_name, type_id, attr_space_id, attr_id, hdferr)
+
+  ! Write attribute data
+  call h5awrite_f(attr_id, type_id, trim(attr_value), [strlen], hdferr)
+
+  ! Close resources
+  call h5aclose_f(attr_id, hdferr)
+  call h5tclose_f(type_id, hdferr)
+  call h5sclose_f(attr_space_id, hdferr)
+
+end subroutine h5_write_attribute_str
+
 
 
 !------------------------------------------------------------------------------
