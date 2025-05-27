@@ -849,7 +849,7 @@ contains
     real(8), intent(inout), optional :: nva_rate
 
     integer(8) :: i, i1, j, j1, a, a1, b, b1, ia, jb, ii, jj, aa, bb, istate, ndim, k
-    integer(8) :: ij, iselect
+    integer(8) :: ij, iselect, c
     real(8)    :: const, const2, psi2, vabs00_, rdum, rate
     real(8)    :: density_AO(nbasis*nbasis)
     real(8)    :: tmprate(80000), tmpsum, tmp2, tmprate_direct
@@ -874,7 +874,7 @@ contains
      rate = 0.d0
      rate_a = 0.d0
      rate_b = 0.d0
-     iselect = 8
+     iselect = 0
 
      !write(iout, *) "pop_rate ndim: ", ndim
        
@@ -999,11 +999,15 @@ contains
          if ( ii.eq.jj .and. ii.lt.0 ) then
            if ( aa.lt.0 .and. bb.lt.0 ) then
              rdum = vabs_a(a,b)
-             if(iselect.eq.0.or.iselect.eq.i) rate_a(a) = rate_a(a) + psi2 * rdum
+             c = a
+             if(b.gt.a) c = b
+             if(iselect.eq.0.or.iselect.eq.i) rate_a(c) = rate_a(c) + psi2 * rdum
            end if
            if ( aa.gt.0 .and. bb.gt.0 ) then
              rdum = vabs_b(a,b)
-             if(iselect.eq.0.or.iselect.eq.i) rate_b(a) = rate_b(a) + psi2 * rdum
+             c = a
+             if(b.gt.a) c = b
+             if(iselect.eq.0.or.iselect.eq.i) rate_b(c) = rate_b(c) + psi2 * rdum
            end if
            rate = rate + psi2 * rdum
            rate_a(i) = rate_a(i) + psi2 * rdum
@@ -1013,11 +1017,15 @@ contains
          if ( ii.eq.jj .and. ii.gt.0 ) then
            if ( aa.lt.0 .and. bb.lt.0 ) then
              rdum = vabs_a(a,b)
-             if(iselect.eq.0.or.iselect.eq.i) rate_a(a) = rate_a(a) + psi2 * rdum
+             c = a
+             if(b.gt.a) c = b
+             if(iselect.eq.0.or.iselect.eq.i) rate_a(c) = rate_a(c) + psi2 * rdum
            end if
            if ( aa.gt.0 .and. bb.gt.0 ) then
              rdum = vabs_b(a,b)
-             if(iselect.eq.0.or.iselect.eq.i) rate_b(a) = rate_b(a) + psi2 * rdum
+             c = a
+             if(b.gt.a) c = b
+             if(iselect.eq.0.or.iselect.eq.i) rate_b(c) = rate_b(c) + psi2 * rdum
            end if
            rate = rate + psi2 * rdum
            rate_b(i) = rate_b(i) + psi2 * rdum
