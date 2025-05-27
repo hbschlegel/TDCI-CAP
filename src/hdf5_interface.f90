@@ -9,38 +9,19 @@ contains
 
 
 
-!: Not sure why, but this subroutine doesn't work.
-subroutine h5_merge_threadfiles(ndir)
-  integer(8), intent(in) :: ndir
-  integer(8) :: idir
-  logical :: file_exists
-  character(len=2048) :: opath, tmppath, tmpcmd
-  character(len=128) :: str_id
-  write(opath, '( "data.h5" )')
-  inquire(file=opath, exist=file_exists)
-  if (file_exists) then
-    call execute_command_line("rm -f " // opath)
-  end if
-  do idir=1,ndir
-    write(tmppath, '( "thread", i0, ".h5" )') idir
-    write(str_id, '( i0 )') idir
-    tmpcmd = "h5copy -i "//trim(tmppath)//     &
-             " -o "//trim(opath)//            &
-             " -s /direction_"//trim(str_id)//&
-             " -d /direction_"//trim(str_id)//&
-             " && rm -f "//trim(tmppath)
-    write(*,*) trim(tmpcmd)
-    call execute_command_line(trim(tmpcmd), wait=.true.)
-  end do
-end subroutine h5_merge_threadfiles
-
 subroutine h5_open_file(fname, file_id)
   character(len=*),  intent(in)    :: fname
   integer(HID_T),     intent(inout) :: file_id
 
   integer :: status
+  logical :: exists
 
-  call h5fcreate_f(fname, H5F_ACC_TRUNC_F, file_id, status)
+  inquire(file=fname, exist=exists)
+  if (exists) then
+    call h5fopen_f(fname, H5F_ACC_RDWR_F, file_id, status)
+  else
+    call h5fcreate_f(fname, H5F_ACC_TRUNC_F, file_id, status)
+  end if
   if (status /= 0) then
     write(*,*) "Error creating HDF5 file: ", trim(fname)
     stop
@@ -528,7 +509,7 @@ subroutine h5_append_complex(dset_id, data)
 
    ! 2) Extend time dimension by 1
    newsize = dset_dims
-   write(*,*) "dset_dims:", dset_dims
+   !write(*,*) "dset_dims:", dset_dims
    newsize(1) = newsize(1) + 1
    call h5dextend_f(dset_id, newsize, status)
    if (status /= 0) stop "Error extending complex dataset."
@@ -552,7 +533,7 @@ subroutine h5_append_complex(dset_id, data)
 
    ! 4) Create a 3D memspace [1, Nx, 2]
    tempdims = [1, size(data2d,1), 2]
-   write(*,*) "tempdims:", tempdims
+   !write(*,*) "tempdims:", tempdims
    call h5screate_simple_f(3, tempdims, memspace_id, status)
    if (status /= 0) stop "Error creating memspace for complex data."
 

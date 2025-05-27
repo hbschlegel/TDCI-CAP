@@ -33,7 +33,8 @@ type PropagationPrivate
   character(100) :: cifile, datafile
   !: lapack stuff and misc
   integer(8) :: info2, info3
-  real(8)    :: start1, start2, finish1, finish2
+  real(8)    :: start1, start2, start3, finish1, finish2, finish3
+  real(8)    :: h5cumtime, plaincumtime
   !integer(8) :: info1, lscratch, liwork
   !integer(8), allocatable :: iwork(:)
   !real(8), allocatable    :: scratch(:)
@@ -81,7 +82,7 @@ type PropagationShared
   real(8), allocatable :: natorb_occ_abs(:) !: Natural orbital occupations (eigenvalues)
   real(8), allocatable :: U_NO(:) !: MO->NO transformation matrix
   real(8), allocatable :: U_NO_abs(:) !: MO->NO_abs transformation matrix
-  integer(8) :: opdm_avg_N
+  integer(8) :: opdm_avg_N, datetime_start(8)
   real(8), allocatable :: U_NO_input(:) !: U_NO read from file
 
   real(8) :: ratemax_density, ratemax_direct, ratemax_debug
@@ -130,6 +131,8 @@ subroutine initialize_PropPriv(this)
   this%rate_density = 0.d0 ; this%rate_direct = 0.d0 ; this%rate_debug = 0.d0
   this%rate_raw = 0.d0
 
+  this%h5cumtime = 0.d0 ; this%plaincumtime = 0.d0
+
   !if( QeigenDC ) then
   !  allocate( this%iwork(3+5*nstuse) )
   !  allocate( this%scratch(1+8*nstuse+2*nstuse*nstuse) )
@@ -160,13 +163,16 @@ subroutine deconstruct_PropPriv(this)
 
 end subroutine deconstruct_PropPriv
 
-subroutine write_h5metadata()
+subroutine write_h5metadata(datetime_start)
+  implicit none
+  integer(8), intent(in) :: datetime_start(8)
 
   integer(HID_T) :: file_id, group_id
   logical :: file_exists
   character(len=2048) :: opath, group_path
   character(len=128) :: str_id
-  integer(8) :: datetime(8)
+  integer(8) :: datetime_end(8)
+  write(iout, *) "Writing metadata.h5"
   write(opath, '( "metadata.h5" )')
   write(group_path, '( "/metadata" )')
   inquire(file=opath, exist=file_exists)
@@ -183,38 +189,15 @@ subroutine write_h5metadata()
   call h5_write_attribute_int(group_id, "nob", [nob])
   call h5_write_attribute_int(group_id, "nva", [nva])
   call h5_write_attribute_int(group_id, "nvb", [nvb])
-  call DATE_AND_TIME(VALUES=datetime)
-  call h5_write_attribute_int(group_id, "datetime_start", datetime)
+  call DATE_AND_TIME(VALUES=datetime_end)
+  call h5_write_attribute_int(group_id, "datetime_start", datetime_start)
+  call h5_write_attribute_int(group_id, "datetime_end", datetime_end)
   call h5_write_attribute_real(group_id, "orben", Mol%orben)
 
   call h5_close_group(group_id)
   call h5_close_file(file_id)
 
 end subroutine write_h5metadata
-
-subroutine write_h5endtime()
-  integer(HID_T) :: file_id, group_id
-  logical :: file_exists
-  character(len=2048) :: opath, group_path
-  character(len=128) :: str_id
-  integer(8) :: datetime(8)
-  write(opath, '( "metadata.h5" )')
-  write(group_path, '( "/metadata" )')
-  inquire(file=opath, exist=file_exists)
-  if (file_exists) then
-    call execute_command_line("rm -f " // opath)
-  end if
-  call h5_open_file(trim(opath), file_id)
-  !: open the already existing group
-  call h5_create_group(file_id, group_path, group_id)
-  call DATE_AND_TIME(VALUES=datetime)
-  call h5_write_attribute_int(group_id, "datetime_end", datetime)
-
-  call h5_close_group(group_id)
-  call h5_close_file(file_id)
-
-
-end subroutine
 
 
 
@@ -257,12 +240,12 @@ subroutine init_h5emax(Priv, iemax, idir)
   integer(HID_T) :: grp_id
 
   grp_id = -1
-  write(gpath, '( "/direction_", i0, "/field_", i0 )') idir, iemax
-  write(iout, *) "before create emax group ", Priv%file_id, gpath ; flush(iout)
-  !:call h5_create_group(Priv%file_id, gpath, grp_id)
+  !write(gpath, '( "/direction_", i0, "/field_", i0 )') idir, iemax
+  !write(iout, *) "before create emax group ", Priv%file_id, gpath ; flush(iout)
+
   call h5_create_group(Priv%dir_grpid, gpath, grp_id)
   Priv%field_grpid = grp_id
-  write(iout, *) "emax group created: ", grp_id, Priv%field_grpid ; flush(iout)
+  !write(iout, *) "emax group created: ", grp_id, Priv%field_grpid ; flush(iout)
 
   !: We have to declare these as integer(HSIZE_T) arrays
   one_dim = [1]
@@ -275,9 +258,9 @@ subroutine init_h5emax(Priv, iemax, idir)
   noa_dim = [noa]
   nob_dim = [nob]
   ip_states_dim = [ip_states]
-  write(*,*) "ip_states:", ip_states
   rate_b_dim = [nrorb+2]
   ion_coeff_dim = [max(2*ip_states*(nva+nvb),ip_states*ip_states)]
+
   call h5_create_dataset_real(grp_id, "time", one_dim, Priv%time_dsid)
   call h5_create_dataset_real(grp_id, "efield1", one_dim, Priv%efield1_dsid)
   call h5_create_dataset_real(grp_id, "efield2", one_dim, Priv%efield2_dsid)
@@ -291,8 +274,9 @@ subroutine init_h5emax(Priv, iemax, idir)
   call h5_create_dataset_real(grp_id, "rate", one_dim, Priv%rate_dsid)
 
   call h5_create_dataset_int(grp_id, "nva99", one_dim, Priv%nva99_dsid)
-
-  call h5_create_dataset_real(grp_id, "density", nrorb2_dim, Priv%dens_dsid)
+  if(h5inc_density) then
+    call h5_create_dataset_real(grp_id, "density", nrorb2_dim, Priv%dens_dsid)
+  end if
 
   !: funit(3)
   call h5_create_dataset_real(grp_id, "pop1", norb_dim, Priv%pop1_dsid)
@@ -344,8 +328,9 @@ subroutine write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, &
   call h5_append_real(Priv%rate_dsid , [Priv%rate/au2fs])
 
   call h5_append_int(Priv%nva99_dsid , [Priv%nva99max_direct])
-
-  call h5_append_real(Priv%dens_dsid, scratch(:ndim2))
+  if(h5inc_density) then
+    call h5_append_real(Priv%dens_dsid, scratch(:ndim2))
+  end if
 
   call h5_append_real(Priv%pop1_dsid, pop1)
   if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
@@ -357,7 +342,7 @@ subroutine write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, &
     call h5_append_real(Priv%rate_b_dsid, Priv%rate_b)
   end if
   call h5_append_real(Priv%ion_dsid, ion)
-  write(*,*) "test", max(2*ip_states*(nva+nvb),ip_states*ip_states), size(ion_coeff)
+  !write(*,*) "test", max(2*ip_states*(nva+nvb),ip_states*ip_states), size(ion_coeff)
   call h5_append_complex(Priv%ion_coeff_dsid, ion_coeff)
 
 
@@ -391,7 +376,6 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
   !: for writing out files later
   write( Priv%emaxstr, '(i0)' ) iemax
   write( Priv%dirstr, '(i0)' )  idir
-
 
   Priv%funit(1) = 0    +1000*iemax + idir
   Priv%funit(2) = 10000+1000*iemax + idir
@@ -796,6 +780,7 @@ subroutine initialize_PropShared(Prop)
   end do
   write(iout, "('Maximum(MO dipole norm                 )=',i5,i5,f10.4)") i_max, j_max, max_temp
   write(iout, "('Maximum(MO dipole norm (diagonals only))=',i5,i5,f10.4)") i_min, i_min, min_temp
+  call DATE_AND_TIME(VALUES=Prop%datetime_start)
 
 
 
@@ -907,9 +892,6 @@ subroutine trotter_linear
   !: allocation and exphel = exp(-iH*dt/2)
   call trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, ion_coeff, Zion_coeff, iwork, scratch)
 
-  !: Can move this up/earlier in scope somewhere
-  call write_h5metadata()
-
   !: write psi0
   call writeme_propagate( 'trot_lin', 'psi0' )    
 
@@ -918,7 +900,7 @@ subroutine trotter_linear
   !$OMP PARALLEL DEFAULT(NONE),&
   !$OMP PRIVATE(Priv, i, idata, idir, iemax, ii, itime, j, jj, k, kk, ithread, &
   !$OMP norm0, lscratch, liwork, scratch, iwork, info1, start1, finish1, &
-  !$OMP psi_j, psi_k, psi, psi1, start3, finish3, times, &
+  !$OMP psi_j, psi_k, psi, psi1, start2, finish2, start3, finish3, times, &
   !$OMP pop1, ion, ion_coeff, psi_det0,  &
   !$OMP hp1, tdvals1, Zion_coeff ),  &
   !$OMP SHARED( Mol, Prop, jobtype, nbasis, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
@@ -939,11 +921,8 @@ subroutine trotter_linear
     psi = 0 ; psi1 = 0
     tdvals1 = 0.d0 ;
 
-    !write(iout, '(A, I5, L1)') "Priv allocated at start of thread ", ithread , allocated(Priv)
-    write(iout,*) "before init priv" ; flush(iout)
     allocate(Priv)
     call Priv%initialize()
-    write(iout,*) "after init priv" ; flush(iout)
 
     !: get directions stored in TDCItdciresults
     Priv%dirx1 = tdciresults(idir)%x0  
@@ -951,10 +930,10 @@ subroutine trotter_linear
     Priv%dirz1 = tdciresults(idir)%z0  
 
     !$OMP CRITICAL (IO_LOCK)
-    write(iout,*) "before init h5dir ", idir ; flush(iout)
+    !write(iout,*) "before init h5dir ", idir ; flush(iout)
     !: Create the /direction_idir group in the h5 file
     call init_h5dir(Priv, idir)
-    write(iout,*) "after init h5dir ", idir ; flush(iout)
+    !write(iout,*) "after init h5dir ", idir ; flush(iout)
     !$OMP END CRITICAL (IO_LOCK)
 
     !: get mu dot e-vector matrix elements in CIS basis.  diagonalize
@@ -991,8 +970,15 @@ subroutine trotter_linear
 
       !$OMP CRITICAL (IO_LOCK)
       write(iout,*) "before init h5emax ", idir, iemax ; flush(iout)
+      call cpu_time(start2)
       call init_h5emax(Priv, iemax, idir)
+      call cpu_time(finish2)
+      Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+
+      call cpu_time(start2)
       call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff, 0)
+      call cpu_time(finish2)
+      Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
       if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
       write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
       write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
@@ -1171,11 +1157,17 @@ subroutine trotter_linear
             !write(iout,*) " expectation Priv%rate", itime,Priv%norm,Priv%rate
             Priv%rate = -2.d0 * Priv%rate * Priv%norm**2
 
+            call cpu_time(start2)
             call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
                                scratch, itime, idata, pop1, ion)
+            call cpu_time(finish2)
+            Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
 
+            call cpu_time(start2)
             call write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff,&
                                scratch, itime, idata, pop1, ion)
+            call cpu_time(finish2)
+            Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
 
             !$OMP END CRITICAL (IO_LOCK)
 
@@ -1207,7 +1199,9 @@ subroutine trotter_linear
         
         write(iout,"(' thread # ',i0,' propagation done for direction',i4,' and intensity',i4)") ithread, idir, iemax
         write(iout,"(12x,'dir = (',f8.5,',',f8.5,',',f8.5,')    emax = ',f8.5,' au')")           Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%emax1
-        write(iout,"(12x,'propagation time:',f12.4,' s')") Priv%finish2 - Priv%start2  
+        write(iout,"(12x,'          h5 calls time: ',f12.4,' s')") Priv%h5cumtime
+        write(iout,"(12x,'plain output calls time: ',f12.4,' s')") Priv%plaincumtime
+        write(iout,"(12x,'propagation time: ',f12.4,' s')") Priv%finish2 - Priv%start2
         write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
         write(iout,"(12x,'final rate = ',f18.10)")          Priv%rate
 
@@ -1219,13 +1213,13 @@ subroutine trotter_linear
         !$OMP END CRITICAL (IO_LOCK)
      end do emax_loop
     !$OMP CRITICAL (IO_LOCK)
-    write(iout,*) "Closing h5 dir group ", idir, Priv%dir_grpid
+    !write(iout,*) "Closing h5 dir group ", idir, Priv%dir_grpid
     call h5_close_group(Priv%dir_grpid)
 
-    write(iout,*) "Done closing h5 dir group ", idir, Priv%dir_grpid
-    write(iout,*) "Closing h5 dir file ", idir, Priv%file_id
+    !write(iout,*) "Done closing h5 dir group ", idir, Priv%dir_grpid
+    !write(iout,*) "Closing h5 dir file ", idir, Priv%file_id
     call h5_close_file(Priv%file_id)
-    write(iout,*) "Done closing h5 dir file ", idir, Priv%file_id
+    !write(iout,*) "Done closing h5 dir file ", idir, Priv%file_id
     !$OMP END CRITICAL (IO_LOCK)
     call Priv%deconstruct()
     deallocate(Priv)
@@ -1236,14 +1230,12 @@ subroutine trotter_linear
   !$OMP END PARALLEL
 
 
-  !:call h5_merge_threadfiles(ndir)
-
+  call write_h5metadata(Prop%datetime_start)
   call Prop%deconstruct()
   call write_header( 'trotter_linear','propagate','leave' )
   call cpu_time(finish)
   write(iout,"(2x,'Total propagation time:',f12.4,' s')") finish - start  
   flush(iout)
-  call write_h5endtime()
 
 end subroutine trotter_linear
 ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
