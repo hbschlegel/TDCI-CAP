@@ -182,7 +182,7 @@ subroutine Ztrotter_linear
       Priv%emax1 = tdciresults(1+(iemax-1)*ndir)%fstrength0
 
       !$OMP CRITICAL (IO_LOCK)
-      call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff, 0)
+      call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
       if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
       write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
       write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
@@ -561,7 +561,7 @@ subroutine Ztrotter_circular
         Priv%emax2 = tdciresults((iemax-1)*ndir+1)%fstrength2
 
         !$OMP CRITICAL (IO_LOCK)
-        call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff, 0)
+        call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
         if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
         write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
         write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
