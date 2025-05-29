@@ -54,7 +54,7 @@ type PropagationPrivate
   integer(HID_T) :: norm2_dsid, mux_dsid, muy_dsid, muz_dsid
   integer(HID_T) :: rate_dsid, pop1_dsid, rate_aa_dsid, rate_ab_dsid, &
     rate_bb_dsid, rate_a_dsid, rate_b_dsid, ion_dsid, ion_coeff_dsid
-  integer(HID_T) :: dens_dsid
+  integer(HID_T) :: dens_dsid, civec_dsid
   !: integer(8) datasets
   integer(HID_T) :: nva99_dsid 
 
@@ -172,6 +172,10 @@ subroutine write_h5metadata(datetime_start)
   character(len=2048) :: opath, group_path
   character(len=128) :: str_id
   integer(8) :: datetime_end(8)
+  integer(HSIZE_T), dimension(1) :: one_dim, norb_dim, cmo_dim, nrorb2_dim
+  integer(HID_T) :: orben_dsid, vabsmoa_dsid, cmo_a_dsid, dipxmoa_dsid, &
+    dipymoa_dsid, dipzmoa_dsid
+
   write(iout, *) "Writing metadata.h5"
   write(opath, '( "metadata.h5" )')
   write(group_path, '( "/metadata" )')
@@ -189,10 +193,34 @@ subroutine write_h5metadata(datetime_start)
   call h5_write_attribute_int(group_id, "nob", [nob])
   call h5_write_attribute_int(group_id, "nva", [nva])
   call h5_write_attribute_int(group_id, "nvb", [nvb])
+  call h5_write_attribute_int(group_id, "nstates", [nstates])
+  call h5_write_attribute_int(group_id, "nstuse", [nstuse])
+  call h5_write_attribute_int(group_id, "ip_states", [ip_states])
   call DATE_AND_TIME(VALUES=datetime_end)
   call h5_write_attribute_int(group_id, "datetime_start", datetime_start)
   call h5_write_attribute_int(group_id, "datetime_end", datetime_end)
-  call h5_write_attribute_real(group_id, "orben", Mol%orben)
+  !call h5_write_attribute_real(group_id, "orben", Mol%orben) norb
+
+  one_dim = [1]
+  norb_dim = [norb]
+  cmo_dim = [nbasis*nrorb]
+  nrorb2_dim = [nrorb*nrorb]
+
+  call h5_create_dataset_real(group_id, "orben", norb_dim, orben_dsid)
+  call h5_append_real(orben_dsid, Mol%orben(:norb))
+
+  call h5_create_dataset_real(group_id, "vabsmoa", nrorb2_dim, vabsmoa_dsid)
+  call h5_append_real(vabsmoa_dsid, Mol%vabsmoa(:(nrorb*nrorb)))
+
+  call h5_create_dataset_real(group_id, "cmo_a", cmo_dim, cmo_a_dsid)
+  call h5_append_real(cmo_a_dsid, Mol%cmo_a(:(nbasis*nrorb)))
+
+  call h5_create_dataset_real(group_id, "dipxmoa", nrorb2_dim, dipxmoa_dsid)
+  call h5_append_real(dipxmoa_dsid, Mol%dipxmoa(:(nrorb*nrorb)))
+  call h5_create_dataset_real(group_id, "dipymoa", nrorb2_dim, dipymoa_dsid)
+  call h5_append_real(dipymoa_dsid, Mol%dipymoa(:(nrorb*nrorb)))
+  call h5_create_dataset_real(group_id, "dipzmoa", nrorb2_dim, dipzmoa_dsid)
+  call h5_append_real(dipzmoa_dsid, Mol%dipzmoa(:(nrorb*nrorb)))
 
   call h5_close_group(group_id)
   call h5_close_file(file_id)
@@ -234,7 +262,7 @@ subroutine init_h5emax(Priv, iemax, idir)
   integer(8), intent(in) :: iemax, idir
   integer(HSIZE_T), dimension(1) :: one_dim, nrorb_dim, nrorb2_dim, norb_dim
   integer(HSIZE_T), dimension(1) :: noa_dim, nob_dim, noa2_dim, noanob_dim, nob2_dim, &
-    ip_states_dim, rate_b_dim, ion_coeff_dim
+    ip_states_dim, rate_b_dim, ion_coeff_dim, nstuse_dim
   
   character(len=128) :: gpath
   integer(HID_T) :: grp_id
@@ -260,6 +288,7 @@ subroutine init_h5emax(Priv, iemax, idir)
   ip_states_dim = [ip_states]
   rate_b_dim = [nrorb+2]
   ion_coeff_dim = [max(2*ip_states*(nva+nvb),ip_states*ip_states)]
+  nstuse_dim = [nstuse]
 
   call h5_create_dataset_real(grp_id, "time", one_dim, Priv%time_dsid)
   call h5_create_dataset_real(grp_id, "efield1", one_dim, Priv%efield1_dsid)
@@ -276,6 +305,9 @@ subroutine init_h5emax(Priv, iemax, idir)
   call h5_create_dataset_int(grp_id, "nva99", one_dim, Priv%nva99_dsid)
   if(h5inc_density) then
     call h5_create_dataset_real(grp_id, "density", nrorb2_dim, Priv%dens_dsid)
+  end if
+  if(h5inc_civec) then
+    call h5_create_dataset_complex(grp_id, "psi", nstuse_dim, Priv%civec_dsid)
   end if
 
   !: funit(3)
@@ -330,6 +362,9 @@ subroutine write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, &
   call h5_append_int(Priv%nva99_dsid , [Priv%nva99max_direct])
   if(h5inc_density) then
     call h5_append_real(Priv%dens_dsid, scratch(:ndim2))
+  end if
+  if(h5inc_civec) then
+    call h5_append_complex(Priv%civec_dsid, psi(:nstuse))
   end if
 
   call h5_append_real(Priv%pop1_dsid, pop1)

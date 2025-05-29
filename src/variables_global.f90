@@ -122,7 +122,9 @@ module variables_global
        restartbinfile     !: restart bin file
   
   !: /hdf5/ variables
-  logical :: h5inc_density
+  logical ::               &
+       h5inc_density,      & !: Write MO density at each timestep
+       h5inc_civec           !: Write Psi at each timestep
 
 
   !: data from tdci.dat
