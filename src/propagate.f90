@@ -54,7 +54,7 @@ type PropagationPrivate
   integer(HID_T) :: norm2_dsid, mux_dsid, muy_dsid, muz_dsid
   integer(HID_T) :: rate_dsid, pop1_dsid, rate_aa_dsid, rate_ab_dsid, &
     rate_bb_dsid, rate_a_dsid, rate_b_dsid, ion_dsid, ion_coeff_dsid
-  integer(HID_T) :: dens_dsid, civec_dsid
+  integer(HID_T) :: dens_dsid, psi_dsid, psi_det0_dsid
   !: integer(8) datasets
   integer(HID_T) :: nva99_dsid 
 
@@ -152,6 +152,13 @@ subroutine deconstruct_PropPriv(this)
   implicit none
   class(PropagationPrivate), intent(inout) :: this
 
+  if(h5inc_enable) then
+    !$OMP CRITICAL (IO_LOCK)
+    call h5_close_group(this%dir_grpid)
+    call h5_close_file(this%file_id)
+    !$OMP END CRITICAL (IO_LOCK)
+  end if
+
   deallocate( this%density_complex, this%transition_rates )
   deallocate( this%rate_aa(noa*noa), this%rate_ab(noa*nob) )
   deallocate( this%rate_ba(nob*noa), this%rate_bb(nob*nob) )
@@ -169,8 +176,10 @@ subroutine write_h5metadata(datetime_start)
   character(len=128) :: str_id
   integer(8) :: datetime_end(8)
   integer(HSIZE_T), dimension(1) :: one_dim, norb_dim, cmo_dim, nrorb2_dim
+  integer(HSIZE_T), dimension(2) :: holeidx_dim, partidx_dim, holeipidx_dim, &
+    partipidx_dim, stateipidx_dim
   integer(HID_T) :: orben_dsid, vabsmoa_dsid, cmo_a_dsid, dipxmoa_dsid, &
-    dipymoa_dsid, dipzmoa_dsid
+    dipymoa_dsid, dipzmoa_dsid, temp_dsid
 
   write(iout, *) "Writing metadata.h5"
   write(opath, '( "metadata.h5" )')
@@ -179,8 +188,11 @@ subroutine write_h5metadata(datetime_start)
   if (file_exists) then
     call execute_command_line("rm -f " // opath)
   end if
+  write(iout,*) "1" ; flush(iout)
   call h5_open_file(trim(opath), file_id)
+  write(iout,*) "2" ; flush(iout)
   call h5_create_group(file_id, group_path, group_id)
+  write(iout,*) "3" ; flush(iout)
   call h5_write_attribute_int(group_id, "nemax", [nemax])
   call h5_write_attribute_int(group_id, "ndir", [ndir])
   call h5_write_attribute_int(group_id, "nbasis", [nbasis])
@@ -195,28 +207,48 @@ subroutine write_h5metadata(datetime_start)
   call DATE_AND_TIME(VALUES=datetime_end)
   call h5_write_attribute_int(group_id, "datetime_start", datetime_start)
   call h5_write_attribute_int(group_id, "datetime_end", datetime_end)
-  !call h5_write_attribute_real(group_id, "orben", Mol%orben) norb
+  write(iout,*) "4" ; flush(iout)
 
   one_dim = [1]
   norb_dim = [norb]
   cmo_dim = [nbasis*nrorb]
   nrorb2_dim = [nrorb*nrorb]
+  holeidx_dim = [nstates,2]
+  partidx_dim = [nstates,1]
+  holeipidx_dim = [ip_states,2]
+  partipidx_dim = [ip_states,1]
 
-  call h5_create_dataset_real(group_id, "orben", norb_dim, orben_dsid)
-  call h5_append_real(orben_dsid, Mol%orben(:norb))
+  write(iout,*) "5" ; flush(iout)
+  call h5_write_static_real(group_id, "orben", Mol%orben)
+  write(iout,*) "6" ; flush(iout)
+  call h5_write_static_real(group_id, "vabsmoa", Mol%vabsmoa)
+  call h5_write_static_real(group_id, "cmo_a", Mol%cmo_a)
+  call h5_write_static_real(group_id, "dipxmoa", Mol%dipxmoa)
+  call h5_write_static_real(group_id, "dipymoa", Mol%dipymoa)
+  call h5_write_static_real(group_id, "dipzmoa", Mol%dipzmoa)
+  write(iout,*) "1" ; flush(iout)
 
-  call h5_create_dataset_real(group_id, "vabsmoa", nrorb2_dim, vabsmoa_dsid)
-  call h5_append_real(vabsmoa_dsid, Mol%vabsmoa(:(nrorb*nrorb)))
+  !call h5_create_dataset_real(group_id, "orben", norb_dim, orben_dsid)
+  !call h5_append_real(orben_dsid, Mol%orben(:norb))
 
-  call h5_create_dataset_real(group_id, "cmo_a", cmo_dim, cmo_a_dsid)
-  call h5_append_real(cmo_a_dsid, Mol%cmo_a(:(nbasis*nrorb)))
+  !call h5_create_dataset_real(group_id, "vabsmoa", nrorb2_dim, vabsmoa_dsid)
+  !call h5_append_real(vabsmoa_dsid, Mol%vabsmoa(:(nrorb*nrorb)))
 
-  call h5_create_dataset_real(group_id, "dipxmoa", nrorb2_dim, dipxmoa_dsid)
-  call h5_append_real(dipxmoa_dsid, Mol%dipxmoa(:(nrorb*nrorb)))
-  call h5_create_dataset_real(group_id, "dipymoa", nrorb2_dim, dipymoa_dsid)
-  call h5_append_real(dipymoa_dsid, Mol%dipymoa(:(nrorb*nrorb)))
-  call h5_create_dataset_real(group_id, "dipzmoa", nrorb2_dim, dipzmoa_dsid)
-  call h5_append_real(dipzmoa_dsid, Mol%dipzmoa(:(nrorb*nrorb)))
+  !call h5_create_dataset_real(group_id, "cmo_a", cmo_dim, cmo_a_dsid)
+  !call h5_append_real(cmo_a_dsid, Mol%cmo_a(:(nbasis*nrorb)))
+
+  !call h5_create_dataset_real(group_id, "dipxmoa", nrorb2_dim, dipxmoa_dsid)
+  !call h5_append_real(dipxmoa_dsid, Mol%dipxmoa(:(nrorb*nrorb)))
+  !call h5_create_dataset_real(group_id, "dipymoa", nrorb2_dim, dipymoa_dsid)
+  !call h5_append_real(dipymoa_dsid, Mol%dipymoa(:(nrorb*nrorb)))
+  !call h5_create_dataset_real(group_id, "dipzmoa", nrorb2_dim, dipzmoa_dsid)
+  !call h5_append_real(dipzmoa_dsid, Mol%dipzmoa(:(nrorb*nrorb)))
+
+  call h5_write_static_int(group_id, "hole_index", hole_index)
+  call h5_write_static_int(group_id, "part_index", part_index)
+  call h5_write_static_int(group_id, "hole_ip_index", hole_ip_index)
+  call h5_write_static_int(group_id, "part_ip_index", part_ip_index)
+
 
   call h5_close_group(group_id)
   call h5_close_file(file_id)
@@ -258,13 +290,13 @@ subroutine init_h5emax(Priv, iemax, idir)
   integer(8), intent(in) :: iemax, idir
   integer(HSIZE_T), dimension(1) :: one_dim, nrorb_dim, nrorb2_dim, norb_dim
   integer(HSIZE_T), dimension(1) :: noa_dim, nob_dim, noa2_dim, noanob_dim, nob2_dim, &
-    ip_states_dim, rate_b_dim, ion_coeff_dim, nstuse_dim
+    ip_states_dim, rate_b_dim, ion_coeff_dim, nstuse_dim, nstates_dim
   
   character(len=128) :: gpath
   integer(HID_T) :: grp_id
 
   grp_id = -1
-  !write(gpath, '( "/direction_", i0, "/field_", i0 )') idir, iemax
+  write(gpath, '( "/direction_", i0, "/field_", i0 )') idir, iemax
   !write(iout, *) "before create emax group ", Priv%file_id, gpath ; flush(iout)
 
   call h5_create_group(Priv%dir_grpid, gpath, grp_id)
@@ -285,6 +317,7 @@ subroutine init_h5emax(Priv, iemax, idir)
   rate_b_dim = [nrorb+2]
   ion_coeff_dim = [max(2*ip_states*(nva+nvb),ip_states*ip_states)]
   nstuse_dim = [nstuse]
+  nstates_dim = [nstates]
 
   call h5_create_dataset_real(grp_id, "time", one_dim, Priv%time_dsid)
   call h5_create_dataset_real(grp_id, "efield1", one_dim, Priv%efield1_dsid)
@@ -302,8 +335,11 @@ subroutine init_h5emax(Priv, iemax, idir)
   if(h5inc_density) then
     call h5_create_dataset_real(grp_id, "density", nrorb2_dim, Priv%dens_dsid)
   end if
-  if(h5inc_civec) then
-    call h5_create_dataset_complex(grp_id, "psi", nstuse_dim, Priv%civec_dsid)
+  if(h5inc_psi) then
+    call h5_create_dataset_complex(grp_id, "psi", nstuse_dim, Priv%psi_dsid)
+  end if
+  if(h5inc_psi_det0) then
+    call h5_create_dataset_complex(grp_id, "psi_det0", nstates_dim, Priv%psi_det0_dsid)
   end if
 
   !: funit(3)
@@ -359,8 +395,11 @@ subroutine write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, &
   if(h5inc_density) then
     call h5_append_real(Priv%dens_dsid, scratch(:ndim2))
   end if
-  if(h5inc_civec) then
-    call h5_append_complex(Priv%civec_dsid, psi(:nstuse))
+  if(h5inc_psi) then
+    call h5_append_complex(Priv%psi_dsid, psi(:nstuse))
+  end if
+  if(h5inc_psi_det0) then
+    call h5_append_complex(Priv%psi_det0_dsid, psi_det0)
   end if
 
   call h5_append_real(Priv%pop1_dsid, pop1)
@@ -974,7 +1013,7 @@ subroutine trotter_linear
   !$OMP state_ip_index, ip_states, read_states, ip_vec, Zproj_ion, Qread_ion_coeff, Qwrite_ion_coeff, &
   !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
   !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save, &
-  !$OMP flag_ReadU_NO, write_orb_transitionrates )
+  !$OMP flag_ReadU_NO, write_orb_transitionrates, h5inc_enable, datfile_enable, verbosity )
   
   !$OMP DO  
   dir_loop : do idir=1, ndir
@@ -993,12 +1032,14 @@ subroutine trotter_linear
     Priv%diry1 = tdciresults(idir)%y0  
     Priv%dirz1 = tdciresults(idir)%z0  
 
-    !$OMP CRITICAL (IO_LOCK)
-    !write(iout,*) "before init h5dir ", idir ; flush(iout)
-    !: Create the /direction_idir group in the h5 file
-    call init_h5dir(Priv, idir)
-    !write(iout,*) "after init h5dir ", idir ; flush(iout)
-    !$OMP END CRITICAL (IO_LOCK)
+    if(h5inc_enable) then
+      !$OMP CRITICAL (IO_LOCK)
+      write(iout,*) "before init h5dir ", idir ; flush(iout)
+      !: Create the /direction_idir group in the h5 file
+      call init_h5dir(Priv, idir)
+      write(iout,*) "after init h5dir ", idir ; flush(iout)
+      !$OMP END CRITICAL (IO_LOCK)
+    end if
 
     !: get mu dot e-vector matrix elements in CIS basis.  diagonalize
     hp1(:) = Priv%dirx1*tdx(1:nstuse2) &
@@ -1034,21 +1075,30 @@ subroutine trotter_linear
 
       !$OMP CRITICAL (IO_LOCK)
 
-      write(iout,*) "before init h5emax ", idir, iemax ; flush(iout)
-      call cpu_time(start2)
-      call init_h5emax(Priv, iemax, idir)
-      call cpu_time(finish2)
-      Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+      if(datfile_enable) then
+        call cpu_time(start2)
+        call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
+        call cpu_time(finish2)
+        Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+      end if
 
-      call cpu_time(start2)
-      call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
-      call cpu_time(finish2)
-      Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+      if(h5inc_enable) then
+        write(iout,*) "before init h5emax ", idir, iemax ; flush(iout)
+        call cpu_time(start2)
+        call init_h5emax(Priv, iemax, idir)
+        call cpu_time(finish2)
+        Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+        write(iout,*) "after init h5emax ", idir, iemax ; flush(iout)
+      end if
 
-      if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
-      write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
-      write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
-      write( iout, "('  Minimum(tdvals1) = ',f12.4)") minval(tdvals1)
+      if(verbosity.gt.1) then
+        if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
+        write(iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
+      end if
+      if(verbosity.gt.2) then
+        write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
+        write( iout, "('  Minimum(tdvals1) = ',f12.4)") minval(tdvals1)
+      end if
       flush( iout )
 
       !$OMP END CRITICAL (IO_LOCK)
@@ -1224,17 +1274,22 @@ subroutine trotter_linear
             !write(iout,*) " expectation Priv%rate", itime,Priv%norm,Priv%rate
             Priv%rate = -2.d0 * Priv%rate * Priv%norm**2
 
-            call cpu_time(start2)
-            call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
-                               scratch, itime, idata, pop1, ion)
-            call cpu_time(finish2)
-            Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+            if(datfile_enable) then
+              call cpu_time(start2)
+              call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
+                                 scratch, itime, idata, pop1, ion)
+              call cpu_time(finish2)
+              Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+            end if
 
-            call cpu_time(start2)
-            call write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff,&
-                               scratch, itime, idata, pop1, ion)
-            call cpu_time(finish2)
-            Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+            if(h5inc_enable) then
+              write(iout,*) "before write_h5_step" ; flush(iout)
+              call cpu_time(start2)
+              call write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff,&
+                                 scratch, itime, idata, pop1, ion)
+              call cpu_time(finish2)
+              Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+            end if
 
             !$OMP END CRITICAL (IO_LOCK)
 
@@ -1255,39 +1310,40 @@ subroutine trotter_linear
         if( Qmo_dens ) close(Priv%funit(6))
 
         !$OMP CRITICAL (IO_LOCK)
-        write(iout,*) "Closing h5 emax group ", idir, iemax, Priv%dir_grpid, Priv%field_grpid
-        call h5_close_group(Priv%field_grpid)
-        write(iout,*) "Done closing h5 emax group ", idir, iemax, Priv%dir_grpid, Priv%field_grpid
+        if(h5inc_enable) then
+          !write(iout,*) "Closing h5 emax group ", idir, iemax, Priv%dir_grpid, Priv%field_grpid
+          call h5_close_group(Priv%field_grpid)
+          !write(iout,*) "Done closing h5 emax group ", idir, iemax, Priv%dir_grpid, Priv%field_grpid
+        end if
         !: record data at last timestep
         tdciresults( idir + (iemax-1)*ndir)%norm0 = Priv%norm**2
         tdciresults( idir + (iemax-1)*ndir)%dipx  = Priv%mux
         tdciresults( idir + (iemax-1)*ndir)%dipy  = Priv%muy
         tdciresults( idir + (iemax-1)*ndir)%dipz  = Priv%muz
         
-        write(iout,"(' thread # ',i0,' propagation done for direction',i4,' and intensity',i4)") ithread, idir, iemax
-        write(iout,"(12x,'dir = (',f8.5,',',f8.5,',',f8.5,')    emax = ',f8.5,' au')")           Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%emax1
-        write(iout,"(12x,'          h5 calls time: ',f12.4,' s')") Priv%h5cumtime
-        write(iout,"(12x,'plain output calls time: ',f12.4,' s')") Priv%plaincumtime
-        write(iout,"(12x,'propagation time: ',f12.4,' s')") Priv%finish2 - Priv%start2
-        write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
-        write(iout,"(12x,'final rate = ',f18.10)")          Priv%rate
+        if(verbosity.gt.1) then
+          write(iout,"(' thread # ',i0,' propagation done for direction',i4,' and intensity',i4)") ithread, idir, iemax
+          write(iout,"(12x,'dir = (',f8.5,',',f8.5,',',f8.5,')    emax = ',f8.5,' au')")           Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%emax1
+          if(h5inc_enable) then
+            write(iout,"(12x,'          h5 calls time: ',f12.4,' s')") Priv%h5cumtime
+          end if
+          if(datfile_enable) then 
+            write(iout,"(12x,'plain output calls time: ',f12.4,' s')") Priv%plaincumtime
+          end if
+          write(iout,"(12x,'propagation time: ',f12.4,' s')") Priv%finish2 - Priv%start2
+          write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
+          write(iout,"(12x,'final rate = ',f18.10)")          Priv%rate
+        end if !: verbosity.gt.1
 
         !: debug times
-        do i=1,7
-          write(iout, "('time ',i5,': ',f14.6,' s')") i, times(i) 
-        end do
+        if(verbosity.gt.2) then
+          do i=1,7
+            write(iout, "('time ',i5,': ',f14.6,' s')") i, times(i) 
+          end do
+        end if
 
         !$OMP END CRITICAL (IO_LOCK)
      end do emax_loop
-    !$OMP CRITICAL (IO_LOCK)
-    !write(iout,*) "Closing h5 dir group ", idir, Priv%dir_grpid
-    call h5_close_group(Priv%dir_grpid)
-
-    !write(iout,*) "Done closing h5 dir group ", idir, Priv%dir_grpid
-    !write(iout,*) "Closing h5 dir file ", idir, Priv%file_id
-    call h5_close_file(Priv%file_id)
-    !write(iout,*) "Done closing h5 dir file ", idir, Priv%file_id
-    !$OMP END CRITICAL (IO_LOCK)
     call Priv%deconstruct()
     deallocate(Priv)
 
@@ -1296,8 +1352,9 @@ subroutine trotter_linear
   !$OMP END DO
   !$OMP END PARALLEL
 
-
-  call write_h5metadata(Prop%datetime_start)
+  if(h5inc_enable) then
+    call write_h5metadata(Prop%datetime_start)
+  end if
   call Prop%deconstruct()
   call write_header( 'trotter_linear','propagate','leave' )
   call cpu_time(finish)

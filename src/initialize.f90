@@ -50,10 +50,11 @@ contains
     namelist /SYSTEM_units/     dt_units, eigmax_units
     namelist /InOutFILES/       tdcidatfile, outputfile, restartbinfile, &
                                 Qread_TDCIdata, Qwrite_ion_coeff, Qread_ion_coeff, &
-                                Qmo_dens, Qci_save, write_binaries, write_orb_transitionrates
+                                Qmo_dens, Qci_save, write_binaries, write_orb_transitionrates, &
+                                verbosity, datfile_enable
     namelist /DAVIDSON/         flag_davidson
     namelist /ReadU_NO/         flag_ReadU_NO
-    namelist /hdf5/             h5inc_density
+    namelist /hdf5/             h5inc_density, h5inc_psi, h5inc_psi_det0
     
 
     !: set default optional parameters
@@ -179,6 +180,8 @@ contains
     tdcidatfile     = 'TDCI.dat'
     outputfile      = 'OUTPUT'
     restartbinfile  = 'none'
+    verbosity       = 2
+    datfile_enable  = .true.
 
     !: default for /SYSTEM/
     dt         = 0.05d0
@@ -189,21 +192,27 @@ contains
     outstep    = 50
     nactive    = -1
     nvirtual   = -1
-    socfac     = 1.D0
-    socfacz    = 1.D0
+    socfac     = 1.d0
+    socfacz    = 1.d0
     ffieldx    = 0.d0
     ffieldy    = 0.d0
     ffieldz    = 0.d0
 
     !: default for /SYSTEM_units/
-    dt_units     = 'au'
-    eigmax_units = 'au'    
+    dt_units       = 'au'
+    eigmax_units   = 'au'    
     
     !: default for davidson diagonalization
-    flag_davidson = .False.
+    flag_davidson   = .false.
 
-    flag_ReadU_NO = .False.
-    write_binaries = .false.
+    flag_ReadU_NO   = .false.
+    write_binaries  = .false.
+
+    !: Defaults for /hdf5/
+    h5inc_enable    = .true.
+    h5inc_density   = .false.
+    h5inc_psi       = .false.
+    h5inc_psi_det0  = .false.
 
     
   end subroutine set_default

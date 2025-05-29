@@ -5,6 +5,21 @@ use hdf5
 
 implicit none
 
+
+!-----------------------------------------------
+interface h5_write_static_int
+   module procedure h5_write_static_int_1d
+   module procedure h5_write_static_int_2d
+end interface
+
+interface h5_write_static_real
+   module procedure h5_write_static_real_1d
+   module procedure h5_write_static_real_2d
+end interface
+!-----------------------------------------------
+
+
+
 contains
 
 
@@ -31,7 +46,7 @@ subroutine h5_open_file(fname, file_id)
 end subroutine h5_open_file
 
 subroutine h5_close_file(file_id)
-  integer(HID_T), intent(in) :: file_id
+  integer(HID_T), intent(inout) :: file_id
   integer :: status
 
   if (file_id /= -1) then
@@ -551,5 +566,178 @@ subroutine h5_append_complex(dset_id, data)
    call h5sclose_f(memspace_id, status)
    call h5sclose_f(filespace_id, status)
 end subroutine h5_append_complex
+
+! The commented out code for arbitrary rank arrays requires the rank() function
+!  which is only implemented in NVHPC 25, and we are using 24.1 ^__^
+!  instead, writing overloaded functions for ranks 1 and 2 below.
+
+!subroutine h5_write_static_int(group_id, dset_name, data)
+!   integer(HID_T),                intent(in) :: group_id
+!   character(len=*),              intent(in) :: dset_name
+!   integer(int64), dimension(..), intent(in) :: data   ! Fortran 2008 assumed-rank
+!
+!   integer(HID_T) :: dset_id, space_id
+!   integer(HSIZE_T), allocatable :: dims(:)
+!   integer :: ndims, status, i
+!
+!   ndims = rank(data)
+!   allocate( dims(ndims) )
+!   do i = 1, ndims
+!      dims(i) = size(data, i)
+!   end do
+!
+!   !: create a fixed-size dataspace
+!   call h5screate_simple_f(ndims, dims, space_id, status)
+!   if (status /= 0) stop "static_int: dataspace create failed"
+!
+!   !: create the dataset
+!   call h5dcreate_f(group_id, dset_name, H5T_STD_I64LE, space_id, dset_id, status)
+!   if (status /= 0) stop "static_int: dataset create failed"
+!
+!   !: write full array 
+!   call h5dwrite_f(dset_id, H5T_STD_I64LE, data, dims(1:ndims), status)
+!   if (status /= 0) stop "static_int: write failed"
+!
+!   !: close HDF5 handles
+!   call h5dclose_f(dset_id, status)
+!   call h5sclose_f(space_id, status)
+!end subroutine h5_write_static_int
+!
+!
+!subroutine h5_write_static_real(group_id, dset_name, data)
+!   integer(HID_T),                intent(in) :: group_id
+!   character(len=*),              intent(in) :: dset_name
+!   real(8), dimension(..), intent(in) :: data   ! Fortran 2008 assumed-rank
+!
+!   integer(HID_T) :: dset_id, space_id
+!   integer(HSIZE_T), allocatable :: dims(:)
+!   integer :: ndims, status, i
+!
+!   ndims = rank(data)
+!   allocate( dims(ndims) )
+!   do i = 1, ndims
+!      dims(i) = size(data, i)
+!   end do
+!
+!   !: create a fixed-size dataspace
+!   call h5screate_simple_f(ndims, dims, space_id, status)
+!   if (status /= 0) stop "static_real: dataspace create failed"
+!
+!   !: create the dataset
+!   call h5dcreate_f(group_id, dset_name, H5T_NATIVE_DOUBLE, space_id, dset_id, status)
+!   if (status /= 0) stop "static_real: dataset create failed"
+!
+!   !: write full array
+!   call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims(1:ndims), status)
+!   if (status /= 0) stop "static_real: write failed"
+!
+!   !: close HDF5 handles
+!   call h5dclose_f(dset_id, status)
+!   call h5sclose_f(space_id, status)
+!end subroutine h5_write_static_real
+
+
+
+! ===== integer, rank-1 =====
+subroutine h5_write_static_int_1d(group_id, dset_name, data)
+   integer(HID_T),            intent(in) :: group_id
+   character(len=*),          intent(in) :: dset_name
+   integer(int64), dimension(:), intent(in) :: data
+
+   integer(HID_T) :: dset_id, space_id
+   integer(HSIZE_T) :: dims(1)
+   integer :: status
+
+   dims = size(data)                 ! 1-D extent
+   call h5screate_simple_f(1, dims, space_id, status)
+   if (status /= 0) stop "static_int: dataspace create failed"
+
+   call h5dcreate_f(group_id, dset_name, H5T_STD_I64LE, space_id, dset_id, status)
+   if (status /= 0) stop "static_int: dataset create failed"
+
+   call h5dwrite_f(dset_id, H5T_STD_I64LE, data, dims, status)
+   if (status /= 0) stop "static_int: write failed"
+
+   call h5dclose_f(dset_id, status)
+   call h5sclose_f(space_id, status)
+end subroutine h5_write_static_int_1d
+
+
+! ===== integer, rank-2 =====
+subroutine h5_write_static_int_2d(group_id, dset_name, data)
+   integer(HID_T),              intent(in) :: group_id
+   character(len=*),            intent(in) :: dset_name
+   integer(int64), dimension(:,:), intent(in) :: data
+
+   integer(HID_T) :: dset_id, space_id
+   integer(HSIZE_T) :: dims(2)
+   integer :: status
+
+   dims = [ size(data,1), size(data,2) ]     ! 2-D extents
+   call h5screate_simple_f(2, dims, space_id, status)
+   if (status /= 0) stop "static_int: dataspace create failed"
+
+   call h5dcreate_f(group_id, dset_name, H5T_STD_I64LE, space_id, dset_id, status)
+   if (status /= 0) stop "static_int: dataset create failed"
+
+   call h5dwrite_f(dset_id, H5T_STD_I64LE, data, dims, status)
+   if (status /= 0) stop "static_int: write failed"
+
+   call h5dclose_f(dset_id, status)
+   call h5sclose_f(space_id, status)
+end subroutine h5_write_static_int_2d
+
+
+! ===== real, rank-1 =====
+subroutine h5_write_static_real_1d(group_id, dset_name, data)
+   integer(HID_T),            intent(in) :: group_id
+   character(len=*),          intent(in) :: dset_name
+   real(real64),  dimension(:), intent(in) :: data
+
+   integer(HID_T) :: dset_id, space_id
+   integer(HSIZE_T) :: dims(1)
+   integer :: status
+
+   dims = size(data)
+   call h5screate_simple_f(1, dims, space_id, status)
+   if (status /= 0) stop "static_real: dataspace create failed"
+
+   call h5dcreate_f(group_id, dset_name, H5T_NATIVE_DOUBLE, space_id, dset_id, status)
+   if (status /= 0) stop "static_real: dataset create failed"
+
+   call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, status)
+   if (status /= 0) stop "static_real: write failed"
+
+   call h5dclose_f(dset_id, status)
+   call h5sclose_f(space_id, status)
+end subroutine h5_write_static_real_1d
+
+
+! ===== real, rank-2 =====
+subroutine h5_write_static_real_2d(group_id, dset_name, data)
+   integer(HID_T),              intent(in) :: group_id
+   character(len=*),            intent(in) :: dset_name
+   real(real64),  dimension(:,:), intent(in) :: data
+
+   integer(HID_T) :: dset_id, space_id
+   integer(HSIZE_T) :: dims(2)
+   integer :: status
+
+   dims = [ size(data,1), size(data,2) ]
+   call h5screate_simple_f(2, dims, space_id, status)
+   if (status /= 0) stop "static_real: dataspace create failed"
+
+   call h5dcreate_f(group_id, dset_name, H5T_NATIVE_DOUBLE, space_id, dset_id, status)
+   if (status /= 0) stop "static_real: dataset create failed"
+
+   call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, status)
+   if (status /= 0) stop "static_real: write failed"
+
+   call h5dclose_f(dset_id, status)
+   call h5sclose_f(space_id, status)
+end subroutine h5_write_static_real_2d
+
+
+
 
 end module hdf5_interface

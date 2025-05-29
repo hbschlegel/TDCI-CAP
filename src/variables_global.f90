@@ -120,11 +120,16 @@ module variables_global
        tdcidatfile,     & !: defaults to 'TDCI.dat' if not specified.  Will die if 'TDCI.dat' not found 
        outputfile,      & !: defaults to 'OUTPUT' if not specified
        restartbinfile     !: restart bin file
+
+  integer :: verbosity    !: Integer, lower=>print less stuff, higher=>print more stuff
+  logical :: datfile_enable  !: Enable writing of RESULTS, ION, etc. files
   
   !: /hdf5/ variables
   logical ::               &
+       h5inc_enable,       & !: Enable writing data to hdf5
        h5inc_density,      & !: Write MO density at each timestep
-       h5inc_civec           !: Write Psi at each timestep
+       h5inc_psi,          & !: Write Psi at each timestep
+       h5inc_psi_det0           !: Write Psi at each timestep
 
 
   !: data from tdci.dat
