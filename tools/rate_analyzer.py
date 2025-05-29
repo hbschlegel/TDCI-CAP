@@ -1652,6 +1652,7 @@ class RatePlotter:
     Y_L_norm = [ [] for _ in range(lmax+1) ]
     Y_tot = []
     Y_tot_norm = []
+    Y_norm2 = []
     
     nva99 = []
 
@@ -1665,6 +1666,7 @@ class RatePlotter:
       ddat = self.dataset[d]
       nva99.append(get_word_from_last_line(f"RESULTS-e1-d{d+1}.dat",3))
       Y_tot.append( ddat.rate[time] )
+      Y_norm2.append( ddat.norm2[time] )
       #Y_tot_norm.append( ddat.rate[time]/ddat.norm2[time] )
       #print( (d, ddat.rate[time], ddat.norm2[time], ddat.rate[time]/ddat.norm2[time] ) )
       for l_ in range(0,lmax+1):
@@ -1772,9 +1774,11 @@ class RatePlotter:
     # Write CSV
     f = open("polar.csv",'w')
     f.write(f"nbasis,{self.parser.nbasis},nbsuse,{self.parser.nbsuse}\n")
-    f.write("d,theta,nva99,Total Rate,S,P,D,F\n")
+    f.write("d,theta,nva99,Norm2,Total Rate,S,P,D,F\n")
+    #f.write("d,theta,nva99,Total Rate,S,P,D,F\n")
     for i in range(len(X_theta)):
-      f.write(f"{i+1},{X_theta[i]},{nva99[i]},{fs2au*Y_tot[i]},{fs2au*Y_L[0][i]},{fs2au*Y_L[1][i]},{fs2au*Y_L[2][i]},{fs2au*Y_L[3][i]}\n")
+      f.write(f"{i+1},{X_theta[i]},{nva99[i]},{Y_norm2[i]},{fs2au*Y_tot[i]},{fs2au*Y_L[0][i]},{fs2au*Y_L[1][i]},{fs2au*Y_L[2][i]},{fs2au*Y_L[3][i]}\n")
+      #f.write(f"{i+1},{X_theta[i]},{nva99[i]},{fs2au*Y_tot[i]},{fs2au*Y_L[0][i]},{fs2au*Y_L[1][i]},{fs2au*Y_L[2][i]},{fs2au*Y_L[3][i]}\n")
       #f.write(f"{i+1},{X_theta[i]},{nva99[i]},{fs2au*Y_tot_norm[i]},{fs2au*Y_L_norm[0][i]},{fs2au*Y_L_norm[1][i]},{fs2au*Y_L_norm[2][i]},{fs2au*Y_L_norm[3][i]}\n")
     f.close()
         

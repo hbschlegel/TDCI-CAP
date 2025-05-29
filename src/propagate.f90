@@ -152,14 +152,10 @@ subroutine deconstruct_PropPriv(this)
   implicit none
   class(PropagationPrivate), intent(inout) :: this
 
-  deallocate( this%density_complex)
-  deallocate( this%transition_rates )
-  deallocate( this%rate_aa(noa*noa) )
-  deallocate( this%rate_ab(noa*nob) )
-  deallocate( this%rate_ba(nob*noa) )
-  deallocate( this%rate_bb(nob*nob) )
-  deallocate( this%rate_a(noa+nva) )
-  deallocate( this%rate_b(nob+nva+2) )
+  deallocate( this%density_complex, this%transition_rates )
+  deallocate( this%rate_aa(noa*noa), this%rate_ab(noa*nob) )
+  deallocate( this%rate_ba(nob*noa), this%rate_bb(nob*nob) )
+  deallocate( this%rate_a(noa+nva), this%rate_b(nob+nva+2) )
 
 end subroutine deconstruct_PropPriv
 
@@ -387,18 +383,19 @@ end subroutine write_h5_step
 
 !: Run once for each thread at start of propagation
 !: Sets up the funit values and writes headers to .dat files.
-subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff, MODE )
+subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, MODE )
   implicit none
 
   class(PropagationPrivate), intent(inout) :: Priv
   integer(8), intent(in) :: iemax, idir
   type(tdcidat), allocatable, intent(inout) :: tdciresults(:)
-  complex(8), intent(inout) :: psi0(:), Zion_coeff(:)
+  complex(8), intent(inout) :: psi0(:), psi_det0(:), Zion_coeff(:)
   !: MODE 0=trotter_linear,  1=trotter_circular
   !:      2=Ztrotter_linear, 3=Ztrotter_circular
   integer, intent(in) :: MODE
 
   !: Local variables
+  integer(8) :: i,j
 
   !: Aliases
   !: Apparently the PGI compiler doesn't like this...
@@ -423,19 +420,42 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff
 
   !: cifile binary
   if( Qci_save ) then
-    Priv%cifile ='CI-e'//trim(Priv%emaxstr)//'-d'//trim(Priv%dirstr)//'.bin'
-    open( unit=Priv%funit(1), file=trim(Priv%cifile), form='unformatted' )
-    write(Priv%funit(1)) ndata, nstuse, nstates
+    !Priv%cifile ='CI-e'//trim(Priv%emaxstr)//'-d'//trim(Priv%dirstr)//'.bin'
+    !open( unit=Priv%funit(1), file=trim(Priv%cifile), form='unformatted' )
+    !write(Priv%funit(1)) ndata, nstuse, nstates
+    Priv%cifile ='CI-e'//trim(Priv%emaxstr)//'-d'//trim(Priv%dirstr)//'.dat'
+    open( unit=Priv%funit(1), file=trim(Priv%cifile) )
+    write(Priv%funit(1), "(A,i6,A,i6,A,i6)") "ndata=",ndata,"  nstuse=",nstuse, &
+     "  nstates=",nstates
+    do j=1,nstuse
+      write(Priv%funit(1),"(A,i6,A)") "CI state",j,"   Eigenvector:"
+      write(Priv%funit(1),"(5d18.10)") (cis_vec((j-1)*nstates+i),i=1,nstates)
+      end do
+    write(Priv%funit(1), "(A)") "time,field1,field2,dirx1,diry1,dirz1,dirx2,diry2,dirz2,norm2"
     select case (MODE)
       case(0, 2) !: trotter_linear, Ztrotter_linear
-        write(Priv%funit(1)) 0.d0, 0.d0, 0.d0, Priv%dirx1, Priv%diry1, &
+        write(Priv%funit(1), "(10f10.6)") 0.d0, 0.d0, 0.d0, Priv%dirx1, Priv%diry1, &
           Priv%dirz1, 0.d0, 0.d0, 0.d0, 1.d0
       case(1, 3) !: trotter_circular, Ztrotter_circular
-        write(Priv%funit(1)) 0.d0, 0.d0, Priv%dirx1, Priv%diry1, &
+        write(Priv%funit(1),"(10f10.6)") 0.d0, 0.d0, Priv%dirx1, Priv%diry1, &
           Priv%dirz1, Priv%dirx2, Priv%diry2, Priv%dirz2, 1.d0
     end select
-    write(Priv%funit(1)) real(psi0)
-    write(Priv%funit(1)) aimag(psi0) 
+  !:  write(Priv%funit(1)) real(psi0)
+  !:  write(Priv%funit(1)) aimag(psi0) 
+    write(Priv%funit(1), "(A)") &
+      "State,Real(psi),Imag(psi),hole_index(1),hole_index(2),particle_index(1),Real(psi_det),Imag(Psi_det)"
+    do j=1,nstates
+      if(j.le.nstuse) then
+        write(Priv%funit(1),"(i6,2d18.10,3i4,2d18.10)") &
+          j,real(psi0(j)),aimag(psi0(j)), &
+          hole_index(j,1),hole_index(j,2),part_index(j,1), &
+          real(psi_det0(j)),aimag(psi_det0(j))
+      else
+        write(Priv%funit(1),"(42x,3i4,2d18.10)") &
+          hole_index(j,1),hole_index(j,2),part_index(j,1), &
+          real(psi_det0(j)),aimag(psi_det0(j))
+      end if
+    end do
     flush(Priv%funit(1))      
   end if    
   
@@ -538,21 +558,27 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
   
 
   if( Qci_save) then
-    if( linear ) then
-      select case ( trim(jobtype) )
-      case( flag_cis, flag_ip ) !: trotter_linear
-        write(Priv%funit(1)) dble(itime)*dt*au2fs, Priv%efield1, 0.d0, &
-          Priv%dirx1, Priv%diry1, Priv%dirz1, 0.d0, 0.d0, 0.d0, Priv%norm**2
-      case( flag_soc, flag_socip ) !: Ztrotter_linear
-        write(Priv%funit(1)) dble(itime)*dt*au2fs, Priv%efield1, Priv%efield2, Priv%dirx1, Priv%diry1, Priv%dirz1, &
-          Priv%dirx2, Priv%diry2, Priv%dirz2, Priv%norm**2
-      end select
-    else !: circular
-      write(Priv%funit(1)) dble(itime)*dt*au2fs, Priv%efield1, Priv%efield2, Priv%dirx1, Priv%diry1, Priv%dirz1, &
-        Priv%dirx2, Priv%diry2, Priv%dirz2, Priv%norm**2
-    end if
-    write(Priv%funit(1)) real( psi )
-    write(Priv%funit(1)) aimag( psi )
+  !:  write(Priv%funit(1)) dble(itime)*dt*au2fs, Priv%efield1, 0.d0, &
+  !:   Priv%dirx1, Priv%diry1, Priv%dirz1, 0.d0, 0.d0, 0.d0, Priv%norm**2
+    write(Priv%funit(1), "(A)") "time,field1,field2,dirx1,diry1,dirz1,dirx2,diry2,dirz2,norm2"
+    write(Priv%funit(1), "(10f10.6)") dble(itime)*dt*au2fs, Priv%efield1, Priv%efield2, &
+     Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%dirx2, Priv%diry2, Priv%dirz2, Priv%norm**2
+ !:   write(Priv%funit(1)) real( psi )
+ !:   write(Priv%funit(1)) aimag( psi )
+    write(Priv%funit(1), "(A)") &
+      "State,Real(psi),Imag(psi),hole_index(1),hole_index(2),particle_index,Real(psi_det),Imag(Psi_det)"
+    do j=1,nstates
+      if(j.le.nstuse) then
+        write(Priv%funit(1),"(i6,2d18.10,3i4,2d18.10)") &
+          j,real(psi(j)),aimag(psi(j)), &
+          hole_index(j,1),hole_index(j,2),part_index(j,1), &
+          real(psi_det0(j)),aimag(psi_det0(j))
+      else
+        write(Priv%funit(1),"(42x,3i4,2d18.10)") &
+          hole_index(j,1),hole_index(j,2),part_index(j,1), &
+          real(psi_det0(j)),aimag(psi_det0(j))
+      end if
+    end do
     flush(Priv%funit(1))
   end if
 
@@ -774,6 +800,9 @@ subroutine initialize_PropShared(Prop)
 
   call write_dbin_safe( Mol%vabsmoa, nrorb*nrorb, "matrices/Vabs_MO.bin" )
   call write_dbin_safe( Mol%cmo_a, nbasis*nrorb, "matrices/CMO.bin" )
+  call write_dbin_safe( Mol%dipxmoa, nbasis*nrorb, "matrices/dipxmoa.bin" )
+  call write_dbin_safe( Mol%dipymoa, nbasis*nrorb, "matrices/dipymoa.bin" )
+  call write_dbin_safe( Mol%dipzmoa, nbasis*nrorb, "matrices/dipzmoa.bin" )
 
   write(iout, "('Maximum(cis_eig)=',f10.4)") maxval(cis_eig, 1)
   write(iout, "('Minimum(cis_eig)=',f10.4)") minval(cis_eig, 1)
@@ -1004,6 +1033,7 @@ subroutine trotter_linear
       Priv%emax1 = tdciresults(1+(iemax-1)*ndir)%fstrength0
 
       !$OMP CRITICAL (IO_LOCK)
+
       write(iout,*) "before init h5emax ", idir, iemax ; flush(iout)
       call cpu_time(start2)
       call init_h5emax(Priv, iemax, idir)
@@ -1011,14 +1041,16 @@ subroutine trotter_linear
       Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
 
       call cpu_time(start2)
-      call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff, 0)
+      call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
       call cpu_time(finish2)
       Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+
       if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
       write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
       write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
       write( iout, "('  Minimum(tdvals1) = ',f12.4)") minval(tdvals1)
       flush( iout )
+
       !$OMP END CRITICAL (IO_LOCK)
                   
       !: initialize psi
@@ -1402,7 +1434,7 @@ subroutine trotter_circular
       Priv%emax2 = tdciresults((iemax-1)*ndir+1)%fstrength2
 
       !$OMP CRITICAL (IO_LOCK)
-      call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, Zion_coeff, 0)
+      call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
       if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
       write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
       write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)

@@ -44,7 +44,7 @@ contains
     !: adapted from files in gauopen 
     implicit none
     
-      Parameter (MaxAt=100,MaxBf=1000,MaxArr=100000000)
+      Parameter (MaxAt=100,MaxBf=2000,MaxArr=100000000)
       logical        :: iamhere
       logical        :: EOF, AOInts, ASym, DAOInts
       integer(4)     :: LFN,IU,IVers,NLab,NBsuse,NE,Len12L,Len4L,IOpCl,ICGU
