@@ -60,7 +60,7 @@ program main
   !: read 1-electron and 2-electron matrix elements from TDCI.dat file (module initialize)
   if( Qread_hamdata ) then
      if( Qread_tdcidata     ) call read_hamdata
-     if( Qwrite_mo_energies ) call write_mo_energies
+     if( Qwrite_mo_energies.and.datfile_enable ) call write_mo_energies
   end if
   
   !: generate field 
@@ -71,7 +71,7 @@ program main
      call get_lindirection
      if (.not.linear) call get_circdirection
      call shape_field
-     if ( Qwrite_fshape ) call write_field_shape
+     if ( Qwrite_fshape.and.datfile_enable ) call write_field_shape
   end if
   
 
@@ -156,8 +156,10 @@ program main
   if( Qsave ) call save_restart_bin
 
   !: clean matrices folder, save Vabs AO 
-  call cleanup_directory("matrices")
-  call write_dbin( Mol%vabsao, nbasis*(nbasis+1)/2, "matrices/Vabs_AO.bin")
+  if( datfile_enable ) then
+    call cleanup_directory("matrices")
+    call write_dbin( Mol%vabsao, nbasis*(nbasis+1)/2, "matrices/Vabs_AO.bin")
+  end if
 
   write(iout,*) ' Qdealloc',Qdealloc
   !: deallocate un-used arrays

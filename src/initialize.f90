@@ -54,7 +54,8 @@ contains
                                 verbosity, datfile_enable
     namelist /DAVIDSON/         flag_davidson
     namelist /ReadU_NO/         flag_ReadU_NO
-    namelist /hdf5/             h5inc_density, h5inc_psi, h5inc_psi_det0
+    namelist /hdf5/             h5inc_enable, h5inc_density, h5inc_psi, &
+                                h5inc_psi_det0
     
 
     !: set default optional parameters

@@ -3,6 +3,10 @@
 # Exit on any errors
 set -euo pipefail
 
+if [ -f "data.h5" ]; then
+  mv data.h5 data.1.h5
+fi
+
 # Execute TDCI
 "$(dirname "$0")/tdci_core" "$@"
 

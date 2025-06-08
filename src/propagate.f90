@@ -175,24 +175,16 @@ subroutine write_h5metadata(datetime_start)
   character(len=2048) :: opath, group_path
   character(len=128) :: str_id
   integer(8) :: datetime_end(8)
-  integer(HSIZE_T), dimension(1) :: one_dim, norb_dim, cmo_dim, nrorb2_dim
-  integer(HSIZE_T), dimension(2) :: holeidx_dim, partidx_dim, holeipidx_dim, &
-    partipidx_dim, stateipidx_dim
-  integer(HID_T) :: orben_dsid, vabsmoa_dsid, cmo_a_dsid, dipxmoa_dsid, &
-    dipymoa_dsid, dipzmoa_dsid, temp_dsid
 
   write(iout, *) "Writing metadata.h5"
   write(opath, '( "metadata.h5" )')
   write(group_path, '( "/metadata" )')
   inquire(file=opath, exist=file_exists)
   if (file_exists) then
-    call execute_command_line("rm -f " // opath)
+    call execute_command_line("rm -f " // opath) ! I don't think this works.
   end if
-  write(iout,*) "1" ; flush(iout)
   call h5_open_file(trim(opath), file_id)
-  write(iout,*) "2" ; flush(iout)
   call h5_create_group(file_id, group_path, group_id)
-  write(iout,*) "3" ; flush(iout)
   call h5_write_attribute_int(group_id, "nemax", [nemax])
   call h5_write_attribute_int(group_id, "ndir", [ndir])
   call h5_write_attribute_int(group_id, "nbasis", [nbasis])
@@ -207,42 +199,13 @@ subroutine write_h5metadata(datetime_start)
   call DATE_AND_TIME(VALUES=datetime_end)
   call h5_write_attribute_int(group_id, "datetime_start", datetime_start)
   call h5_write_attribute_int(group_id, "datetime_end", datetime_end)
-  write(iout,*) "4" ; flush(iout)
 
-  one_dim = [1]
-  norb_dim = [norb]
-  cmo_dim = [nbasis*nrorb]
-  nrorb2_dim = [nrorb*nrorb]
-  holeidx_dim = [nstates,2]
-  partidx_dim = [nstates,1]
-  holeipidx_dim = [ip_states,2]
-  partipidx_dim = [ip_states,1]
-
-  write(iout,*) "5" ; flush(iout)
   call h5_write_static_real(group_id, "orben", Mol%orben)
-  write(iout,*) "6" ; flush(iout)
   call h5_write_static_real(group_id, "vabsmoa", Mol%vabsmoa)
   call h5_write_static_real(group_id, "cmo_a", Mol%cmo_a)
   call h5_write_static_real(group_id, "dipxmoa", Mol%dipxmoa)
   call h5_write_static_real(group_id, "dipymoa", Mol%dipymoa)
   call h5_write_static_real(group_id, "dipzmoa", Mol%dipzmoa)
-  write(iout,*) "1" ; flush(iout)
-
-  !call h5_create_dataset_real(group_id, "orben", norb_dim, orben_dsid)
-  !call h5_append_real(orben_dsid, Mol%orben(:norb))
-
-  !call h5_create_dataset_real(group_id, "vabsmoa", nrorb2_dim, vabsmoa_dsid)
-  !call h5_append_real(vabsmoa_dsid, Mol%vabsmoa(:(nrorb*nrorb)))
-
-  !call h5_create_dataset_real(group_id, "cmo_a", cmo_dim, cmo_a_dsid)
-  !call h5_append_real(cmo_a_dsid, Mol%cmo_a(:(nbasis*nrorb)))
-
-  !call h5_create_dataset_real(group_id, "dipxmoa", nrorb2_dim, dipxmoa_dsid)
-  !call h5_append_real(dipxmoa_dsid, Mol%dipxmoa(:(nrorb*nrorb)))
-  !call h5_create_dataset_real(group_id, "dipymoa", nrorb2_dim, dipymoa_dsid)
-  !call h5_append_real(dipymoa_dsid, Mol%dipymoa(:(nrorb*nrorb)))
-  !call h5_create_dataset_real(group_id, "dipzmoa", nrorb2_dim, dipzmoa_dsid)
-  !call h5_append_real(dipzmoa_dsid, Mol%dipzmoa(:(nrorb*nrorb)))
 
   call h5_write_static_int(group_id, "hole_index", hole_index)
   call h5_write_static_int(group_id, "part_index", part_index)
@@ -826,7 +789,7 @@ subroutine initialize_PropShared(Prop)
   Prop%U_NO = 0.d0
   Prop%U_NO_abs = 0.d0
   Prop%opdm_avg_N = ndir*(nstep/outstep)
-  write(iout, '(A,i5)') "opdm_avg_N: ", Prop%opdm_avg_N
+  !write(iout, '(A,i5)') "opdm_avg_N: ", Prop%opdm_avg_N
 
   !if ( .true. ) then
   if ( flag_ReadU_NO ) then
@@ -837,14 +800,18 @@ subroutine initialize_PropShared(Prop)
   Prop%nva95maxmax_direct = 0 ; Prop%nva99maxmax_direct = 0 ; Prop%nva95maxMO_sort = 0
   Prop%nva99maxMO_sort = 0 ; Prop%nva95maxNO_sort = 0 ; Prop%nva99maxNO_sort = 0
 
-  call write_dbin_safe( Mol%vabsmoa, nrorb*nrorb, "matrices/Vabs_MO.bin" )
-  call write_dbin_safe( Mol%cmo_a, nbasis*nrorb, "matrices/CMO.bin" )
-  call write_dbin_safe( Mol%dipxmoa, nbasis*nrorb, "matrices/dipxmoa.bin" )
-  call write_dbin_safe( Mol%dipymoa, nbasis*nrorb, "matrices/dipymoa.bin" )
-  call write_dbin_safe( Mol%dipzmoa, nbasis*nrorb, "matrices/dipzmoa.bin" )
+  if(datfile_enable) then
+    call write_dbin_safe( Mol%vabsmoa, nrorb*nrorb, "matrices/Vabs_MO.bin" )
+    call write_dbin_safe( Mol%cmo_a, nbasis*nrorb, "matrices/CMO.bin" )
+    call write_dbin_safe( Mol%dipxmoa, nbasis*nrorb, "matrices/dipxmoa.bin" )
+    call write_dbin_safe( Mol%dipymoa, nbasis*nrorb, "matrices/dipymoa.bin" )
+    call write_dbin_safe( Mol%dipzmoa, nbasis*nrorb, "matrices/dipzmoa.bin" )
+  end if
 
-  write(iout, "('Maximum(cis_eig)=',f10.4)") maxval(cis_eig, 1)
-  write(iout, "('Minimum(cis_eig)=',f10.4)") minval(cis_eig, 1)
+  if(verbosity.gt.1) then
+    write(iout, "('Maximum(cis_eig)=',f10.4)") maxval(cis_eig, 1)
+    write(iout, "('Minimum(cis_eig)=',f10.4)") minval(cis_eig, 1)
+  end if
   min_temp = 0.0 ; max_temp = 0.0
   i_min = 0 ; i_max = 0 ; j_min = 0 ; j_max = 0
   do i = 1,nrorb
@@ -861,8 +828,10 @@ subroutine initialize_PropShared(Prop)
       end if
     end do
   end do
-  write(iout, "('Maximum(vabsmoa)=',i5,i5,f10.4)") i_max, j_max, max_temp
-  write(iout, "('Minimum(vabsmoa)=',i5,i5,f10.4)") i_min, j_min, min_temp
+  if(verbosity.gt.1) then
+    write(iout, "('Maximum(vabsmoa)=',i5,i5,f10.4)") i_max, j_max, max_temp
+    write(iout, "('Minimum(vabsmoa)=',i5,i5,f10.4)") i_min, j_min, min_temp
+  end if
   ! Dipole
   min_temp = 0.0 ; max_temp = 0.0
   i_min = 0 ; i_max = 0 ; j_min = 0 ; j_max = 0
@@ -881,8 +850,10 @@ subroutine initialize_PropShared(Prop)
       end if
     end do
   end do
-  write(iout, "('Maximum(MO dipole norm                 )=',i5,i5,f10.4)") i_max, j_max, max_temp
-  write(iout, "('Maximum(MO dipole norm (diagonals only))=',i5,i5,f10.4)") i_min, i_min, min_temp
+  if(verbosity.gt.1) then
+    write(iout, "('Maximum(MO dipole norm                 )=',i5,i5,f10.4)") i_max, j_max, max_temp
+    write(iout, "('Maximum(MO dipole norm (diagonals only))=',i5,i5,f10.4)") i_min, i_min, min_temp
+  end if
   call DATE_AND_TIME(VALUES=Prop%datetime_start)
 
 

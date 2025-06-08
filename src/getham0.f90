@@ -93,11 +93,13 @@ contains
     end if
 
     if ( istate.ne.nstates) write(iout,'(A)')  ' ERROR ERROR ERROR IN INDEX ASSIGNMENT IN CIS' 
-    open(unit=100,file='INDEX.OUT')
-    do i=1, nstates
-       write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
-    end do
-    close(100)    
+    if(datfile_enable) then
+      open(unit=100,file='INDEX.OUT')
+      do i=1, nstates
+         write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
+      end do
+      close(100)    
+    end if
     
     call writeme_ham0( 'cis_index','imdone' )
     
@@ -364,11 +366,13 @@ contains
 !: 123  format(4i5)
     
     if ( istate.ne.nstates) write(iout,'(A)')  ' ERROR ERROR ERROR IN INDEX ASSIGNMENT IN IP' 
-    open(unit=100,file='INDEX.OUT')
-    do i=1, nstates
-       write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
-    end do
-    close(100)    
+    if(datfile_enable) then
+      open(unit=100,file='INDEX.OUT')
+      do i=1, nstates
+         write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
+      end do
+      close(100)    
+    end if
 
     call writeme_ham0( 'ip_index','imdone' )
 
@@ -693,11 +697,13 @@ contains
 !: 123  format(4i5)
     
     if ( istate.ne.nstates) write(iout,'(A)')  ' ERROR ERROR ERROR IN INDEX ASSIGNMENT IN SOCIP' 
-    open(unit=100,file='INDEX.OUT')
-    do i=1, nstates
-       write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
-    end do
-    close(100)    
+    if(datfile_enable) then
+      open(unit=100,file='INDEX.OUT')
+      do i=1, nstates
+         write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
+      end do
+      close(100)    
+    end if
 
     call writeme_ham0( 'socip_index','imdone' )
     
@@ -1101,17 +1107,19 @@ contains
       end do
     end do
 
-    open(unit=100,file='INDEX.OUT')
-    do i=1, nstates
-       write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
-    end do
-    do i=1, ip_states
-       write(100,"(i7,i7,i7)") hole_ip_index(i,1), hole_ip_index(i,2), part_ip_index(i,1)
-    end do
-    do i=1, noa+nob
-       write(100,"(400i5)") (state_ip_index(i,j),j = 1,noa+nob)
-    end do
-    close(100)    
+    if(datfile_enable) then
+      open(unit=100,file='INDEX.OUT')
+      do i=1, nstates
+         write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
+      end do
+      do i=1, ip_states
+         write(100,"(i7,i7,i7)") hole_ip_index(i,1), hole_ip_index(i,2), part_ip_index(i,1)
+      end do
+      do i=1, noa+nob
+         write(100,"(400i5)") (state_ip_index(i,j),j = 1,noa+nob)
+      end do
+      close(100)    
+    end if
     
 50  format( i5,1x,f15.10 )
 60  format( 7x,i3,2x,4f17.10 )
@@ -1207,17 +1215,19 @@ contains
       end do
     end do
 
-    open(unit=100,file='INDEX.OUT')
-    do i=1, nstates
-       write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
-    end do
-    do i=1, ip_states
-       write(100,"(i7,i7,i7)") hole_ip_index(i,1), hole_ip_index(i,2), part_ip_index(i,1)
-    end do
-    do i=1, noa+nob
-       write(100,"(400i5)") (state_ip_index(i,j),j = 1,noa+nob)
-    end do
-    close(100)    
+    if(datfile_enable) then
+      open(unit=100,file='INDEX.OUT')
+      do i=1, nstates
+         write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
+      end do
+      do i=1, ip_states
+         write(100,"(i7,i7,i7)") hole_ip_index(i,1), hole_ip_index(i,2), part_ip_index(i,1)
+      end do
+      do i=1, noa+nob
+         write(100,"(400i5)") (state_ip_index(i,j),j = 1,noa+nob)
+      end do
+      close(100)    
+    end if
     
 50  format( i5,1x,f15.10 )
 60  format( 7x,i3,2x,4f17.10 )
@@ -1368,17 +1378,19 @@ contains
     end do
     flush(iout)
 
-    open(unit=100,file='INDEX.OUT')
-    do i=1, nstates
-       write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
-    end do
-    do i=1, ip_states
-       write(100,"(i7,i7,i7)") hole_ip_index(i,1), hole_ip_index(i,2), part_ip_index(i,1)
-    end do
-    do i=1, noa+nob
-       write(100,"(400i5)") (state_ip_index(i,j),j=1,noa+nob) 
-    end do
-    close(100)    
+    if(datfile_enable) then
+      open(unit=100,file='INDEX.OUT')
+      do i=1, nstates
+         write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
+      end do
+      do i=1, ip_states
+         write(100,"(i7,i7,i7)") hole_ip_index(i,1), hole_ip_index(i,2), part_ip_index(i,1)
+      end do
+      do i=1, noa+nob
+         write(100,"(400i5)") (state_ip_index(i,j),j=1,noa+nob) 
+      end do
+      close(100)    
+    end if
     
 50  format( i5,1x,f15.10 )
 60  format( 7x,2i5,2x,4f17.10 )
@@ -1532,17 +1544,19 @@ contains
       end do
     end do
 
-    open(unit=100,file='INDEX.OUT')
-    do i=1, nstates
-       write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
-    end do
-    do i=1, ip_states
-       write(100,"(i7,i7,i7)") hole_ip_index(i,1), hole_ip_index(i,2), part_ip_index(i,1)
-    end do
-    do i=1, noa+nob
-       write(100,"(400i5)") (state_ip_index(i,j),j=1,noa+nob) 
-    end do
-    close(100)    
+    if(datfile_enable) then
+      open(unit=100,file='INDEX.OUT')
+      do i=1, nstates
+         write(100,"(i7,i7,i7)") hole_index(i,1), hole_index(i,2), part_index(i,1)
+      end do
+      do i=1, ip_states
+         write(100,"(i7,i7,i7)") hole_ip_index(i,1), hole_ip_index(i,2), part_ip_index(i,1)
+      end do
+      do i=1, noa+nob
+         write(100,"(400i5)") (state_ip_index(i,j),j=1,noa+nob) 
+      end do
+      close(100)    
+    end if
     
 50  format( i5,1x,f15.10 )
 60  format( 7x,2i5,2x,4f17.10 )
