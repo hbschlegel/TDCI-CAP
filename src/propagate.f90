@@ -1005,10 +1005,8 @@ subroutine trotter_linear
 
     if(h5inc_enable) then
       !$OMP CRITICAL (IO_LOCK)
-      write(iout,*) "before init h5dir ", idir ; flush(iout)
       !: Create the /direction_idir group in the h5 file
       call init_h5dir(Priv, idir)
-      write(iout,*) "after init h5dir ", idir ; flush(iout)
       !$OMP END CRITICAL (IO_LOCK)
     end if
 
@@ -1035,7 +1033,6 @@ subroutine trotter_linear
     hp1 = scratch(1:nstuse*nstuse)
 
     call cpu_time(finish1)
-    write(iout,*) "before emax_loop ", idir ; flush(iout)
      
     !: loop over intensities
     emax_loop : do iemax=1, nemax
@@ -1054,12 +1051,10 @@ subroutine trotter_linear
       end if
 
       if(h5inc_enable) then
-        write(iout,*) "before init h5emax ", idir, iemax ; flush(iout)
         call cpu_time(start2)
         call init_h5emax(Priv, iemax, idir)
         call cpu_time(finish2)
         Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
-        write(iout,*) "after init h5emax ", idir, iemax ; flush(iout)
       end if
 
       if(verbosity.gt.1) then
@@ -1254,7 +1249,6 @@ subroutine trotter_linear
             end if
 
             if(h5inc_enable) then
-              write(iout,*) "before write_h5_step" ; flush(iout)
               call cpu_time(start2)
               call write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff,&
                                  scratch, itime, idata, pop1, ion)
@@ -1296,14 +1290,14 @@ subroutine trotter_linear
           write(iout,"(' thread # ',i0,' propagation done for direction',i4,' and intensity',i4)") ithread, idir, iemax
           write(iout,"(12x,'dir = (',f8.5,',',f8.5,',',f8.5,')    emax = ',f8.5,' au')")           Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%emax1
           if(h5inc_enable) then
-            write(iout,"(12x,'          h5 calls time: ',f12.4,' s')") Priv%h5cumtime
+            write(iout,"(12x,'h5 calls time:            ',f12.4,' s')") Priv%h5cumtime
           end if
           if(datfile_enable) then 
-            write(iout,"(12x,'plain output calls time: ',f12.4,' s')") Priv%plaincumtime
+            write(iout,"(12x,'plain output calls time:  ',f12.4,' s')") Priv%plaincumtime
           end if
-          write(iout,"(12x,'propagation time: ',f12.4,' s')") Priv%finish2 - Priv%start2
-          write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
-          write(iout,"(12x,'final rate = ',f18.10)")          Priv%rate
+          write(iout,  "(12x,'propagation time:         ',f12.4,' s')") Priv%finish2 - Priv%start2
+          write(iout,  "(12x,'final norm = ',f10.5)")  Priv%norm**2
+          write(iout,  "(12x,'final rate = ',f18.10)") Priv%rate
         end if !: verbosity.gt.1
 
         !: debug times
