@@ -105,6 +105,10 @@ contains
 49  if( mystat.ne.0 ) write(100,"(' WARNING WARNING WARNING WARNING reading nml=ReadU_NO, iostat= ',i0)") mystat
     rewind(10)
 
+    read( 10, nml=hdf5, iostat=mystat, err=50 )
+50  if( mystat.ne.0 ) write(100,"(' WARNING WARNING WARNING WARNING reading nml=hdf5, iostat= ',i0)") mystat
+    rewind(10)
+
     read( 10, nml=DAVIDSON, iostat=mystat, err=46 )
 46  if( mystat.ne.0 ) write(100,"(' WARNING WARNING WARNING WARNING reading nml=DAVIDSON, iostat= ',i0)") mystat 
     continue
@@ -1213,6 +1217,17 @@ contains
     write(myoption,'(A)') ' &ReadU_NO'
     if( flag_ReadU_NO )      write(myoption,'(A)') " flag_ReadU_NO = .True. "
     if( .not.flag_ReadU_NO ) write(myoption,'(A)') " flag_ReadU_NO = .False. "
+    write(myoption,'(A)') ' /'
+
+    write(myoption,'(A)') ' &hdf5'
+    if( h5inc_enable )      write(myoption,'(A)') " h5inc_enable = .True. "
+    if( .not.h5inc_enable ) write(myoption,'(A)') " h5inc_enable = .False. "
+    if( h5inc_density )      write(myoption,'(A)') " h5inc_density = .True. "
+    if( .not.h5inc_density ) write(myoption,'(A)') " h5inc_density = .False. "
+    if( h5inc_psi )      write(myoption,'(A)') " h5inc_psi = .True. "
+    if( .not.h5inc_psi ) write(myoption,'(A)') " h5inc_psi = .False. "
+    if( h5inc_psi_det0 )      write(myoption,'(A)') " h5inc_psi_det0 = .True. "
+    if( .not.h5inc_psi_det0 ) write(myoption,'(A)') " h5inc_psi_det0 = .False. "
     write(myoption,'(A)') ' /'
 
     if( myoption.ne.iout ) close(myoption)
