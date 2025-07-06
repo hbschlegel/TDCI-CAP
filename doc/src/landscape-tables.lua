@@ -1,30 +1,25 @@
-function Table(tbl)
-  -- Only modify if output is LaTeX (PDF)
-  if not FORMAT:match("latex") then
-    return tbl
-  end
-
-  -- If this table doesn't have exactly 5 columns, do nothing
-  local ncols = #tbl.colspecs
-  if ncols ~= 5 then
-    return {
-      pandoc.RawBlock("latex", "\\begin{landscape}"),
-      tbl,
-      pandoc.RawBlock("latex", "\\end{landscape}"),
-    }
-  end
-  -- relative fraction sizes for columns
-  local fractions = {0.1429, 0.1905, 0.3333, 0.1429, 0.1905}
-
-  for i, colspec in ipairs(tbl.colspecs) do
-    -- Force alignment to left, set fraction
-    colspec[1] = "AlignLeft"  -- Could be "AlignDefault", "AlignCenter", etc.
-    colspec[2] = fractions[i]
-  end
-
+-- helper: wrap any block in \begin{landscape}..\end{landscape}
+local function in_landscape(block)
   return {
-    pandoc.RawBlock("latex", "\\begin{landscape}"),
-    tbl,
-    pandoc.RawBlock("latex", "\\end{landscape}"),
+    pandoc.RawBlock("latex", "\\begin{landscape}\\begingroup\\footnotesize"),
+    block,
+    pandoc.RawBlock("latex", "\\endgroup\\end{landscape}")
   }
+end
+
+----------------
+--  NEW CODE  --
+----------------
+-- Catch Pandoc 3.x SimpleTable
+function SimpleTable(tbl)
+  if not FORMAT:match("latex")   then return tbl end
+  if #tbl.align ~= 5             then return tbl end
+  return in_landscape(tbl)
+end
+
+-- old pandoc table type
+function Table(tbl)
+  if not FORMAT:match("latex") then return tbl end
+
+  return in_landscape(tbl)
 end
