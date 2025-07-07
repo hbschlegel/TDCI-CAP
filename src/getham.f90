@@ -133,9 +133,7 @@ contains
     thread2 = 2
     write(iout,"(' DipX Thread # ',i0)") thread2
     call get_ao2mo( thread2, 'dipx' ) 
-    write(iout,*) "aaaa" ; flush(iout)
     call get_form1det( thread2, 'dipx') 
-    write(iout,*) "baaa" ; flush(iout)
     if ( Qalloc_Zcomplex ) then
       call testherm(nstates,Ztdx,'TDxMO')
       call Zform1cis(nstates,nstuse,Ztdx,Zcis_vec)
@@ -177,17 +175,17 @@ contains
     end if
        
     !: AD
-    write(iout, *) "Eq 18 (Field Perturbed Orbitals):"
-    write(iout, '(A)') 'ifield,  Rate'
-    write(iout, '(A)') '=============='
+    !write(iout, *) "Eq 18 (Field Perturbed Orbitals):"
+    !write(iout, '(A)') 'ifield,  Rate'
+    !write(iout, '(A)') '=============='
+    !do ifield=1,nemax*ndir
+    !  call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, &
+    !    Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, &
+    !    tdciresults(ifield)%fstrength0, tdciresults(ifield)%x0, &
+    !    tdciresults(ifield)%y0, tdciresults(ifield)%z0, perturbed_rate )
+    !  write(iout, '(I5,F10.7)') ifield, perturbed_rate
+    !end do
 
-    do ifield=1,nemax*ndir
-      call generate_field_perturbed_orbitals( norb, noa, nva, Mol%orben, &
-        Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Mol%vabsmoa, &
-        tdciresults(ifield)%fstrength0, tdciresults(ifield)%x0, &
-        tdciresults(ifield)%y0, tdciresults(ifield)%z0, perturbed_rate )
-      write(iout, '(I5,F10.7)') ifield, perturbed_rate
-    end do
     call write_header( 'get_1eham','getham','leave' )
     call cpu_time(finish1)
     write(iout,"(' One electorn integral transformation time:',f12.4,' seconds')") finish1-start1 

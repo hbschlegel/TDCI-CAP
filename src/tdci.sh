@@ -3,6 +3,9 @@
 # Exit on any errors
 set -euo pipefail
 
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$(dirname "$0")/../dep/hdf5-1.14.4-3/hdf5-install/lib"
+export PATH=$PATH:"$(dirname "$0")/../dep/hdf5-1.14.4-3/hdf5-install/lib"
+
 if [ -f "data.h5" ]; then
   mv data.h5 data.1.h5
 fi

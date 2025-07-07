@@ -7,6 +7,7 @@ use sort
 use io_binary  ! io_bin_test, write_dbin, read_dbin
 use hdf5
 use hdf5_interface
+use nano_timer
   
 implicit none
 
@@ -33,6 +34,7 @@ type PropagationPrivate
   character(100) :: cifile, datafile
   !: lapack stuff and misc
   integer(8) :: info2, info3
+  integer(8) :: wallstart1, wallstart2, wallfinish1, wallfinish2
   real(8)    :: start1, start2, start3, finish1, finish2, finish3
   real(8)    :: h5cumtime, plaincumtime
   !integer(8) :: info1, lscratch, liwork
@@ -1037,7 +1039,6 @@ subroutine trotter_linear
     !: loop over intensities
     emax_loop : do iemax=1, nemax
 
-      call cpu_time(start1)
       !: get emax
       Priv%emax1 = tdciresults(1+(iemax-1)*ndir)%fstrength0
 
@@ -1058,7 +1059,7 @@ subroutine trotter_linear
       end if
 
       if(verbosity.gt.1) then
-        if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
+        if(iemax.eq.1) write(iout,"(12x,'Init, TD diag, and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
         write(iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
       end if
       if(verbosity.gt.2) then
