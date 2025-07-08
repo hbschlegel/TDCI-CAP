@@ -173,13 +173,20 @@ contains
     real(8) rdum
     
     
-    if ( trim(jobtype).eq.flag_soc .or. trim(jobtype).eq.flag_socip )  go to 78
+    if ( trim(jobtype).eq.flag_soc .or. trim(jobtype).eq.flag_socip ) then
+      call Zwrite_specifics2
+      return
+    end if
     
 
     call write_header( 'write_specifics2','write_info','enter' )
 
     istates = 20
-    write(iout,'(A)') ' ENERGIES (eV), TDx(1,i), TDy(1,i), TDz(1,i), Vabs(i,i)'
+    if ( trim(jobtype).eq.flag_cis ) then
+      write(iout,'(A)') ' CIS (1h1p) STATE ENERGIES (eV), TDx(1,i), TDy(1,i), TDz(1,i), Vabs(i,i)'
+    else if ( trim(jobtype).eq.flag_ip ) then
+      write(iout,'(A)') ' CISD-IP (2h1p) STATE ENERGIES (eV), TDx(1,i), TDy(1,i), TDz(1,i), Vabs(i,i)'
+    end if
     do i=1, 50
        ii = (i-1)*nstuse + i
        write(iout,49) i, cis_eig(i)*au2eV, tdx(i), tdy(i), tdz(i), abp(ii)
@@ -190,7 +197,13 @@ contains
     write(iout,"(5x,'Nstates         = ',i12)") nstates
     write(iout,"(5x,'cis_eig(nstuse) = ',f12.6,' au',f12.6,' eV')") cis_eig(nstuse), cis_eig(nstuse)*au2eV
 
-    write(iout,'(A)') ' ENERGIES and EXPECTATION VALUES'
+    if ( trim(jobtype).eq.flag_cis ) then
+      write(iout,'(A)') 'CIS (1h1p) STATE ENERGIES and EXPECTATION VALUES'
+    else if ( trim(jobtype).eq.flag_ip ) then
+      write(iout,'(A)') 'CISD-IP (2h1p) STATE ENERGIES and EXPECTATION VALUES'
+    end if
+
+
     write(iout,40) '#', '<i|H0|i> eV  ', '<i|mu_x|i> au', '<i|mu_y|i> au', '<i|mu_z|i> au', '<i|Vabs|i> au', &
      '<i|a_xx|i> au', '<i|a_yy|i> au', '<i|a_zz|i> au', '<i|a_xy|i> au', '<i|a_xz|i> au', '<i|a_yz|i> au'
     call get_polar(istates,nstates,tdx,tdy,tdz,cis_eig,polar)
@@ -208,7 +221,11 @@ contains
 61  format( 7x,i3,' -> ',i6,2x,f15.10,2x,f15.10 )
     end do
 
-    write(iout,'(A)') ' ENERGIES AND TRANSITION MATRIX ELEMENTS'
+    if ( trim(jobtype).eq.flag_cis ) then
+      write(iout,'(A)') 'CIS (1h1p) STATE ENERGIES and TRANSITION MATRIX ELEMENTS'
+    else if ( trim(jobtype).eq.flag_ip ) then
+      write(iout,'(A)') 'CISD-IP (2h1p) STATE ENERGIES and TRANSITION MATRIX ELEMENTS'
+    end if
     write(iout,41) '#', '<i|H0|i> eV', 'i   j','<i|mu_x|j> au', '<i|mu_y|j> au', '<i|mu_z|j> au', '<i|Vabs|j> au'
     do i=1, istates
        ii = i
@@ -243,10 +260,6 @@ contains
     call write_header( 'write_specifics2','write_info','leave' )
     return
 
-78  continue
-    call Zwrite_specifics2
-    
-    
   end subroutine write_specifics2
   !: ----------------------------- :!
   !: subroutine Zwrite_specific2    :!
@@ -267,12 +280,20 @@ contains
     write(iout,"(5x,'cis_eig(nstuse) = ',f12.6,' au',f12.6,' eV')") cis_eig(nstuse), cis_eig(nstuse)*au2eV
     
     istates = 20
-    write(iout,'(A)') ' ENERGIES (eV)'
+    if ( trim(jobtype).eq.flag_cis ) then
+      write(iout,'(A)') ' CIS (1h1p) STATE ENERGIES (eV)'
+    else if ( trim(jobtype).eq.flag_ip ) then
+      write(iout,'(A)') ' CISD-IP (2h1p) STATE ENERGIES (eV)'
+    end if
     do i=1, istates
        write(iout,50) i, cis_eig(i)*au2eV
     end do
 
-    write(iout,'(A)') ' ENERGIES and EXPECTATION VALUES'
+    if ( trim(jobtype).eq.flag_cis ) then
+      write(iout,'(A)') 'CIS (1h1p) STATE ENERGIES and EXPECTATION VALUES'
+    else if ( trim(jobtype).eq.flag_ip ) then
+      write(iout,'(A)') 'CISD-IP (2h1p) STATE ENERGIES and EXPECTATION VALUES'
+    end if
     write(iout,40) '#  ', '<i|H0|i> eV', ' Sz   ', &
          'R<i|mu_x|i> au', 'I<i|mu_x|i> au', &
          'R<i|mu_y|i> au', 'I<i|mu_y|i> au', &
@@ -328,7 +349,11 @@ contains
           end do
     end do
 
-    write(iout,'(A)') ' ENERGIES AND TRANSITION MATRIX ELEMENTS'
+    if ( trim(jobtype).eq.flag_cis ) then
+      write(iout,'(A)') 'CIS (1h1p) STATE ENERGIES and TRANSITION MATRIX ELEMENTS'
+    else if ( trim(jobtype).eq.flag_ip ) then
+      write(iout,'(A)') 'CISD-IP (2h1p) STATE ENERGIES and TRANSITION MATRIX ELEMENTS'
+    end if
     write(iout,41) '#', '<i|H0|i> eV', ' Sz     i,j', 'TransDipole**2 ', &
          'R<i|mu_x|j> au', 'I<i|mu_x|j> au', &
          'R<i|mu_y|j> au', 'I<i|mu_y|j> au', &

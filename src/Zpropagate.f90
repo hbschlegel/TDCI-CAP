@@ -78,7 +78,7 @@ subroutine Ztrotter_linear
   !$OMP state_ip_index, ip_states, read_states, Zip_vec, Zproj_ion, Qread_ion_coeff, Qwrite_ion_coeff, &
   !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
   !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save, &
-  !$OMP flag_ReadU_NO, write_orb_transitionrates )
+  !$OMP flag_ReadU_NO, write_orb_transitionrates, datfile_enable, h5inc_enable, verbosity )
 
   !$OMP DO
   dir_loop : do idir=1, ndir
@@ -90,7 +90,6 @@ subroutine Ztrotter_linear
     psi(1) = dcmplx(1.d0,0.d0)
     tdvals1 = 0.d0
 
-    write(iout, '(A, I5, L1)') "Priv allocated at start of thread ", ithread , allocated(Priv)
     allocate(Priv)
     call Priv%initialize()
 
@@ -98,6 +97,13 @@ subroutine Ztrotter_linear
     Priv%dirx1 = tdciresults(idir)%x0  
     Priv%diry1 = tdciresults(idir)%y0  
     Priv%dirz1 = tdciresults(idir)%z0  
+
+    if(h5inc_enable) then
+      !$OMP CRITICAL (IO_LOCK)
+      !: Create the /direction_idir group in the h5 file
+      call init_h5dir(Priv, idir)
+      !$OMP END CRITICAL (IO_LOCK)
+    end if
 
     !: get mu dot e-vector matrix elements in CIS basis.  diagonalize
     hp1(:) = Priv%dirx1*Ztdx(1:nstuse2) &
@@ -182,15 +188,35 @@ subroutine Ztrotter_linear
       Priv%emax1 = tdciresults(1+(iemax-1)*ndir)%fstrength0
 
       !$OMP CRITICAL (IO_LOCK)
-      call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
-      if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
-      write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
-      write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
-      write( iout, "('  Minimum(tdvals1) = ',f12.4)") minval(tdvals1)
+
+      if(datfile_enable) then
+        call cpu_time(start2)
+        call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
+        call cpu_time(finish2)
+        Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+      end if
+
+      if(h5inc_enable) then
+        call cpu_time(start2)
+        call init_h5emax(Priv, iemax, idir)
+        call cpu_time(finish2)
+        Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+      end if
+
+      if(verbosity.gt.1) then
+        if(iemax.eq.1) write(iout,"(12x,'Init, TD diag, and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
+        write(iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
+      end if
+      if(verbosity.gt.2) then
+        write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
+        write( iout, "('  Minimum(tdvals1) = ',f12.4)") minval(tdvals1)
+      end if
       flush( iout )
+
       !$OMP END CRITICAL (IO_LOCK)
 
       !: initialize psi
+      call cpu_time(start3)
       psi = psi0
       if( read_state1(iemax).ne.0 ) then
         psi = dcmplx(0.d0,0.d0)
@@ -218,62 +244,52 @@ subroutine Ztrotter_linear
       write(iout,*) " norm Vabs 2 ", Priv%norm
       flush(iout)
 
+      call cpu_time(finish3)
+      times(1) = start3 - finish3
+
       !: begin Looping over time
       call cpu_time( start2 )
       timestep_loop : do itime=1, nstep-1
 
-      !: modified midpoint
-      Priv%efield1 = 0.5d0 * Priv%emax1 * ( fvect1(itime) + fvect1(itime+1) )
-      if( read_shift(iemax).ne.0 ) then
-        if(itime.eq.1) write(iout,"(' Pulse has been shifted by ',i6,' steps')") read_shift(iemax)
-        i = itime-read_shift(iemax)
-        if( i.gt.0 .and. i.lt.nstep ) then
-          Priv%efield1 = 0.5d0 * Priv%emax1 * ( fvect1(i) + fvect1(i+1) )
+        call cpu_time(start3)
+        call PrivSetField(Priv, itime, iemax) 
+
+        if( itime.lt.ion_sample_start(iemax) ) psi = dcmplx(0.d0,0.d0)
+        if( Qread_ion_coeff ) then
+          if( itime.ge.ion_sample_start(iemax) .and. &
+              itime.le.ion_sample_start(iemax)+ion_sample_width(iemax) ) then
+            ii = (itime-1)*(noa+nob)*(noa+nob+1)
+            !: tranform ion_coeff to CI basis and add to psi
+            !write(iout,"('R0',i5,i3,16F10.6)") itime,ion_sample_state(iemax)
+            call get_Zion_psi1(iout, nstates, nstuse, noa+nob,&
+                   ion_sample_state(iemax), dt, Zcis_vec, psi,&
+                   Zion_coeff( ii+1 : ii+(noa+nob)*(noa+nob+1) ), psi_det0)
+          end if
         else
-          Priv%efield1 = 0.d0
+          if( itime.eq.ion_sample_start(iemax) ) psi = psi0
         end if
-      end if
-      Priv%efield2 = 0.d0
-      Priv%efieldx = Priv%dirx1 * Priv%efield1
-      Priv%efieldy = Priv%diry1 * Priv%efield1
-      Priv%efieldz = Priv%dirz1 * Priv%efield1
 
-      if( itime.lt.ion_sample_start(iemax) ) psi = dcmplx(0.d0,0.d0)
-      if( Qread_ion_coeff ) then
-        if( itime.ge.ion_sample_start(iemax) .and. &
-            itime.le.ion_sample_start(iemax)+ion_sample_width(iemax) ) then
-          ii = (itime-1)*(noa+nob)*(noa+nob+1)
-          !: tranform ion_coeff to CI basis and add to psi
-          !write(iout,"('R0',i5,i3,16F10.6)") itime,ion_sample_state(iemax)
-          call get_Zion_psi1(iout, nstates, nstuse, noa+nob,&
-                 ion_sample_state(iemax), dt, Zcis_vec, psi,&
-                 Zion_coeff( ii+1 : ii+(noa+nob)*(noa+nob+1) ), psi_det0)
-        end if
-      else
-       if( itime.eq.ion_sample_start(iemax) ) psi = psi0
-      end if
-
-      call get_norm( Priv%norm, nstuse, psi )
-      write(iout,*) " itime ",itime
-      write(iout,*) " norm 1 ", Priv%norm
-      flush(iout)
-      !: exp(-iHel dt/2 ) * psi
-      do i=1, nstuse
-        psi(i) = exphel(i) * psi(i)
-      end do
-
-      call get_norm( Priv%norm, nstuse, psi )
-      write(iout,*) " norm 2 ", Priv%norm
-      !: W * exp(-Vabs dt/2) * psi
-      psi1 = dcmplx(0.d0,0.d0)
-      do j = 1, nstuse
-        jj = ( j-1) * nstuse
-        psi_j = psi(j)
-        do k=1, nstuse
-          psi1(k) = psi1(k) + hp1( jj+k ) * psi_j
+        call get_norm( Priv%norm, nstuse, psi )
+        write(iout,*) " itime ",itime
+        write(iout,*) " norm 1 ", Priv%norm
+        flush(iout)
+        !: exp(-iHel dt/2 ) * psi
+        do i=1, nstuse
+          psi(i) = exphel(i) * psi(i)
         end do
-      end do
-      !call zgemv('n',nstuse,nstuse,dcmplx(1.d0,0.d0),hp1,nstuse,psi,1,dcmplx(0.d0,0.d0),psi1,1)             
+
+        call get_norm( Priv%norm, nstuse, psi )
+        write(iout,*) " norm 2 ", Priv%norm
+        !: W * exp(-Vabs dt/2) * psi
+        psi1 = dcmplx(0.d0,0.d0)
+        do j = 1, nstuse
+          jj = ( j-1) * nstuse
+          psi_j = psi(j)
+          do k=1, nstuse
+            psi1(k) = psi1(k) + hp1( jj+k ) * psi_j
+          end do
+        end do
+        !call zgemv('n',nstuse,nstuse,dcmplx(1.d0,0.d0),hp1,nstuse,psi,1,dcmplx(0.d0,0.d0),psi1,1)             
 
       call get_norm( Priv%norm, nstuse, psi1 )
       write(iout,*) " norm 3 ", Priv%norm
@@ -363,8 +379,21 @@ subroutine Ztrotter_linear
         !flush(iout)
         Priv%rate = -2.d0 * Priv%rate * Priv%norm**2
 
-        call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
-                           rwork, itime, idata, pop1, ion)
+        if(datfile_enable) then
+          call cpu_time(start2)
+          call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
+                             rwork, itime, idata, pop1, ion)
+          call cpu_time(finish2)
+          Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+        end if
+
+        if(h5inc_enable) then
+          call cpu_time(start2)
+          call write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff,&
+                             rwork, itime, idata, pop1, ion)
+          call cpu_time(finish2)
+          Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+        end if
 
         !$OMP END CRITICAL (IO_LOCK)
         
@@ -384,22 +413,37 @@ subroutine Ztrotter_linear
         if( Qmo_dens ) close(Priv%funit(6))
 
         !$OMP CRITICAL (IO_LOCK)
+        if(h5inc_enable) then
+          !write(iout,*) "Closing h5 emax group ", idir, iemax, Priv%dir_grpid, Priv%field_grpid
+          call h5_close_group(Priv%field_grpid)
+          !write(iout,*) "Done closing h5 emax group ", idir, iemax, Priv%dir_grpid, Priv%field_grpid
+        end if
         !: record data at last timestep
         tdciresults( idir + (iemax-1)*ndir)%norm0 = Priv%norm**2
         tdciresults( idir + (iemax-1)*ndir)%dipx  = Priv%mux
         tdciresults( idir + (iemax-1)*ndir)%dipy  = Priv%muy
         tdciresults( idir + (iemax-1)*ndir)%dipz  = Priv%muz
         
-        write(iout,"(' thread # ',i0,' propagation done for direction',i4,' and intensity',i4)") ithread, idir, iemax
-        write(iout,"(12x,'dir = (',f8.5,',',f8.5,',',f8.5,')    emax = ',f8.5,' au')")           Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%emax1
-        write(iout,"(12x,'propagation time:',f12.4,' s')") Priv%finish2 - Priv%start2  
-        write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
-        write(iout,"(12x,'final rate = ',f18.10)")          Priv%rate
+        if(verbosity.gt.1) then
+          write(iout,"(' thread # ',i0,' propagation done for direction',i4,' and intensity',i4)") ithread, idir, iemax
+          write(iout,"(12x,'dir = (',f8.5,',',f8.5,',',f8.5,')    emax = ',f8.5,' au')")           Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%emax1
+        if(h5inc_enable) then
+          write(iout,"(12x,'h5 calls time:            ',f12.4,' s')") Priv%h5cumtime
+        end if
+        if(datfile_enable) then 
+          write(iout,"(12x,'plain output calls time:  ',f12.4,' s')") Priv%plaincumtime
+        end if
+          write(iout,"(12x,'propagation time:',f12.4,' s')") Priv%finish2 - Priv%start2  
+          write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
+          write(iout,"(12x,'final rate = ',f18.10)")          Priv%rate
+        end if
 
         !: debug times
-        do i=1,7
-          write(iout, "('time ',i5,': ',f14.6,' s')") i, times(i) 
-        end do
+        if(verbosity.gt.2) then
+          do i=1,7
+            write(iout, "('time ',i5,': ',f14.6,' s')") i, times(i) 
+          end do
+        end if
 
         !$OMP END CRITICAL (IO_LOCK)
 
@@ -490,70 +534,77 @@ subroutine Ztrotter_circular
   !$OMP state_ip_index, ip_states, read_states, Zip_vec, Zproj_ion, Qread_ion_coeff, Qwrite_ion_coeff, &
   !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
   !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save, &
-  !$OMP flag_ReadU_NO, write_orb_transitionrates )
+  !$OMP flag_ReadU_NO, write_orb_transitionrates, datfile_enable, h5inc_enable, verbosity )
 
   !$OMP DO
 
   dir_loop : do idir=1, ndir
 
-      ithread = omp_get_thread_num()
-      call cpu_time( start1 )
+    ithread = omp_get_thread_num()
+    call cpu_time( start1 )
 
-      psi = dcmplx(0.d0,0.d0)
-      psi(1) = dcmplx(1.d0,0.d0)
-      tdvals1 = 0.d0
+    psi = dcmplx(0.d0,0.d0)
+    psi(1) = dcmplx(1.d0,0.d0)
+    tdvals1 = 0.d0
 
-      write(iout, '(A, I5, L1)') "Priv allocated at start of thread ", ithread , allocated(Priv)
-      allocate(Priv)
-      call Priv%initialize()
+    write(iout, '(A, I5, L1)') "Priv allocated at start of thread ", ithread , allocated(Priv)
+    allocate(Priv)
+    call Priv%initialize()
 
-      !: get directions stored in TDCItdciresults
-      Priv%dirx1 = tdciresults(idir)%x1  
-      Priv%diry1 = tdciresults(idir)%y1  
-      Priv%dirz1 = tdciresults(idir)%z1  
-      Priv%dirx2 = tdciresults(idir)%x2  
-      Priv%diry2 = tdciresults(idir)%y2  
-      Priv%dirz2 = tdciresults(idir)%z2 
+    !: get directions stored in TDCItdciresults
+    Priv%dirx1 = tdciresults(idir)%x1
+    Priv%diry1 = tdciresults(idir)%y1
+    Priv%dirz1 = tdciresults(idir)%z1
+    Priv%dirx2 = tdciresults(idir)%x2
+    Priv%diry2 = tdciresults(idir)%y2
+    Priv%dirz2 = tdciresults(idir)%z2
 
-      !: get mu dot e-vector matrix elements in CIS basis.  diagonalize
-      hp1(:) = Priv%dirx1*Ztdx(1:nstuse2) &
-             + Priv%diry1*Ztdy(1:nstuse2) + Priv%dirz1*Ztdz(1:nstuse2)
-      hp2(:) = Priv%dirx2*Ztdx(1:nstuse2) &
-             + Priv%diry2*Ztdy(1:nstuse2) + Priv%dirz2*Ztdz(1:nstuse2)
+    if(h5inc_enable) then
+      !$OMP CRITICAL (IO_LOCK)
+      !: Create the /direction_idir group in the h5 file
+      call init_h5dir(Priv, idir)
+      !$OMP END CRITICAL (IO_LOCK)
+    end if
 
-      !: diagonalize mu dot E
-      info1 = 10
-      info2 = 10
-      If( QeigenDC ) then
-        lscratch = nstuse*nstuse + 2*nstuse
-        lrwork = 1+5*nstuse+2*nstuse*nstuse
-        liwork = 3+5*nstuse
-        call zheevd('v','u',nstuse,hp1,nstuse,tdvals1,cwork,lscratch,rwork,lrwork, &
-                    iwork,liwork,info1)
-        call zheevd('v','u',nstuse,hp2,nstuse,tdvals2,cwork,lscratch,rwork,lrwork, &
-                    iwork,liwork,info2)
-      else
-        lscratch = nstuse*nstuse
-        lrwork = 3*nstuse-2
-        call zheev('vectors','upper',nstuse,hp1,nstuse,tdvals1,cwork,lscratch,rwork,info1)
-        call zheev('vectors','upper',nstuse,hp2,nstuse,tdvals2,cwork,lscratch,rwork,info2)
-      end if
-      call Zfix_phase(nstuse,hp1)
-      call Zfix_phase(nstuse,hp2)
+    !: get mu dot e-vector matrix elements in CIS basis.  diagonalize
+    hp1(:) = Priv%dirx1*Ztdx(1:nstuse2) &
+           + Priv%diry1*Ztdy(1:nstuse2) + Priv%dirz1*Ztdz(1:nstuse2)
+    hp2(:) = Priv%dirx2*Ztdx(1:nstuse2) &
+           + Priv%diry2*Ztdy(1:nstuse2) + Priv%dirz2*Ztdz(1:nstuse2)
 
-      !: hp2 = hp2 * hp1 ; hp2 = W2 * W1
-      call zgemm('c','n',nstuse,nstuse,nstuse,dcmplx(1.d0,0.d0), &
-        hp2,nstuse,hp1,nstuse,dcmplx(0.d0,0.d0),cwork,nstuse)
-      hp2 = cwork(1:nstuse*nstuse)
-      !: hp1 = W1 * exp(-Vabs dt/2)
-      call zgemm('c','n',nstuse,nstuse,nstuse,dcmplx(1.d0,0.d0), &
-        hp1,nstuse,Zexp_abp,nstuse,dcmplx(0.d0,0.d0),cwork,nstuse)
-      hp1 = cwork(1:nstuse*nstuse)
+    !: diagonalize mu dot E
+    info1 = 10
+    info2 = 10
+    if( QeigenDC ) then
+      lscratch = nstuse*nstuse + 2*nstuse
+      lrwork = 1+5*nstuse+2*nstuse*nstuse
+      liwork = 3+5*nstuse
+      call zheevd('v','u',nstuse,hp1,nstuse,tdvals1,cwork,lscratch,rwork,lrwork, &
+                  iwork,liwork,info1)
+      call zheevd('v','u',nstuse,hp2,nstuse,tdvals2,cwork,lscratch,rwork,lrwork, &
+                  iwork,liwork,info2)
+    else
+      lscratch = nstuse*nstuse
+      lrwork = 3*nstuse-2
+      call zheev('vectors','upper',nstuse,hp1,nstuse,tdvals1,cwork,lscratch,rwork,info1)
+      call zheev('vectors','upper',nstuse,hp2,nstuse,tdvals2,cwork,lscratch,rwork,info2)
+    end if
+    call Zfix_phase(nstuse,hp1)
+    call Zfix_phase(nstuse,hp2)
 
-      call cpu_time(finish1)
+    !: hp2 = hp2 * hp1 ; hp2 = W2 * W1
+    call zgemm('c','n',nstuse,nstuse,nstuse,dcmplx(1.d0,0.d0), &
+      hp2,nstuse,hp1,nstuse,dcmplx(0.d0,0.d0),cwork,nstuse)
+    hp2 = cwork(1:nstuse*nstuse)
+    !: hp1 = W1 * exp(-Vabs dt/2)
+    call zgemm('c','n',nstuse,nstuse,nstuse,dcmplx(1.d0,0.d0), &
+      hp1,nstuse,Zexp_abp,nstuse,dcmplx(0.d0,0.d0),cwork,nstuse)
+    hp1 = cwork(1:nstuse*nstuse)
 
-      !: loop over intensities
-      emax_loop : do iemax=1, nemax
+    call cpu_time(finish1)
+
+    !: loop over intensities
+    emax_loop : do iemax=1, nemax
 
         call cpu_time(start1)
         !: get emax
@@ -561,16 +612,35 @@ subroutine Ztrotter_circular
         Priv%emax2 = tdciresults((iemax-1)*ndir+1)%fstrength2
 
         !$OMP CRITICAL (IO_LOCK)
-        call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
-        if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
-        write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
-        write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
-        write( iout, "('  Minimum(tdvals1) = ',f12.4)") minval(tdvals1)
+
+        if(datfile_enable) then
+          call cpu_time(start2)
+          call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
+          call cpu_time(finish2)
+          Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+        end if
+
+        if(h5inc_enable) then
+          call cpu_time(start2)
+          call init_h5emax(Priv, iemax, idir)
+          call cpu_time(finish2)
+          Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+        end if
+
+        if(verbosity.gt.1) then
+          if(iemax.eq.1) write(iout,"(12x,'Init, TD diag, and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
+          write(iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
+        end if
+        if(verbosity.gt.2) then
+          write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
+          write( iout, "('  Minimum(tdvals1) = ',f12.4)") minval(tdvals1)
+        end if
         flush( iout )
+
         !$OMP END CRITICAL (IO_LOCK)
 
         !: initialize psi
-        call cpu_time(start1)
+        call cpu_time(start3)
         psi = psi0
         if( read_state1(iemax).ne.0 ) then
           psi = dcmplx(0.d0,0.d0)
@@ -590,8 +660,8 @@ subroutine Ztrotter_circular
           psi0 = psi
         end if
         if( Qread_ion_coeff ) psi = dcmplx(0.d0,0.d0)
-        call cpu_time(finish1)
-        times(1) = start1 - finish1 !: initialize psi time
+        call cpu_time(finish3)
+        times(1) = start3 - finish3 !: initialize psi time
 
         !: begin Looping over time
         call cpu_time( start2 )
@@ -738,8 +808,22 @@ subroutine Ztrotter_circular
 !:                write(iout,*) " expect rate", itime,norm,Priv%rate 
               Priv%rate = -2.d0 * Priv%rate * Priv%norm**2
 
-              call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
-                                 rwork, itime, idata, pop1, ion)
+              if(datfile_enable) then
+                call cpu_time(start2)
+                call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
+                                  rwork, itime, idata, pop1, ion)
+                call cpu_time(finish2)
+                Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+              end if
+
+              if(h5inc_enable) then
+                call cpu_time(start2)
+                call write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff,&
+                                  rwork, itime, idata, pop1, ion)
+                call cpu_time(finish2)
+                Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+              end if
+
               !$OMP END CRITICAL (IO_LOCK)
 
             end if analysis
@@ -764,25 +848,41 @@ subroutine Ztrotter_circular
         tdciresults( idir + (iemax-1)*ndir)%dipy  = Priv%muy
         tdciresults( idir + (iemax-1)*ndir)%dipz  = Priv%muz
         
-        write(iout,"(' thread # ',i0,' propagation done for direction',i4,' and intensity',i4)") ithread, idir, iemax
-        write(iout,"(12x,'dir = (',f8.5,',',f8.5,',',f8.5,')    emax = ',f8.5,' au')")           Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%emax1
-        write(iout,"(12x,'propagation time:',f12.4,' s')") Priv%finish2 - Priv%start2  
-        write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
-        write(iout,"(12x,'final rate = ',f18.10)")          Priv%rate
+        if(verbosity.gt.1) then
+          write(iout,"(' thread # ',i0,' propagation done for direction',i4,' and intensity',i4)") ithread, idir, iemax
+          write(iout,"(12x,'dir = (',f8.5,',',f8.5,',',f8.5,')    emax = ',f8.5,' au')")           Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%emax1
+          if(h5inc_enable) then
+            write(iout,"(12x,'h5 calls time:            ',f12.4,' s')") Priv%h5cumtime
+          end if
+          if(datfile_enable) then
+            write(iout,"(12x,'plain output calls time:  ',f12.4,' s')") Priv%plaincumtime
+          end if
+          write(iout,"(12x,'propagation time:',f12.4,' s')") Priv%finish2 - Priv%start2
+          write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
+          write(iout,"(12x,'final rate = ',f18.10)")          Priv%rate
+        end if !: verbosity.gt.1
 
         !: debug times
-        do i=1,7
-          write(iout, "('time ',i5,': ',f14.6,' s')") i, times(i) 
-        end do
+        if(verbosity.gt.2) then
+          do i=1,7
+            write(iout, "('time ',i5,': ',f14.6,' s')") i, times(i)
+          end do
+        end if
 
         !$OMP END CRITICAL (IO_LOCK)
 
       end do emax_loop
+      call Priv%deconstruct()
+      deallocate(Priv)
   end do dir_loop
 
   !$OMP END DO
   !$OMP END PARALLEL
 
+  if(h5inc_enable) then
+    call write_h5metadata(Prop%datetime_start)
+  end if
+  call Prop%deconstruct()
   call write_header( 'Ztrotter_circular','propagate','leave' )
   call cpu_time(finish)
   write(iout,"(2x,'Total propagation time:',f12.4,' s')") finish - start
@@ -791,6 +891,7 @@ subroutine Ztrotter_circular
 end subroutine Ztrotter_circular
 
 !==================================================================!
+!: Needs to be updated for hdf5
 !==================================================================!
 subroutine Ztrott_serial_lin
 

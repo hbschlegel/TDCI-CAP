@@ -968,11 +968,6 @@ contains
     allocate( scratch1(nbasis,nbasis) )
     scratch1 = 0.d0
 
-    write(iout,*) "BEFORE CRASH ", allocated(Mol%soczao)
-    flush(iout)
-    write(iout,*) Mol%soczao(2,2)
-    flush(iout)
-    
     !: Mol%socmoAA
     scratch1(:,:) = - Mol%soczao(:,:)
     call ao2mo_complex(nbasis, nrorb, scratch1, Mol%socmoAA, Mol%cmo_a, Mol%cmo_a )
@@ -1093,12 +1088,12 @@ contains
     call fix_phase(ip_states,ip_vec)
     deallocate( work )
 
-    write(iout,'(A)') ' ENERGIES for SINGLY IONIZED STATES'
-    do i=1, ip_states
-      write(iout,50) i, ip_eig(i)*au2eV
-    end do
+    !write(iout,'(A)') ' ENERGIES (eV) for SINGLY IONIZED STATES'
+    !do i=1, ip_states
+    !  write(iout,50) i, ip_eig(i)*au2eV
+    !end do
 
-    write(iout,'(A)') ' EIGENVECTORS for SINGLY IONIZED STATES (coeff and |coeff|**2)'
+    write(iout,'(A)') ' ENERGIES (eV) and EIGENVECTORS for SINGLY IONIZED STATES (coeff and |coeff|**2)'
     do i=1, ip_states
       write(iout,50) i, ip_eig(i)*au2eV
       do ia=1, ip_states
@@ -1200,12 +1195,12 @@ contains
     deallocate( rwork )
     deallocate( work )
 
-    write(iout,'(A)') ' ENERGIES for SINGLY IONIZED STATES'
-    do i=1, ip_states
-      write(iout,50) i, ip_eig(i)*au2eV
-    end do
+    !write(iout,'(A)') ' ENERGIES (eV) for SINGLY IONIZED STATES'
+    !do i=1, ip_states
+    !  write(iout,50) i, ip_eig(i)*au2eV
+    !end do
 
-    write(iout,'(A)') ' EIGENVECTORS for SINGLY IONIZED STATES (coeff and |coeff|**2)'
+    write(iout,'(A)') ' ENERGIES (eV) and EIGENVECTORS for SINGLY IONIZED STATES (coeff and |coeff|**2)'
     do i=1, ip_states
       write(iout,50) i, ip_eig(i)*au2eV
       do ia=1, ip_states
@@ -1262,7 +1257,7 @@ contains
     state_ip_index = 0
     istate = 0
     xstart  = 1
-    If(nactive.gt.0) xstart = noa+1 - nactive
+    if(nactive.gt.0) xstart = noa+1 - nactive
     xstart1 = max(2,xstart)
 
     !: only beta electrons will be ionized by default
@@ -1362,13 +1357,13 @@ contains
     call fix_phase(ip_states,ip_vec)
     deallocate( work )
 
-    write(iout,'(A)') ' ENERGIES for DOUBLY IONIZED STATES'
-    do i=1, ip_states
-      write(iout,50) i, ip_eig(i)*au2eV
-    end do
-    flush(iout)
+    !write(iout,'(A)') ' ENERGIES (eV) for DOUBLY IONIZED STATES'
+    !do i=1, ip_states
+    !  write(iout,50) i, ip_eig(i)*au2eV
+    !end do
+    !flush(iout)
 
-    write(iout,'(A)') ' EIGENVECTORS for DOUBLY IONIZED STATES '
+    write(iout,'(A)') ' ENERGIES (eV) and EIGENVECTORS for DOUBLY IONIZED STATES '
     do i=1, ip_states
       write(iout,50) i, ip_eig(i)*au2eV
       do ia=1, ip_states
@@ -1529,12 +1524,12 @@ contains
     deallocate( rwork )
     deallocate( work )
 
-    write(iout,'(A)') ' ENERGIES for DOUBLY IONIZED STATES'
-    do i=1, ip_states
-      write(iout,50) i, ip_eig(i)*au2eV
-    end do
+    !write(iout,'(A)') ' ENERGIES (eV) for DOUBLY IONIZED STATES'
+    !do i=1, ip_states
+    !  write(iout,50) i, ip_eig(i)*au2eV
+    !end do
 
-    write(iout,'(A)') ' EIGENVECTORS for DOUBLY IONIZED STATES (coeff and |coeff|**2)'
+    write(iout,'(A)') ' ENERGIES (eV) and EIGENVECTORS for DOUBLY IONIZED STATES (coeff and |coeff|**2)'
     do i=1, ip_states
       write(iout,50) i, ip_eig(i)*au2eV
       do ia=1, ip_states

@@ -1,6 +1,5 @@
 module readintegrals
 
-
   use variables_global
   use io_binary
   implicit none
@@ -18,10 +17,8 @@ contains
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   subroutine get_size_variables
     
-
     implicit none
 
-    
     noa2 = noa*(noa+1)/2
     nva2 = nva*(nva+1)/2
     nob2 = nob*(nob+1)/2
@@ -40,7 +37,6 @@ contains
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
   subroutine read_matrixelements
     
-
     !: adapted from files in gauopen 
     implicit none
     
@@ -79,9 +75,11 @@ contains
         Mol%natoms,nbasis,NBsUse,Mol%ICharg,Mol%Multip,NE,Len12L,Len4L,IOpCl,ICGU)
 !      Write(IOut,1000) trim(filename), IU
       If(IU.le.0) Stop
-      Write(IOut,1010) trim(LabFil),IVers,NLab,trim(GVers),           &
-        trim(Mol%job_title),Mol%natoms,nbasis,NBsUse,Mol%ICharg,Mol%Multip,NE,Len12L, &
-        Len4L,IOpCl,ICGU
+      if ( verbosity.gt.2 ) then
+        write(iout,1010) trim(LabFil),IVers,NLab,trim(GVers),           &
+          trim(Mol%job_title),Mol%natoms,nbasis,NBsUse,Mol%ICharg,Mol%Multip,NE,Len12L, &
+          Len4L,IOpCl,ICGU
+      end if
 !
 !     Read the header records, which contain basic information about
 !     the molecule such as number of atoms, atomic numbers, Cartesian
@@ -125,9 +123,11 @@ contains
       call get_size_variables
       allocate( RArr(MaxArr) )
    10 Call Rd_Labl(IU,IVers,CBuf,NI,NR,NTot,LenBuf,N1,N2,N3,N4,N5,ASym,NRI,EOF)
-      Write(IOut,1110) CBuf,NI,NR,NRI,NTot,LenBuf,N1,N2,N3,N4,N5,ASym
-      write(iout,*) '***',trim(CBUF),'***'
-      flush(iout)
+      if ( verbosity.gt.2 ) then
+        write(iout,1110) CBuf,NI,NR,NRI,NTot,LenBuf,N1,N2,N3,N4,N5,ASym
+        write(iout,*) '***',trim(CBUF),'***'
+        flush(iout)
+      end if
       If(NTot.gt.MaxArr) Write(IOut,*) " *** file too large *** increase MaxArr"
       If(.not.EOF .and. NTot.le.MaxArr) then
         select case ( trim(CBuf) )
@@ -182,8 +182,7 @@ contains
               end do
             end do
         case ( trim(' File   514'), trim('FILE 514 REALS') )
-          write(iout,*) "Reading overlap!"
-          ! Triangular
+          ! Overlap is stored in triangular format
           allocate( Mol%overlap(ntt) )
           Call Rd_RBuf(IU,NTot,LenBuf,Mol%overlap)
           call write_dbin(Mol%overlap, ntt, trim("overlap.bin"))
@@ -261,7 +260,9 @@ contains
           allocate( Mol%dabcdBB(nvb3,nvb3) )
           Call Rd_RBf3(IU,NTot,nvb3,nvb3,LenBuf,Mol%dabcdBB)
         case default
-          write(iout,*) 'skipping ',CBUF
+          if ( verbosity.gt.2 ) then
+            write(iout,*) 'skipping ',CBUF
+          end if
           Call Rd_Skip(IU,NTot,LenBuf)
         end select
         Goto 10
@@ -274,8 +275,10 @@ contains
 
     !: Check if we have the matrices we need and throw an error if we don't
     if ((trim(jobtype).eq.flag_soc).or.(trim(jobtype).eq.flag_socip)) then
-      write(iout, *) "Checking if we collected the SOC elements..."
-      flush(iout)
+      if ( verbosity.gt.2 ) then
+        write(iout, *) "Checking if we collected the SOC elements..."
+        flush(iout)
+      end if
       if (.not.allocated(Mol%soczao)) then
         write(iout, *) "Mol%soczao is not allocated. Stopping."
         flush(iout)
@@ -305,7 +308,9 @@ contains
       Mol%dipy00 = Mol%dipy00 + AtmChg(i)*Mol%ycoord(i)
       Mol%dipz00 = Mol%dipz00 + AtmChg(i)*Mol%zcoord(i)
     end do
-    write(42,*) " dipole ",Mol%dipx00,Mol%dipy00,Mol%dipz00
+    if ( verbosity.gt.2 ) then
+      write(iout,*) " dipole ",Mol%dipx00,Mol%dipy00,Mol%dipz00
+    end if
     deallocate( density )
 !:    deallocate(dipxao,dipyao,dipzao)
 !:    deallocate(xcoord,ycoord,zcoord,myatom)
@@ -331,17 +336,24 @@ contains
     if ( Qstore ) then
 
        allocate( Mol%vabsao(ntt) )
-       write(iout,form1e) 'Mol%vabsao', ntt  ;   call track_mem( ntt )
+       if ( verbosity.gt.2 ) then
+         write(iout,form1e) 'Mol%vabsao', ntt
+       end if
+       call track_mem( ntt )
        
        read(10, '(A)') cskip
        read(10,*) ( Mol%vabsao(i) , i=1, ntt )
-       write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       end if
        
     else
        
        read(10, '(A)') cskip
        read(10,*) ( rskip , i=1, ntt )
-       write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       end if
        
     end if
     
@@ -363,17 +375,24 @@ contains
     if ( Qstore ) then
 
        allocate( Mol%dipxao(ntt) )
-       write(iout,form1e) 'Mol%dipxao', ntt  ;  call track_mem( ntt )       
+       if ( verbosity.gt.2 ) then
+         write(iout,form1e) 'Mol%dipxao', ntt
+       end if
+       call track_mem( ntt )       
        
        read(10,'(A)') cskip
        read(10,*) ( Mol%dipxao(i) , i=1, ntt )
-       write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       end if
        
     else
        
        read(10, '(A)') cskip
        read(10,*) ( rskip , i=1, ntt )
-       write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       end if
        
     end if
     
@@ -395,17 +414,24 @@ contains
     if ( Qstore ) then
 
        allocate( Mol%dipyao(ntt) )
-       write(iout,form1e) 'Mol%dipyao', ntt  ;  call track_mem( ntt )
+       if ( verbosity.gt.2 ) then
+         write(iout,form1e) 'Mol%dipyao', ntt
+       endif
+       call track_mem( ntt )
        
        read(10,'(A)') cskip
        read(10,*) ( Mol%dipyao(i) , i=1, ntt )
-       write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       end if
 
     else
 
        read(10, '(A)') cskip
        read(10,*) ( rskip , i=1, ntt )
-       write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       end if
 
     end if
 
@@ -427,17 +453,24 @@ contains
     if ( Qstore ) then
 
        allocate( Mol%dipzao(ntt) )
-       write(iout,form1e) 'Mol%dipzao', ntt  ;  call track_mem( ntt )
+       if ( verbosity.gt.2 ) then
+         write(iout,form1e) 'Mol%dipzao', ntt
+       end if
+       call track_mem( ntt )
        
        read(10,'(A)') cskip
        read(10,*) ( Mol%dipzao(i) , i=1, ntt )
-       write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       end if
        
     else
 
        read(10, '(A)') cskip
        read(10,*) ( rskip , i=1, ntt )
-       write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       end if
 
     end if
     
@@ -462,7 +495,10 @@ contains
 
        !allocate( Mol%socxao(ntt), r_array(ntt) )
        allocate( Mol%socxao(nbasis,nbasis) ) 
-       write(iout,form1e) 'Mol%socxao', ntt  ;  call track_mem( ntt )       
+       if ( verbosity.gt.2 ) then
+         write(iout,form1e) 'Mol%socxao', ntt
+       end if
+       call track_mem( ntt )       
 
        read(10,'(A)') cskip
        do i=1, nbasis
@@ -474,7 +510,9 @@ contains
        end do
        !read(10,*) ( r_array(i), i=1, ntt )
        !Mol%socxao(:) = dcmplx( 0.d0, r_array(:) )
-       write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       end if
        
        !deallocate( r_array )
 
@@ -482,7 +520,9 @@ contains
        
        read(10, '(A)') cskip
        read(10,*) ( rskip , i=1, ntt )
-       write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       end if
 
     end if
     
@@ -507,7 +547,9 @@ contains
 
        !allocate( Mol%socyao(ntt), r_array(ntt) )
        allocate( Mol%socyao(nbasis,nbasis) )
-       write(iout,form1e) 'Mol%socyao', ntt  ;  call track_mem( ntt )
+       if ( verbosity.gt.2 ) then
+         write(iout,form1e) 'Mol%socyao', ntt  ;  call track_mem( ntt )
+       end if
        
        read(10,'(A)') cskip
        do i=1, nbasis
@@ -519,7 +561,9 @@ contains
        end do
        !read(10,*) ( r_array(i), i=1, ntt )
        !Mol%socyao(:) = dcmplx( 0.d0, r_array(:) )
-       write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       end if
        
        !deallocate( r_array )
 
@@ -527,7 +571,9 @@ contains
        
        read(10, '(A)') cskip
        read(10,*) ( rskip , i=1, ntt )
-       write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       end if
 
     end if
     
@@ -552,7 +598,10 @@ contains
 
        !allocate( Mol%soczao(ntt), r_array(ntt) )
        allocate( Mol%soczao(nbasis,nbasis) )
-       write(iout,form1e) 'Mol%soczao', ntt  ;  call track_mem( ntt )
+       if ( verbosity.gt.2 ) then
+         write(iout,form1e) 'Mol%soczao', ntt
+       end if
+       call track_mem( ntt )
        
        read(10,'(A)') cskip
        do i=1, nbasis
@@ -564,7 +613,9 @@ contains
        end do
        !read(10,*) ( r_array(i), i=1, ntt )
        !Mol%soczao(:) = dcmplx( 0.d0, r_array(:) )
-       write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       end if
 
        !deallocate( r_array ) 
 
@@ -572,7 +623,9 @@ contains
        
        read(10, '(A)') cskip
        read(10,*) ( rskip , i=1, ntt )
-       write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       end if
 
     end if
 
@@ -594,17 +647,24 @@ contains
     if ( Qstore ) then
 
        allocate( Mol%orben(norb) )
-       write(iout,form1e) 'Mol%orben', norb  ;  call track_mem( norb )
+       if ( verbosity.gt.2 ) then
+         write(iout,form1e) 'Mol%orben', norb
+       end if
+       call track_mem( norb )
        
        read(10,'(A)') cskip
        read(10,*) ( Mol%orben(i) , i=1, norb )
-       write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       end if
 
     else
        
        read(10,'(A)') cskip
        read(10,*) ( rskip , i=1, norb )
-       write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       end if
        
     end if
     
@@ -626,24 +686,34 @@ contains
     if ( Qstore ) then
 
        allocate( Mol%cmo_a(nrorb*nbasis) )
-       write(iout,form1e) 'Mol%cmo_a', nrorb*nbasis  ;  call track_mem( nrorb*nbasis )
+       if ( verbosity.gt.2 ) then
+         write(iout,form1e) 'Mol%cmo_a', nrorb*nbasis
+       end if
+       call track_mem( nrorb*nbasis )
        
        if ( unrestricted ) then
-          allocate( Mol%cmo_b(nrorb*nbasis) ) 
-          write(iout,form1e) 'Mol%cmo_b', nrorb*nbasis  ;  call track_mem( nrorb*nbasis )
+         allocate( Mol%cmo_b(nrorb*nbasis) ) 
+         if ( verbosity.gt.2 ) then
+           write(iout,form1e) 'Mol%cmo_b', nrorb*nbasis
+         end if
+         call track_mem( nrorb*nbasis )
        end if
        
        read(10,'(A)') cskip
        read(10,*) ( Mol%cmo_a(i) , i=1, nbasis*nrorb )       
        if (unrestricted) read(10,*) ( Mol%cmo_b(i) , i=1, nbasis*nrorb )
-       write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       end if
 
     else
        
        read(10,'(A)') cskip
        read(10,*) ( rskip , i=1, nbasis*nrorb )       
        if (unrestricted) read(10,*) ( rskip, i=1, nbasis*nrorb )
-       write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished skipping '//trim(adjustl(cskip))
+       end if
 
     end if
     
@@ -699,12 +769,17 @@ contains
 
     
     allocate( Mol%dijabAA(nva3,noa3) )            ; Mol%dijabAA = 0.d0 ! Bucket 2    
-    write(iout,form2e) 'Mol%dijabAA', nva3, noa3  ; call track_mem( nva3*noa3 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dijabAA', nva3, noa3
+    end if
+    call track_mem( nva3*noa3 )
 
     
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%dijabAA(j,i), j=1, nva3 ), i=1, noa3 )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
     
 
   end subroutine read_bucket_1
@@ -722,14 +797,19 @@ contains
 
     
     allocate( Mol%dijabAB(nobnvb,noanva) )            ;  Mol%dijabAB = 0.d0 ! Bucket 2    
-    write(iout,form2e) 'Mol%dijabAB', nobnvb, noanva  ;  call track_mem( nobnvb*noanva )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dijabAB', nobnvb, noanva
+    end if
+    call track_mem( nobnvb*noanva )
     
     
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%dijabAB(j,i), j=1, nobnvb ), i=1, noanva )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
 !:          write(42,*) 'Bucket 2 head',(Mol%dijabAB(i,1),i=1,100)
 !:          write(42,*) 'Bucket 2 tail',(Mol%dijabAB(nob*nvb-100+i,noa*nva),i=1,100)
+    end if
     
     
   end subroutine read_bucket_2
@@ -746,12 +826,17 @@ contains
 
     
     allocate( Mol%dijabBB(nvb3,nob3) )            ;  Mol%dijabBB = 0.d0 ! Bucket 2    
-    write(iout,form2e) 'Mol%dijabBB', nvb3, nob3  ;  call track_mem( nvb3*nob3 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dijabBB', nvb3, nob3
+    end if
+    call track_mem( nvb3*nob3 )
 
     
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%dijabBB(j,i), j=1, nvb3 ), i=1, nob3 )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
     
 
   end subroutine read_bucket_3
@@ -769,7 +854,10 @@ contains
 
     
     allocate( Mol%dijklAA(noa3,noa3) )            ;  Mol%dijklAA = 0.d0 
-    write(iout,form2e) 'Mol%dijklAA', noa3, noa3  ;  call track_mem( noa3*noa3 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dijklAA', noa3, noa3
+    end if
+    call track_mem( noa3*noa3 )
     
 
     read(10,'(A)') cskip
@@ -779,8 +867,9 @@ contains
           Mol%dijklAA(i,j) = Mol%dijklAA(j,i)
        end do
     end do
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
-
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
     
   end subroutine read_bucket_4
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -797,14 +886,19 @@ contains
 
     
     allocate( Mol%diajbAA(noanva,noanva) )            ;  Mol%diajbAA = 0.d0 ! Bucket 5 
-    write(iout,form2e) 'Mol%diajbAA', noanva, noanva  ;  call track_mem( noanva*noanva )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%diajbAA', noanva, noanva
+    end if
+    call track_mem( noanva*noanva )
     
 
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%diajbAA(j,i), j=1, noanva ), i=1, noanva )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
 !:          write(42,*) 'Bucket 5 head',(Mol%diajbAA(i,1),i=1,100)
 !:          write(42,*) 'Bucket 5 tail',(Mol%diajbAA(nob*nvb-100+i,noa*nva),i=1,100)
+    end if
 
     
   end subroutine read_bucket_5
@@ -822,7 +916,10 @@ contains
 
     
     allocate( Mol%dijklAB(nob2,noa2) )            ;  Mol%dijklAB = 0.d0 
-    write(iout,form2e) 'Mol%dijklAB', nob2, noa2  ;  call track_mem( nob2*noa2 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dijklAB', nob2, noa2  
+    end if
+    call track_mem( nob2*noa2 )
 
     
     read(10,'(A)') cskip
@@ -845,12 +942,17 @@ contains
 
 
     allocate( Mol%diajbAB(nvb2,noa2) )            ;  Mol%diajbAB = 0.d0 
-    write(iout,form2e) 'Mol%diajbAB', nvb2, noa2  ;  call track_mem( nvb*noa2 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%diajbAB', nvb2, noa2  
+    end if 
+    call track_mem( nvb*noa2 )
 
 
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%diajbAB(j,i), j=1, nvb2 ), i=1, noa2 )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
     
 
   end subroutine read_bucket_7
@@ -868,12 +970,17 @@ contains
 
 
     allocate( Mol%diajbBA(nva2,nob2) )            ;  Mol%diajbBA = 0.d0 
-    write(iout,form2e) 'Mol%diajbBA', nva2, nob2  ;  call track_mem( nva2*nob2 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%diajbBA', nva2, nob2  
+    end if
+    call track_mem( nva2*nob2 )
 
     
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%diajbBA(j,i), j=1, nva2 ), i=1, nob2 )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
     
     
   end subroutine read_bucket_8
@@ -891,7 +998,10 @@ contains
 
 
     allocate( Mol%dijklBB(nob3,nob3) )            ;  Mol%dijklBB = 0.d0 
-    write(iout,form2e) 'Mol%dijklBB', nob3, nob3  ;  call track_mem( nob3*nob3 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dijklBB', nob3, nob3  
+    end if
+    call track_mem( nob3*nob3 )
 
 
     read(10,'(A)') cskip
@@ -901,7 +1011,9 @@ contains
           Mol%dijklBB(i,j) = Mol%dijklBB(j,i)
        end do
     end do
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
     
     
   end subroutine read_bucket_9
@@ -919,13 +1031,18 @@ contains
 
     
     allocate( Mol%diajbBB(nobnvb,nobnvb) )            ;  Mol%diajbBB = 0.d0 ! Bucket 10
-    write(iout,form2e) 'Mol%diajbBB', nobnvb, nobnvb  ;  call track_mem( nobnvb*nobnvb ) 
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%diajbBB', nobnvb, nobnvb  
+    end if
+    call track_mem( nobnvb*nobnvb ) 
 
     
     if(unrestricted) then
        read(10,'(A)') cskip
        read(10,*) ( ( Mol%diajbBB(j,i), j=1, nobnvb ), i=1, nobnvb )
-       write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       if ( verbosity.gt.2 ) then
+         write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+       end if
     end if
 !:          write(42,*) 'Bucket 10 head',(Mol%diajbBB(i,1),i=1,100)
 !:          write(42,*) 'Bucket 10 tail',(Mol%diajbBB(nob*nvb-100+i,noa*nva),i=1,100)
@@ -946,12 +1063,17 @@ contains
 
     
     allocate( Mol%dijkaAA(noanva,noa3))             ;  Mol%dijkaAA = 0.d0 
-    write(iout,form2e) 'Mol%dijkaAA', noa3, noanva  ;  call track_mem( noa3*noanva )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dijkaAA', noa3, noanva  
+    end if
+    call track_mem( noa3*noanva )
 
 
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%dijkaAA(j,i), j=1, noanva ), i=1, noa3 )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
     
     
   end subroutine read_bucket_11
@@ -969,12 +1091,17 @@ contains
 
 
     allocate( Mol%dijkaAB(nobnvb,noa2))             ;  Mol%dijkaAB = 0.d0 
-    write(iout,form2e) 'Mol%dijkaAB', nobnvb, noa2  ;  call track_mem( noa2*nobnvb )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dijkaAB', nobnvb, noa2
+    end if
+    call track_mem( noa2*nobnvb )
     
 
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%dijkaAB(j,i), j=1, nobnvb ), i=1, noa2 )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
     
 
   end subroutine read_bucket_12
@@ -992,12 +1119,17 @@ contains
 
     
     allocate( Mol%dijkaBA(noanva,nob2))             ;  Mol%dijkaBA = 0.d0 
-    write(iout,form2e) 'Mol%dijkaBA', noanva, nob2  ;  call track_mem( nob2*noanva )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dijkaBA', noanva, nob2  
+    end if
+    call track_mem( nob2*noanva )
     
 
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%dijkaBA(j,i), j=1, noanva ), i=1, nob2 )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
 
     
   end subroutine read_bucket_13
@@ -1015,12 +1147,17 @@ contains
 
     
     allocate( Mol%dijkaBB(nobnvb,nob3))             ;  Mol%dijkaBB = 0.d0 
-    write(iout,form2e) 'Mol%dijkaBB', nobnvb, nob3  ;  call track_mem( nob3*nobnvb )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dijkaBB', nobnvb, nob3  
+    end if
+    call track_mem( nob3*nobnvb )
 
 
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%dijkaBB(j,i), j=1, nobnvb ), i=1, nob3 )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
 
     
   end subroutine read_bucket_14
@@ -1038,12 +1175,17 @@ contains
 
     
     allocate( Mol%diabcAA(nva3,noanva))             ;  Mol%diabcAA = 0.d0 
-    write(iout,form2e) 'Mol%diabcAA', noanva, nva3  ;  call track_mem( noanva*nva3 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%diabcAA', noanva, nva3  
+    end if
+    call track_mem( noanva*nva3 )
     
     
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%diabcAA(j,i), j=1, nva3 ), i=1, noanva )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
 
     
   end subroutine read_bucket_15
@@ -1056,17 +1198,19 @@ contains
     implicit none
     integer(8) :: i, j 
 
-
     call get_size_variables
 
-    
     allocate( Mol%diabcAB(nvb2,noanva))             ;  Mol%diabcAB = 0.d0
-    write(iout,form2e) 'Mol%diabcAB', nvb2, noanva  ;  call track_mem( noanva*nvb2 ) 
-    
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%diabcAB', nvb2, noanva  
+    end if
+    call track_mem( noanva*nvb2 ) 
     
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%diabcAB(j,i), j=1, nvb2 ), i=1, noanva )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
     
     
   end subroutine read_bucket_16
@@ -1084,12 +1228,17 @@ contains
 
     
     allocate( Mol%diabcBA(nva2,nobnvb))             ;  Mol%diabcBA = 0.d0 
-    write(iout,form2e) 'Mol%diabcBA', nva2, nobnvb  ;  call track_mem( nobnvb*nva2 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%diabcBA', nva2, nobnvb  
+    end if
+    call track_mem( nobnvb*nva2 )
     
 
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%diabcBA(j,i), j=1, nva2 ), i=1, nobnvb )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
 
     
   end subroutine read_bucket_17
@@ -1107,12 +1256,17 @@ contains
     
 
     allocate( Mol%diabcBB(nvb3,nobnvb))              ;  Mol%diabcBB = 0.d0 
-    write(iout,form2e)  'Mol%diabcBB', nvb3, nobnvb  ;  call track_mem( nobnvb*nvb3 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e)  'Mol%diabcBB', nvb3, nobnvb  
+    end if
+    call track_mem( nobnvb*nvb3 )
     
 
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%diabcBB(j,i), j=1, nvb3 ), i=1, nobnvb )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
     
 
   end subroutine read_bucket_18
@@ -1130,7 +1284,10 @@ contains
 
 
     allocate( Mol%dabcdAA(nva3,nva3) )            ;  Mol%dabcdAA = 0.d0 
-    write(iout,form2e) 'Mol%dabcdAA', nva3, nva3  ;  call track_mem( nva3*nva3 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dabcdAA', nva3, nva3  
+    end if
+    call track_mem( nva3*nva3 )
     
 
     read(10,'(A)') cskip
@@ -1140,7 +1297,9 @@ contains
           Mol%dabcdAA(i,j) = Mol%dabcdAA(j,i)
        end do
     end do
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
     
 
   end subroutine read_bucket_19
@@ -1157,13 +1316,18 @@ contains
 
     
     allocate( Mol%dabcdAB(nvb2,nva2) )            ;  Mol%dabcdAB = 0.d0 
-    write(iout,form2e) 'Mol%dabcdAB', nvb2, nva2  ;  call track_mem( nva2*nvb2 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dabcdAB', nvb2, nva2  
+    end if
+    call track_mem( nva2*nvb2 )
+
     
 
     read(10,'(A)') cskip
     read(10,*) ( ( Mol%dabcdAB(j,i), j=1, nvb2 ), i=1, nva2 )
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
-    
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
 
   end subroutine read_bucket_20
   ! <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>!
@@ -1180,7 +1344,10 @@ contains
 
 
     allocate( Mol%dabcdBB(nvb3,nvb3) )            ;  Mol%dabcdBB = 0.d0
-    write(iout,form2e) 'Mol%dabcdBB', nvb3, nvb3  ;  call track_mem( nvb3*nvb3 )
+    if ( verbosity.gt.2 ) then
+      write(iout,form2e) 'Mol%dabcdBB', nvb3, nvb3  
+    end if
+    call track_mem( nvb3*nvb3 )
     
     
     read(10,'(A)') cskip
@@ -1190,7 +1357,9 @@ contains
           Mol%dabcdBB(i,j) = Mol%dabcdBB(j,i)
        end do
     end do
-    write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    if ( verbosity.gt.2 ) then
+      write(iout,'(A)') ' finished reading '//trim(adjustl(cskip))
+    end if
 
     
   end subroutine read_bucket_21

@@ -166,10 +166,12 @@ module variables_global
        fvect1(:) ,        & !: contains shaped e-field ; for lin and circ pulse
        fvect2(:)            !: contains shaped e-field ; only used for circ pulse
 
-
-  integer(8), allocatable :: hole_index(:,:), part_index(:,:)        !: holes and particle indices for states
-  integer(8), allocatable :: hole_ip_index(:,:)                      !: holes and particle indices for ionized states
-  integer(8), allocatable :: part_ip_index(:,:)                      !: holes and particle indices for ionized states
+  !: for hole/particle, index(i,1) is the first excitation, index(i,2) is the second excitation (if applicable).
+  integer(8), allocatable :: hole_index(:,:), part_index(:,:)        !: hole and particle indices for states
+  !: for hole_ip, index(i,1) is first ionization, index(i,2) is second ionization (if applicable)
+  integer(8), allocatable :: hole_ip_index(:,:)                      !: hole indices for ionized states
+  !: this is not used. ionized electrons are gone, right?
+  integer(8), allocatable :: part_ip_index(:,:)                      !: particle indices for ionized states
   integer(8), allocatable :: state_index(:,:), cisd_indices(:,:,:,:) !: cisd indices
   integer(8), allocatable :: state_ip_index(:,:)                     !: ionized state indices
 
@@ -279,16 +281,13 @@ contains
 
     implicit none
 
-
     write(iout,'(A)') divide
     write(iout,'(A)') ' '
     write(iout,'(A)')  ' STOP IN THE NAME OF LOVE'
     call dnt(iout) 
     flush(iout)
-  
 
     stop
-
     
   end subroutine stopme
   !:---------------------------!
@@ -300,16 +299,18 @@ contains
 
     character(*), intent(in) :: curr_sub, curr_mod, enter_or_leave
     
-    select case( trim(enter_or_leave) )
-    case( 'enter' )
-       write( iout,'(A)' ) ' in subroutine '//trim(curr_sub)//' in MODULE '//trim(curr_mod)
-       write( iout,'(A)' ) ' '
-    case( 'leave' )
-       write( iout,'(A)' ) ' '
-       write( iout,'(A)' ) ' leaving subroutine '//trim(curr_sub)
-       write( iout,'(A)' ) divide
-    end select
-    flush(iout)
+    if (verbosity.gt.2) then
+      select case( trim(enter_or_leave) )
+      case( 'enter' )
+         write( iout,'(A)' ) ' in subroutine '//trim(curr_sub)//' in MODULE '//trim(curr_mod)
+         write( iout,'(A)' ) ' '
+      case( 'leave' )
+         write( iout,'(A)' ) ' '
+         write( iout,'(A)' ) ' leaving subroutine '//trim(curr_sub)
+         write( iout,'(A)' ) divide
+      end select
+      flush(iout)
+    end if
 
   end subroutine write_header
   !:----------------------------!
@@ -319,10 +320,10 @@ contains
   
     integer(8), intent(in) :: nelements
     
-
     tot_use_mem = tot_use_mem + nelements 
-    write(iout,"(' total GB memory in use',f10.5)") dble(tot_use_mem * 8) / giga2byte
-    
+    if (verbosity.gt.2) then
+      write(iout,"(' total GB memory in use',f10.5)") dble(tot_use_mem * 8) / giga2byte
+    end if
     
   end subroutine track_mem
   !:----------------------------!
