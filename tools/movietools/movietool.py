@@ -287,8 +287,14 @@ def density2fchk(tdci_dir, nocc, norb, direction=1, timestep=1, diff=0, filename
     densfile = f"{tdci_dir}/matrices/MO_density-e1-d{direction}.{timestep}00.bin"
   else:
     densfile = filename
+
+  if diff==3:
+    densfile_t0 = f"{tdci_dir}/matrices/MO_density-e1-d{direction}.100.bin"
+  else:
+    densfile_t0 = ""
+
   # density2fchk template_fchk density_binary, timestep, diff, iscale, nocc, norb
-  cmd = f"{tools}/density2fchk temp.fchk {densfile} {timestep} {diff} {iscale} {nocc} {norb} "
+  cmd = f"{tools}/density2fchk temp.fchk {densfile} {timestep} {diff} {iscale} {nocc} {norb} {densfile_t0}"
   print(f"Running: {cmd}") 
   p = subprocess.Popen(cmd, shell=True)
   p.wait()
