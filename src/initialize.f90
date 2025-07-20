@@ -1229,6 +1229,7 @@ contains
     write(myoption,'(A)') ' /'        
 
     write(myoption,'(A)') ' &InOutFILES'
+    write(myoption,"(' verbosity = ',i5 )") verbosity
     if ( Qread_tdcidata )      write(myoption,'(A)') ' Qread_TDCIdata  = .True.  '
     if ( .not.Qread_tdcidata ) write(myoption,'(A)') ' Qread_TDCIdata  = .False.  '
     write(myoption,'(A)') ' tdcidatfile     = '//"'"//trim(tdcidatfile)//"'"
@@ -1240,6 +1241,7 @@ contains
     if ( Qci_save )    write(myoption,'(A)') ' Qci_save  = .True.  '
     if ( write_binaries )  write(myoption,'(A)') ' write_binaries = .True.   '
     if ( write_orb_transitionrates )  write(myoption,'(A)') ' write_orb_transitionrates = .True.   '
+    if ( datfile_enable )  write(myoption,'(A)') ' datfile_enable = .True.   '
     write(myoption,'(A)') ' /'    
 
     write(myoption,'(A)') '&Davidson'
