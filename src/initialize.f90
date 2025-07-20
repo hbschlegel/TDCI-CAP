@@ -1102,6 +1102,8 @@ contains
     end do
     if ( restart )      write(myoption,'(A)') ' restart        = .True.  '
     if ( .not.restart ) write(myoption,'(A)') ' restart        = .False. '    
+    if ( Qsave )        write(myoption,'(A)') ' Qsave          = .True.  '
+    if ( .not.Qsave )   write(myoption,'(A)') ' Qsave          = .False. '    
     write(myoption,'(A)') ' /'
 
     write(myoption,'(A)') ' &FIELD_units'
@@ -1125,6 +1127,7 @@ contains
        write(myoption,"(' read_emax(',i1,') = ',f10.4 )") i, read_emax(i)
     end do
     do i=1, nemax
+      if(read_shift(i).ne.0)  write(myoption,"(' read_shift(',i1,') = ',i8 )") i,read_state1(i)
       if(read_state1(i).ne.0)  write(myoption,"(' read_state1(',i1,') = ',i5 )") i,read_state1(i)
       if(read_state1(i).ne.0)  write(myoption,"(' read_coeff1(',i1,') = ',2f12.8 )") i,read_coeff1(i)
       if(read_state2(i).ne.0)  write(myoption,"(' read_state2(',i1,') = ',i5 )") i,read_state2(i)
@@ -1162,6 +1165,7 @@ contains
     write(myoption,'(A)') ' &SYSTEM'
     write(myoption,"(' dt          =', f7.3)") dt
     write(myoption,"(' eigmax      =', f7.3)") eigmax
+    if ( heuristic.gt.0 ) write(myoption,"(' heuristic  =', f7.3)") heuristic
     write(myoption,"(' ionization  =', f7.3)") ionization
     write(myoption,"(' jobtype     =', a7 )") adjustr("'"//trim(jobtype)//"'")
     write(myoption,"(' nstep       =', i7  )") nstep
@@ -1179,6 +1183,8 @@ contains
     if ( .not.QsocA2B ) write(myoption,'(A)') ' QsocA2B  = .False.  '
     if ( QeigenDC )      write(myoption,'(A)') ' QeigenDC  = .True.  '
     if ( .not.QeigenDC ) write(myoption,'(A)') ' QeigenDC  = .False.  '
+    if ( Qserial )      write(myoption,'(A)') ' Qserial  = .True.  '
+    if ( .not.Qserial ) write(myoption,'(A)') ' Qserial  = .False.  '
     write(myoption,'(A)') ' /'        
 
     write(myoption,'(A)') ' &InOutFILES'
@@ -1192,6 +1198,7 @@ contains
     if ( Qmo_dens )    write(myoption,'(A)') ' Qmo_dens  = .True.  '
     if ( Qci_save )    write(myoption,'(A)') ' Qci_save  = .True.  '
     if ( write_binaries )  write(myoption,'(A)') ' write_binaries = .True.   '
+    if ( write_orb_transitionrates )  write(myoption,'(A)') ' write_orb_transitionrates = .True.   '
     write(myoption,'(A)') ' /'    
 
     write(myoption,'(A)') '&Davidson'
