@@ -24,7 +24,7 @@ mol addrep top
 
 mol representation Isosurface  ISOKEY2 0.0 0.0 0.0
 mol Material Transparent
-mol color ColorID 21
+mol color ColorID 3
 mol addrep top
 
 mol representation Isosurface -ISOKEY2 0.0 0.0 0.0
@@ -38,6 +38,8 @@ mol addrep top
 
 set updrep1 [mol repname top 1]
 set updrep2 [mol repname top 2]
+set updrep3 [mol repname top 3]
+set updrep4 [mol repname top 4]
 
 
 # Camera Adjustments
@@ -50,6 +52,8 @@ proc update_iso {args} {
    global updmol
    global updrep1
    global updrep2
+   global updrep3
+   global updrep4
 
    set repid1 [mol repindex $updmol $updrep1]
    if { $repid1 < 0} { return }
@@ -71,6 +75,26 @@ proc update_iso {args} {
    mol color ColorID 1
    mol modrep $repid2 $updmol
 
+
+   set repid3 [mol repindex $updmol $updrep3]
+   if { $repid3 < 0} { return }
+
+   set frame [molinfo $updmol get frame]
+
+   lassign [molinfo $updmol get "{rep $repid3}"] rep
+   mol representation [lreplace $rep 2 2 $frame]
+   mol color ColorID 21
+   mol modrep $repid3 $updmol
+
+   set repid4 [mol repindex $updmol $updrep4]
+   if { $repid4 < 0} { return }
+
+   set frame [molinfo $updmol get frame]
+
+   lassign [molinfo $updmol get "{rep $repid4}"] rep
+   mol representation [lreplace $rep 2 2 $frame]
+   mol color ColorID 1
+   mol modrep $repid4 $updmol
 
 }
 
