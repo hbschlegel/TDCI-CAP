@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 
 # Config variables for grid bounds (edit these)
 # Angstroms
-xmin = ( -16.0, -16.0, -16.0 ) # .cube region minimum corner
-xmax = ( 16.0, 16.0, 16.0 )    # .cube region maximum corner
-nsteps = 60                    # .cube grid points in each direction (used in both 3D and 1D case)
+xmin = ( -12.0, -12.0, -12.0 ) # .cube region minimum corner
+xmax = ( 12.0, 12.0, 12.0 )    # .cube region maximum corner
+nsteps = 45                    # .cube grid points in each direction (used in both 3D and 1D case)
 
 oneD_maxdist = 16 # In 1D case, this is the length of the sampling line in Angstroms
 
@@ -29,6 +29,7 @@ print(tools)
 from optparse import OptionParser
 usage = "usage: python3 movietool.py [options] [gaussian_directory] [tdci_directory] [field direction index]"
 parser = OptionParser(usage=usage)
+parser.add_option("-v", action="store_true", default=False, dest="verbose", help="Print extra info for debugging")
 parser.add_option("--cube_only", action="store_true", default=False, dest="cube_only", help="Create .cube files from density in TDCI directory")
 parser.add_option("--render_only", action="store_true", default=False, dest="render_only", help="Run VMD and FFMPEG")
 parser.add_option("--vmd_only", action="store_true", default=False, dest="vmd_only", help="Run only VMD")
@@ -85,32 +86,32 @@ def sph2cart(theta, phi, units="Radians"):
 
 
 def load_cube_data(filename):
-    # First, determine the number of header lines to skip.
-    with open(filename, 'r') as f:
-        # Skip two comment lines.
-        f.readline()
-        f.readline()
-        header_line = f.readline().split()
-        natoms = abs(int(header_line[0]))
-        # Total header lines = 2 (comments) + 1 (atom count + origin)
-        #                     + 3 (grid vectors) + natoms (atoms)
-        header_lines = 2 + 1 + 3 + natoms
+  # First, determine the number of header lines to skip.
+  with open(filename, 'r') as f:
+    # Skip two comment lines.
+    f.readline()
+    f.readline()
+    header_line = f.readline().split()
+    natoms = abs(int(header_line[0]))
+    # Total header lines = 2 (comments) + 1 (atom count + origin)
+    #                     + 3 (grid vectors) + natoms (atoms)
+    header_lines = 2 + 1 + 3 + natoms
 
-    # Load the data into a NumPy array.
-    data = np.concatenate(np.loadtxt(filename, skiprows=header_lines))
-    return data
+  # Load the data into a NumPy array.
+  data = np.concatenate(np.loadtxt(filename, skiprows=header_lines))
+  return data
 
 def plot_density_z(density, outfile):
-    dz = (xmax[2]-xmin[2])/nsteps  # globals
-    z = np.arange(len(density)) * dz
-    plt.figure(figsize=(6, 4))
-    plt.plot(z, density, marker='o', linestyle='-')
-    plt.xlabel('z (Angstrom)')
-    plt.ylabel('Density')
-    plt.title('Density Along the z-Axis.')
-    plt.tight_layout()
-    plt.savefig(outfile)
-    plt.close()
+  dz = (xmax[2]-xmin[2])/nsteps  # globals
+  z = np.arange(len(density)) * dz
+  plt.figure(figsize=(6, 4))
+  plt.plot(z, density, marker='o', linestyle='-')
+  plt.xlabel('z (Angstrom)')
+  plt.ylabel('Density')
+  plt.title('Density Along the z-Axis.')
+  plt.tight_layout()
+  plt.savefig(outfile)
+  plt.close()
 
 def plot_density_z_series(start_timestep, end_timestep):
   for i in range(start_timestep, end_timestep+1):
@@ -137,26 +138,26 @@ def plot_density_1D_allinone(start_timestep, end_timestep,thetaphi=(0,0),cubepre
 
 
 def interpolate_color(start_hex: str, end_hex: str, Nstep: int, step: int) -> str:
-    start_hex = start_hex.lstrip('#')
-    end_hex = end_hex.lstrip('#')
-    # Convert hex to integer values for each color channel (R, G, B)
-    start_rgb = [int(start_hex[i:i+2], 16) for i in (0, 2, 4)]
-    end_rgb = [int(end_hex[i:i+2], 16) for i in (0, 2, 4)]
-    t = step / Nstep
-    interpolated_rgb = [round(start + (end - start) * t) for start, end in zip(start_rgb, end_rgb)]
-    return '#' + ''.join(f'{val:02x}' for val in interpolated_rgb)
+  start_hex = start_hex.lstrip('#')
+  end_hex = end_hex.lstrip('#')
+  # Convert hex to integer values for each color channel (R, G, B)
+  start_rgb = [int(start_hex[i:i+2], 16) for i in (0, 2, 4)]
+  end_rgb = [int(end_hex[i:i+2], 16) for i in (0, 2, 4)]
+  t = step / Nstep
+  interpolated_rgb = [round(start + (end - start) * t) for start, end in zip(start_rgb, end_rgb)]
+  return '#' + ''.join(f'{val:02x}' for val in interpolated_rgb)
 
 
 
 # assuming there is only one in the directory, return path of chk file or fchk file
 def find_chk_file(directory):
-    for filename in os.listdir(directory):
-        if filename.endswith('.fchk'):
-            return os.path.join(directory, filename)
-    for filename in os.listdir(directory):
-        if filename.endswith('.chk'):
-            return os.path.join(directory, filename)
-    return None
+  for filename in os.listdir(directory):
+    if filename.endswith('.fchk'):
+      return os.path.join(directory, filename)
+  for filename in os.listdir(directory):
+    if filename.endswith('.chk'):
+      return os.path.join(directory, filename)
+  return None
 
 
 # Get the molecular coordinates from a .fchk file
@@ -175,9 +176,9 @@ def read_fchk_coords(filename):
       
       if reading_atomic:
         if line.strip() and not line.strip()[0].isalpha():
-            atomic_nums.extend(map(int, line.split()))
+          atomic_nums.extend(map(int, line.split()))
         else:
-            reading_atomic = False
+          reading_atomic = False
       
       if 'Current cartesian coordinates' in line:
         reading_coords = True
@@ -190,7 +191,7 @@ def read_fchk_coords(filename):
           break
 
   for i in range(len(atomic_nums)):
-      coords.append((atomic_nums[i], coord_vals[i*3], coord_vals[i*3+1], coord_vals[i*3+2]))
+    coords.append((atomic_nums[i], coord_vals[i*3], coord_vals[i*3+1], coord_vals[i*3+2]))
   
   return coords
 
@@ -225,7 +226,7 @@ class cubemaker:
       #z = self.inv_Z_map[atom[0]]
       z = atom[0]
       chg = self.Chg_Zmap[atom[0]]
-      print( (z,chg,coords) )
+      #print( (z,chg,coords) )
       f.write(f"{z:>4d}   {chg:9.4f}   {atom[1]:9.4f}   {atom[2]:9.4f}   {atom[3]:9.4f}\n")
     # Normally the grid values follow, but not needed for this template
     f.close()
@@ -249,7 +250,7 @@ class cubemaker:
       #z = self.inv_Z_map[atom[0]]
       z = atom[0]
       chg = self.Chg_Zmap[atom[0]]
-      print( (z,chg,coords) )
+      #print( (z,chg,coords) )
       f.write(f"{z:>4d}   {chg:9.4f}   {atom[1]:9.4f}   {atom[2]:9.4f}   {atom[3]:9.4f}\n")
     # Normally the grid values follow, but not needed for this template
     f.close()
@@ -296,8 +297,12 @@ def density2fchk(tdci_dir, nocc, norb, direction=1, timestep=1, diff=0, filename
   # density2fchk template_fchk density_binary, timestep, diff, iscale, nocc, norb
   cmd = f"{tools}/density2fchk temp.fchk {densfile} {timestep} {diff} {iscale} {nocc} {norb} {densfile_t0}"
   print(f"Running: {cmd}") 
-  p = subprocess.Popen(cmd, shell=True)
+  p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
   p.wait()
+  out, err = p.communicate()
+  if verbose:
+    print(out)
+    print(err)
   return 0
 
 # Run cubegen using previously generated input.cube as a template for the region to sample 
@@ -539,6 +544,8 @@ def __main__():
   dir_idx = int(args[2])
 
   if opts.oneD: # One dimensional cubefile sampled along a line
+    if opts.diff != 0:
+      print("WARNING: NONZERO DIFF PARAMETER DETECTED IN 1-D INPUT -- THIS MAY NOT BE SUPPORTED")
     # Get sample direction from cli options or tdci input.
     thetaphi = [0.0, 0.0]
     if ((opts.theta is None) and (opts.phi is None)):
@@ -552,10 +559,10 @@ def __main__():
 
     if opts.cube_only or do_all:
       if opts.orblist == "":
-        generate_cube_series_1D(gaussian_dir, tdci_dir, dir_idx, opts.start_timestep, opts.end_timestep, thetaphi)
+        generate_cube_series_1D(gaussian_dir, tdci_dir, dir_idx, opts.start_timestep, opts.end_timestep, thetaphi, diff=opts.diff)
       else:
         orblist = [int(x) for x in opts.orblist.split(",") if x]
-        generate_cube_series_1D_orbsubset(gaussian_dir, tdci_dir, dir_idx, opts.start_timestep, opts.end_timestep, thetaphi, orblist, diff=0)
+        generate_cube_series_1D_orbsubset(gaussian_dir, tdci_dir, dir_idx, opts.start_timestep, opts.end_timestep, thetaphi, orblist, diff=opts.diff)
 
     if opts.render_only or do_all:
       #plot_density_z_series(opts.start_timestep, opts.end_timestep)
@@ -568,7 +575,7 @@ def __main__():
       
   else: # 3D cubefile
     if opts.cube_only or do_all:
-      generate_cube_series(gaussian_dir, tdci_dir, dir_idx, opts.start_timestep, opts.end_timestep)
+      generate_cube_series(gaussian_dir, tdci_dir, dir_idx, opts.start_timestep, opts.end_timestep, diff=opts.diff)
     if opts.render_only or opts.vmd_only or do_all:
       vmd_cube2bmp(opts.start_timestep, opts.end_timestep, opts.isoval1, opts.isoval2)
 
