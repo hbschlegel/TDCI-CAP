@@ -45,6 +45,7 @@ set updrep4 [mol repname top 4]
 # Camera Adjustments
 # Rotate to look down y-axis
 rotate x by -90
+rotate y by -90
 # Zoom out
 scale by 0.45
 

@@ -33,18 +33,18 @@ end subroutine read_dbin
 
 
 function remove_extension(filename) result(basefilename)
-    implicit none
-    character(80), intent(in) :: filename
-    character(255) :: basefilename
-    integer :: pos
+  implicit none
+  character(80), intent(in) :: filename
+  character(255) :: basefilename
+  integer :: pos
 
-    pos = scan(filename, ".", back=.true.)
+  pos = scan(filename, ".", back=.true.)
 
-    if (pos == 0) then
-        basefilename = filename
-    else
-        basefilename = filename(:pos-1)
-    end if
+  if (pos == 0) then
+    basefilename = filename
+  else
+    basefilename = filename(:pos-1)
+  end if
 
 end function remove_extension
 
@@ -122,13 +122,14 @@ end module density2fchk
       nargs = command_argument_count()
       if (nargs.ge.8) then
         call get_command_argument(8, densityfile_t0)
+        write(*,*) "initial density file: ", densityfile_t0
       else
         densityfile_t0 = ''
-      end if
+      endif
 
       if (diff.eq.3 .and. trim(densityfile_t0).eq.'') then
         write(*,*) "ERROR! DIFF=3 BUT NO INITIAL DENSITY FILE PROVIDED!!"
-      end if
+      endif
 
 !:
 !: open fchk file and read info
@@ -271,68 +272,93 @@ end do
 !:
 !: subtract density of the first step if requested by diff = 3
 !
-        if(diff.eq.3) then
-          density_t0 = 0.d0
-          write(*,"(A,A)") "Reading initial density file: ", trim(densityfile_t0)
-          call read_dbin( density_t0, norb*norb, trim(densityfile_t0) , ios)
-          do i=1,norb*norb
-            density(i) = density(i) - density_t0(i)
-          end do
-        endif
+if(diff.eq.3) then
+  density_t0 = 0.d0
+  write(*,"(A,A)") "Reading initial density file: ", trim(densityfile_t0)
+  call read_dbin( density_t0, norb*norb, trim(densityfile_t0) , ios)
+
+  write(*,*) "first 7x7 block of t=0 matrix: "
+  do i=1,7
+    do j=1,7
+      write(*, "(E10.3,1X)", advance='no') density_t0((i-1)*norb+j)
+    end do
+    write(*,*) " "
+  end do
+
+
+  do i=1,norb*norb
+    density(i) = density(i) - density_t0(i)
+  end do
+
+
+
+  write(*,*) "first 7x7 block of diff matrix: "
+  do i=1,7
+    do j=1,7
+      write(*, "(E10.3,1X)", advance='no') density((i-1)*norb+j)
+    end do
+    write(*,*) " "
+  end do
+
+endif
+
+
+
+
 
 !:
 !: subtract density of the neutral if requested by diff = 1
 !
-        if(diff.eq.1) then
-          do i = 1,nocc
-            density((i-1)*norb+i) = density((i-1)*norb+i) - 2.d0
-          enddo
-        endif
+if(diff.eq.1) then
+  do i = 1,nocc
+    density((i-1)*norb+i) = density((i-1)*norb+i) - 2.d0
+  enddo
+endif
 !:
 !: if scaling is requested, read maxrate from file maxrate.dat and calculate scale factor
 !:
-      if(iscale.eq.0) then
-        factor = 1.d0
-      else
-        open(funit2,file=trim("maxrate.dat"))
-        read(funit2,"(f16.10)") maxrate
-        close(funit2)
-        !factor = abs(rate) / maxrate
-        factor = 1.0/maxrate
-      endif
-      write(*,"(A, E15.8)") "Scaling factor: ", factor
+if(iscale.eq.0) then
+  factor = 1.d0
+else
+  open(funit2,file=trim("maxrate.dat"))
+  read(funit2,"(f16.10)") maxrate
+  close(funit2)
+  !factor = abs(rate) / maxrate
+  factor = 1.0/maxrate
+endif
+write(*,"(A, E15.8)") "Scaling factor: ", factor
 
-      !: Uncomment if you need this.
-      !do i = 1,norb*norb
-      !  if (density(i) < -1E-8) then
-      !    write(*,"(A, I5, E15.8)") "MO density < 0 :  ",i, density(i)
-      !  end if 
-      !  density(i) =  abs(factor*density(i))
-      !end do
+!: Uncomment if you need this.
+!do i = 1,norb*norb
+!  if (density(i) < -1E-8) then
+!    write(*,"(A, I5, E15.8)") "MO density < 0 :  ",i, density(i)
+!  end if 
+!  density(i) =  abs(factor*density(i))
+!end do
 
 !:
 !: transform density from MO basis to AO basis
 !:
-        scratch = 0.d0
-        do i = 1,nbasis
-          do j = 1,norb
-            do k = 1,norb
-              kk = (k+nea-nocc-1)*nbasis
-              scratch((i-1)*norb+j) = scratch((i-1)*norb+j) &
-                + cmo(kk+i) * density((k-1)*norb+j)
-            enddo
-          enddo
-        enddo
-        density = 0.d0
-        do i = 1,nbasis
-          do j = 1,nbasis
-            do k = 1,norb
-              kk = (k+nea-nocc-1)*nbasis
-              density((i-1)*nbasis+j) = density((i-1)*nbasis+j) &
-                + scratch((i-1)*norb+k) * cmo(kk+j)
-            enddo
-          enddo
-        enddo
+scratch = 0.d0
+do i = 1,nbasis
+  do j = 1,norb
+    do k = 1,norb
+      kk = (k+nea-nocc-1)*nbasis
+      scratch((i-1)*norb+j) = scratch((i-1)*norb+j) &
+        + cmo(kk+i) * density((k-1)*norb+j)
+    enddo
+  enddo
+enddo
+density = 0.d0
+do i = 1,nbasis
+  do j = 1,nbasis
+    do k = 1,norb
+      kk = (k+nea-nocc-1)*nbasis
+      density((i-1)*nbasis+j) = density((i-1)*nbasis+j) &
+        + scratch((i-1)*norb+k) * cmo(kk+j)
+    enddo
+  enddo
+enddo
 
   !do i=1,nbasis*nbasis
   !  if (density(i) < -1E-8) then
@@ -346,11 +372,11 @@ end do
 !:
 !: build the output file name
 !:
-        i = INDEX(infile,".fch",.true.) - 1
-        outfile = infile(1:i)//"-1.fchk"
-        write(*,"('  Output file for step',I4,':  ',A)") &
-          nstep,trim(outfile)
-        open(funit3,file=trim(outfile))
+i = INDEX(infile,".fch",.true.) - 1
+outfile = infile(1:i)//"-1.fchk"
+write(*,"('  Output file for step',I4,':  ',A)") &
+  nstep,trim(outfile)
+open(funit3,file=trim(outfile))
 !:
 !: read template formatted checkpoint file
 !:
