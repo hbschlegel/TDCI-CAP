@@ -300,7 +300,7 @@ def density2fchk(tdci_dir, nocc, norb, direction=1, timestep=1, diff=0, filename
   p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
   p.wait()
   out, err = p.communicate()
-  if verbose:
+  if opts.verbose:
     print(out)
     print(err)
   return 0
