@@ -48,6 +48,20 @@ function remove_extension(filename) result(basefilename)
 
 end function remove_extension
 
+! accepts 1d array
+function trace_1d(arr, n) result(traceout)
+  implicit none
+  real(8), allocatable, intent(in) :: arr(:)
+  integer(8), intent(in) :: n
+  real(8), intent(out) :: traceout
+  integer(8) :: i
+
+  traceout = 0
+  do i=1,n
+    traceout = traceout + arr((i-1)*n+i) 
+  end do
+
+end function trace_1d
 
 
 
@@ -87,7 +101,7 @@ end module density2fchk
       integer(8) funit1,funit2,funit3
       integer(8) nea,neb,nbasis,nbsuse,ntt,nocc,norb,nstep,nend,diff,iscale
       integer(8) i,j,ij,k,kk,n, nargs
-      real(8) time,x,rate,maxrate,factor
+      real(8) time,x,rate,maxrate,factor,tmpsum
       real(8), allocatable ::  cmo(:),scratch(:),density(:),density_t0(:)
 
 
@@ -243,29 +257,33 @@ write(*,"(A,A)") "Reading file: ", trim(densityfile)
 !call read_dbin( density, norb*norb, trim(filename) , ios)
 call read_dbin( density, norb*norb, trim(densityfile) , ios)
 
-write(*,*) "ios: ", ios
+!write(*,*) "ios: ", ios
 
-write(*,"(A, E15.8, E15.8)") "density bin: ", density(1), density(2)
-write(*,"(A,E15.8)") "sum of density: ", sum(density)
+!write(*,"(A, f15.8, f15.8)") "density bin: ", density(1), density(2)
+
+write(*,"(A,f15.8)") "sum   of input density:                       ", sum(density)
+write(*,"(A,f15.8)") "trace of input density:                       ", trace_1d(density,norb)
+if(diff.eq.3) then
+  write(*,"(A,f15.8)") "sum   of ref   density:                       ", sum(density_t0)
+  write(*,"(A,f15.8)") "trace of ref   density:                       ", trace_1d(density_t0,norb)
+end if
+
 
 
 !: Let's make sure the dimension is actually norb by checking the diagonal
-write(*,*) "density(1) = ", density(1)
-write(*,*) "density((2-1)*norb+2) = ", density((2-1)*norb+2)
-write(*,*) "density((3-1)*norb+3) = ", density((3-1)*norb+3)
-
-
+!write(*,*) "density(1) = ", density(1)
+!write(*,*) "density((2-1)*norb+2) = ", density((2-1)*norb+2)
+!write(*,*) "density((3-1)*norb+3) = ", density((3-1)*norb+3)
 
 !write(*,"(5F12.8)")  (density(i), i=1,25)
 
-write(*,*) "first 7x7 block of matrix: "
-do i=1,7
-  do j=1,7
-    write(*, "(E10.3,1X)", advance='no') density((i-1)*norb+j)
-  end do
-  write(*,*) " "
-end do
-
+!write(*,*) "first 7x7 block of matrix: "
+!do i=1,7
+!  do j=1,7
+!    write(*, "(E10.3,1X)", advance='no') density((i-1)*norb+j)
+!  end do
+!  write(*,*) " "
+!end do
 
 
 
@@ -285,12 +303,9 @@ if(diff.eq.3) then
     write(*,*) " "
   end do
 
-
   do i=1,norb*norb
     density(i) = density(i) - density_t0(i)
   end do
-
-
 
   write(*,*) "first 7x7 block of diff matrix: "
   do i=1,7
@@ -314,6 +329,30 @@ if(diff.eq.1) then
     density((i-1)*norb+i) = density((i-1)*norb+i) - 2.d0
   enddo
 endif
+
+if(diff .ne. 0) then
+  write(*,"(A,f15.8)") "sum of post-diff density:                      ", sum(density)
+  write(*,"(A,f15.8)") "trace of post-diff density:                    ", trace_1d(density,norb)
+
+  tmpsum = 0
+  do i = 1,norb*norb
+    if (density(i) .lt. 0) then
+      tmpsum = tmpsum + density(i)
+    end if
+  end do
+  write(*,"(A,f15.8)") "sum of post-diff density negative elements:    ", tmpsum
+
+  tmpsum = 0
+  do i = 1,norb*norb
+    if (density(i) .gt. 0) then
+      tmpsum = tmpsum + density(i)
+    end if
+  end do
+  write(*,"(A,f15.8)") "sum of post-diff density positive elements:    ", tmpsum
+  write(*,"(A,f15.8)") "max of post-diff density:                      ", maxval(density)
+  write(*,"(A,f15.8)") "min of post-diff density:                      ", minval(density)
+end if
+
 !:
 !: if scaling is requested, read maxrate from file maxrate.dat and calculate scale factor
 !:
@@ -368,14 +407,13 @@ enddo
 !:
 !: copy template fchk file to output fchk file and insert density
 !:
-        open(funit1,file=trim(infile))
+open(funit1,file=trim(infile))
 !:
 !: build the output file name
 !:
 i = INDEX(infile,".fch",.true.) - 1
 outfile = infile(1:i)//"-1.fchk"
-write(*,"('  Output file for step',I4,':  ',A)") &
-  nstep,trim(outfile)
+write(*,"('  Output file for step',I4,':  ',A)") nstep,trim(outfile)
 open(funit3,file=trim(outfile))
 !:
 !: read template formatted checkpoint file
