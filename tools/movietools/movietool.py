@@ -29,7 +29,7 @@ print(tools)
 from optparse import OptionParser
 usage = "usage: python3 movietool.py [options] [gaussian_directory] [tdci_directory] [field direction index]"
 parser = OptionParser(usage=usage)
-parser.add_option("-v", action="store_true", default=False, dest="verbose", help="Print extra info for debugging")
+parser.add_option("-v", action="store_true", default=True, dest="verbose", help="Print extra info for debugging")
 parser.add_option("--cube_only", action="store_true", default=False, dest="cube_only", help="Create .cube files from density in TDCI directory")
 parser.add_option("--render_only", action="store_true", default=False, dest="render_only", help="Run VMD and FFMPEG")
 parser.add_option("--vmd_only", action="store_true", default=False, dest="vmd_only", help="Run only VMD")
@@ -300,7 +300,7 @@ def density2fchk(tdci_dir, nocc, norb, direction=1, timestep=1, diff=0, filename
   p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
   p.wait()
   out, err = p.communicate()
-  if verbose:
+  if opts.verbose:
     print(out)
     print(err)
   return 0

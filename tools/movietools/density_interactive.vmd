@@ -17,8 +17,7 @@ set ISO_OPACITY  0.5
 set ISO_MATERIAL "Transparent"   ;# will be given ISO_OPACITY
 
 # Colors for the four isosurfaces, in order: +ISO1, -ISO1, +ISO2, -ISO2
-# Use names (e.g., red, blue, orange, cyan) or ColorIDs (ints).
-set ISO_COLORS {red blue orange cyan}
+set ISO_COLORS {red blue red blue}
 
 # Show atoms as CPK background?
 set DRAW_ATOMS   1
@@ -28,10 +27,7 @@ set AUTOPLAY     1
 set PLAY_STYLE   "Loop"     ;# Loop | Rock | Once
 set PLAY_SPEED   0.25
 
-# Optional: spin camera while playing
-set SPIN_CAMERA  0
-set SPIN_AXIS    y
-set SPIN_STEP    0.5
+
 # ----------------
 
 
@@ -118,14 +114,7 @@ if {$AUTOPLAY} {
   animate forward
 }
 
-# ---- Optional camera spin ----
-proc cam_spin {{axis y} {step 0.5}} {
-  rotate $axis by $step
-  after 33 [list cam_spin $axis $step]
-}
-if {$SPIN_CAMERA} {
-  cam_spin $SPIN_AXIS $SPIN_STEP
-}
+
 
 # --- Notes (Tk Console):
 #   mol modcolor 1 top ColorID [colorinfo index purple]
