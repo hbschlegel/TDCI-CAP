@@ -277,13 +277,13 @@ end if
 
 !write(*,"(5F12.8)")  (density(i), i=1,25)
 
-!write(*,*) "first 7x7 block of matrix: "
-!do i=1,7
-!  do j=1,7
-!    write(*, "(E10.3,1X)", advance='no') density((i-1)*norb+j)
-!  end do
-!  write(*,*) " "
-!end do
+write(*,*) "first 7x7 block of unmodified input density matrix: "
+do i=1,7
+  do j=1,7
+    write(*, "(E10.3,1X)", advance='no') density((i-1)*norb+j)
+  end do
+  write(*,*) " "
+end do
 
 
 
@@ -328,6 +328,16 @@ if(diff.eq.1) then
   do i = 1,nocc
     density((i-1)*norb+i) = density((i-1)*norb+i) - 2.d0
   enddo
+
+  write(*,*) "first 7x7 block of (density-HF) matrix: "
+  do i=1,7
+    do j=1,7
+      write(*, "(E10.3,1X)", advance='no') density((i-1)*norb+j)
+    end do
+    write(*,*) " "
+  end do
+
+
 endif
 
 if(diff .ne. 0) then
