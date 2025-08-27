@@ -29,7 +29,7 @@ print(tools)
 from optparse import OptionParser
 usage = "usage: python3 movietool.py [options] [gaussian_directory] [tdci_directory] [field direction index]"
 parser = OptionParser(usage=usage)
-parser.add_option("-v", action="store_true", default=True, dest="verbose", help="Print extra info for debugging")
+parser.add_option("-v", action="store_true", default=False, dest="verbose", help="Print extra info for debugging")
 parser.add_option("--cube_only", action="store_true", default=False, dest="cube_only", help="Create .cube files from density in TDCI directory")
 parser.add_option("--render_only", action="store_true", default=False, dest="render_only", help="Run VMD and FFMPEG")
 parser.add_option("--vmd_only", action="store_true", default=False, dest="vmd_only", help="Run only VMD")
@@ -38,7 +38,7 @@ parser.add_option("--start_timestep", action="store", type="int", default=start_
 parser.add_option("--end_timestep", action="store", type="int", default=end_timestep_default, dest="end_timestep", help=f"Set the timestep to end on. Default {end_timestep_default}")
 parser.add_option("--isoval1", action="store", type="float", default="0.002", dest="isoval1", help=f"Inner isovalue in VMD render. Default 0.002")
 parser.add_option("--isoval2", action="store", type="float", default="0.00095", dest="isoval2", help=f"Outer isovalue in VMD render. Default 0.00095")
-parser.add_option("--diff", action="store", type="int", default="0", dest="diff", help=f"0 - Plot Density. 1 - Plot Density minus the HF density. 2 - Plot Density minus the density in the template fchk file. 3 - Plot Density minus the density at timestep 1. NOTE: OPTIONS 2 AND 3 ARE NOT CURRENTLY SUPPORTED")
+parser.add_option("--diff", action="store", type="int", default="0", dest="diff", help=f"0 - Plot Density. 1 - Plot Density minus the HF density. 2 - Plot Density minus the density in the template fchk file. 3 - Plot Density minus the density at timestep 1. NOTE: DIFF=2 IS CURRENTLY NOT SUPPORTED")
 parser.add_option("--eidx", action="store", type="int", default="1", dest="eidx", help=f"Index of Emax. Ex: --eidx=2 will read MO_density-e2-d[dir].[timestep].bin . Default 1.")
 parser.add_option("--1D", action="store_true", default=False, dest="oneD", help="Generate a 1D cubefile for simple plotting. Density is sampled along a 16 Angstrom line from the origin. See theta and phi options.")
 parser.add_option("--theta", action="store", type="float", default=None, dest="theta", help=f"In degrees. For 1D cubefile, selects the theta direction of the density slice. Default aligns with the field direction.")
