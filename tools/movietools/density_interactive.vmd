@@ -13,7 +13,7 @@ set ISO2         1.0
 set STEP         0
 
 # Isosurface transparency (0.0 transparent .. 1.0 opaque)
-set ISO_OPACITY  0.5
+set ISO_OPACITY  0.75
 set ISO_MATERIAL "Transparent"   ;# will be given ISO_OPACITY
 
 # Colors for the four isosurfaces, in order: +ISO1, -ISO1, +ISO2, -ISO2
@@ -66,7 +66,7 @@ for {set i [expr {$START + 1}]} {$i <= $END} {incr i} {
   mol addfile "out${i}.cube" type cube waitfor all
 }
 
-display rendermode GLSL     ;# alpha-blended transparency (if supported)
+display rendermode Normal
 display depthsort on        ;# correct draw order for transparent reps
 display antialias on        ;# optional: nicer edges
 
