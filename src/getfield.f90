@@ -365,21 +365,25 @@ contains
     
     real(8), parameter :: frac = 2.d0/3.d0
     integer(8), parameter :: ramp_step = 16000
-    integer(8) :: istp
+    integer(8) :: istp, rstp
     real(8) :: temp
     
     write(iout,'(A)') ' in subroutine cw_env for static pulse' 
     Mol%field_env = 0.d0
     fvect1 = 0.d0 
 
+    rstp = int(frac*dble(ramp_step)*0.05d0/dt)
+    if (stat_ramp .ne. 0) rstp = stat_ramp
     do istp = 1, nstep
-      if ( istp .le. int(frac*dble(ramp_step)*0.05d0/dt) ) then
+      !if ( istp .le. int(frac*dble(ramp_step)*0.05d0/dt) ) then
+      if ( istp .le. rstp ) then
         !: Suddently the nvidia compiler hates this line???
         !: NVFORTRAN-F-0000-Internal compiler error. Could not locate uplevel
         !:   instance for stblock 1214
         !fvect1(istp) = 1.d0 - ( 1.d0 - dble(istp)/(frac*dble(ramp_step)*0.05d0/dt) )**4
-        temp = frac*dble(ramp_step)*0.05d0/dt
-        fvect1(istp) = 1.d0 - ( 1.d0 - dble(istp)/temp)**4
+        !temp = frac*dble(ramp_step)*0.05d0/dt
+        !fvect1(istp) = 1.d0 - ( 1.d0 - dble(istp)/temp)**4
+        fvect1(istp) = 1.d0 - ( 1.d0 - dble(istp)/dble(rstp))**4
       else
         fvect1(istp) = 1.d0
       end if

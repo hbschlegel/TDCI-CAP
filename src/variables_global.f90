@@ -52,11 +52,12 @@ module variables_global
   
   
   !: /FIELD/ variables
-  integer(8) ::   ncyc     !: total number of field cycles
-  real(8) ::      ellipt   !: ellipticity for elliptically polarized light
-  real(8) ::      euler    !: the other Euler angle for circularly polarized light
-  character(4) :: envelope !: flag to set the shape of pulse
-  character(5) :: dirform  !: directions are specified in 'cart' or 'polar'  
+  integer(8) ::   ncyc       !: total number of field cycles
+  integer(8) ::   stat_ramp  !: number of steps to ramp up th field for a "stat" pulse
+  real(8) ::      ellipt     !: ellipticity for elliptically polarized light
+  real(8) ::      euler      !: the other Euler angle for circularly polarized light
+  character(4) :: envelope   !: flag to set the shape of pulse
+  character(5) :: dirform    !: directions are specified in 'cart' or 'polar'  
   
   !: /FIELD_UNITS/ variables
   character(10) ::  &
