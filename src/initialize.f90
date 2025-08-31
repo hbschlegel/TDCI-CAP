@@ -39,7 +39,7 @@ contains
     !: /FIELD_strengths/  read_emax(20).  to change, mod_variables_global.f90
     !: /FIELD_directions/ read_*(100).  to change, mod_variables_global.f90
     namelist /DYNAMICS/         init_coeffs, init_states, restart, Qsave
-    namelist /FIELD/            dirform, ellipt, envelope, ncyc, omega, phase, euler
+    namelist /FIELD/            dirform, ellipt, envelope, ncyc, stat_ramp, omega, phase, euler
     namelist /FIELD_units/      omega_units !:, angle_units
     namelist /FIELD_strengths/  nemax, read_emax, read_state1, read_state2, read_coeff1, read_coeff2, &
                                 read_shift, ion_sample_start, ion_sample_width, ion_sample_state
@@ -145,13 +145,14 @@ contains
     restart = .False.
 
     !: default for /FIELD/
-    dirform  = 'polar'
-    ellipt   = 1.d0
-    envelope = 'trap'
-    ncyc     = 7
-    omega    = 0.057d0
-    phase    = 90.d0
-    euler    = 0.d0
+    dirform    = 'polar'
+    ellipt     = 1.d0
+    envelope   = 'trap'
+    ncyc       = 7
+    stat_ramp  = 0
+    omega      = 0.057d0
+    phase      = 90.d0
+    euler      = 0.d0
     
     !: default for /FIELD_units/
     omega_units = 'au'
