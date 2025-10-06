@@ -2,7 +2,7 @@ module analysis
   
   use variables_global ! <C> use at your risk, beware of private & shared OMP variables
   !: If we want to remove global variables without adding them all to the function signature
-  !:   we should put all the globals in a single type, and create local copies in each subroutine
+  !:   then we should put all the globals in a single type, and create local copies in each subroutine
   !:   but that's a lot of edits in the current state of the code...
   use variables_setup ! MolInfo class definition
   use util
