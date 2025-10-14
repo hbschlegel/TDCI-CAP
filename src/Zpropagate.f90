@@ -223,20 +223,7 @@ subroutine Ztrotter_linear
       timestep_loop : do itime=1, nstep-1
 
       !: modified midpoint
-      Priv%efield1 = 0.5d0 * Priv%emax1 * ( fvect1(itime) + fvect1(itime+1) )
-      if( read_shift(iemax).ne.0 ) then
-        if(itime.eq.1) write(iout,"(' Pulse has been shifted by ',i6,' steps')") read_shift(iemax)
-        i = itime-read_shift(iemax)
-        if( i.gt.0 .and. i.lt.nstep ) then
-          Priv%efield1 = 0.5d0 * Priv%emax1 * ( fvect1(i) + fvect1(i+1) )
-        else
-          Priv%efield1 = 0.d0
-        end if
-      end if
-      Priv%efield2 = 0.d0
-      Priv%efieldx = Priv%dirx1 * Priv%efield1
-      Priv%efieldy = Priv%diry1 * Priv%efield1
-      Priv%efieldz = Priv%dirz1 * Priv%efield1
+      call PrivSetField(Priv, itime, iemax)
 
       if( itime.lt.ion_sample_start(iemax) ) psi = dcmplx(0.d0,0.d0)
       if( Qread_ion_coeff ) then
