@@ -5,11 +5,15 @@ use analysis
 use util
 use sort
 use io_binary  ! io_bin_test, write_dbin, read_dbin
+use hdf5
+use hdf5_interface
+use nano_timer
   
 implicit none
 
 
 type PropagationPrivate
+
   !: field info
   real(8) :: dirx1, diry1, dirz1, emax1, efield1
   real(8) :: dirx2, diry2, dirz2, emax2, efield2
@@ -28,19 +32,33 @@ type PropagationPrivate
   integer(8)   :: funit(7) !: Output data file units
   character(4) :: dirstr, emaxstr
   character(100) :: cifile, datafile
-  !: lapack stuff and misc
+ !: lapack stuff and misc
   integer(8) :: info2, info3
-  real(8)    :: start1, start2, finish1, finish2
+  integer(8) :: wallstart1, wallstart2, wallfinish1, wallfinish2
+  real(8)    :: start1, start2, start3, finish1, finish2, finish3
+  real(8)    :: h5cumtime, plaincumtime
   !integer(8) :: info1, lscratch, liwork
   !integer(8), allocatable :: iwork(:)
   !real(8), allocatable    :: scratch(:)
 
   integer(8) :: &
-    nva95max, nva99max, nva95maxMO, nva99maxMO, nva95max_debug, &
-    nva99max_debug, nva95MO_sort, nva99MO_sort, nva95NO_sort, nva99NO_sort, &
-    nva95max_direct, nva99max_direct, MO99, NO99
+    nva95_MO, nva99_MO, nva95_NO, nva99_NO, nva95_debug, &
+    nva99_debug, nva95_MO_sort, nva99_MO_sort, nva95_NO_sort, nva99_NO_sort, &
+    nva95_direct, nva99_direct
 
-  real(8) :: rate_density, rate_direct, rate_debug, rate_raw
+  real(8) :: rate_density, rate_direct, rate_debug, rate_noabs
+
+  integer(HID_T) :: file_id
+  integer(HID_T) :: dir_grpid, field_grpid
+  !: real(8) datasets
+  integer(HID_T) :: time_dsid, efield1_dsid, efield2_dsid 
+  integer(HID_T) :: efieldx_dsid, efieldy_dsid, efieldz_dsid
+  integer(HID_T) :: norm2_dsid, mux_dsid, muy_dsid, muz_dsid
+  integer(HID_T) :: rate_dsid, pop1_dsid, rate_aa_dsid, rate_ab_dsid, &
+    rate_bb_dsid, rate_a_dsid, rate_b_dsid, ion_dsid, ion_coeff_dsid
+  integer(HID_T) :: dens_dsid, psi_dsid, psi_det0_dsid
+  !: integer(8) datasets
+  integer(HID_T) :: nva99MO_dsid, nva99MOsort_dsid, nva99NO_dsid, nva99NOsort_dsid
 
   contains
     procedure :: initialize => initialize_PropPriv
@@ -54,11 +72,6 @@ end type PropagationPrivate
 
 type PropagationShared
 
-  integer(8) :: &
-    nva95maxmax, nva99maxmax, nva95maxmaxMO, nva99maxmaxMO, &
-    nva95maxmax_direct,nva99maxmax_direct,nva95maxMO_sort,nva99maxMO_sort, &
-    nva95maxNO_sort, nva99maxNO_sort
-
   !: Natural Orbital generation
   real(8), allocatable :: opdm_avg(:)  !: Averaged one-particle reduced density matrix (1-RDM)
   real(8), allocatable :: opdm_avg_abs(:)  !: average(abs(opdm))
@@ -66,7 +79,7 @@ type PropagationShared
   real(8), allocatable :: natorb_occ_abs(:) !: Natural orbital occupations (eigenvalues)
   real(8), allocatable :: U_NO(:) !: MO->NO transformation matrix
   real(8), allocatable :: U_NO_abs(:) !: MO->NO_abs transformation matrix
-  integer(8) :: opdm_avg_N
+  integer(8) :: opdm_avg_N, datetime_start(8)
   real(8), allocatable :: U_NO_input(:) !: U_NO read from file
 
   real(8) :: ratemax_density, ratemax_direct, ratemax_debug
@@ -74,6 +87,7 @@ type PropagationShared
 
   contains
     procedure :: initialize => initialize_PropShared
+    procedure :: deconstruct => deconstruct_PropShared
 
 end type PropagationShared
 
@@ -104,15 +118,17 @@ subroutine initialize_PropPriv(this)
   this%norm = 0.d0; this%normV = 0.d0; this%rate = 0.d0
   this%mux = 0.d0; this%muy = 0.d0 ; this%muz = 0.d0
 
-  this%nva95max = 0 ; this%nva99max = 0 ; this%nva95maxMO = 0 ; this%nva99maxMO = 0
-  this%nva95max_direct = 0 ; this%nva99max_direct = 0
-  this%nva95max_debug = 0 ; this%nva99max_debug = 0
-  this%nva95MO_sort = 0
-  this%nva99MO_sort = 0
-  this%nva95NO_sort = 0
-  this%nva99NO_sort = 0    
+  this%nva95_MO = 0 ; this%nva99_MO = 0 ; this%nva95_NO = 0 ; this%nva99_NO = 0
+  this%nva95_direct = 0 ; this%nva99_direct = 0
+  this%nva95_debug = 0 ; this%nva99_debug = 0
+  this%nva95_MO_sort = 0
+  this%nva99_MO_sort = 0
+  this%nva95_NO_sort = 0
+  this%nva99_NO_sort = 0    
   this%rate_density = 0.d0 ; this%rate_direct = 0.d0 ; this%rate_debug = 0.d0
-  this%rate_raw = 0.d0
+  this%rate_noabs = 0.d0
+
+  this%h5cumtime = 0.d0 ; this%plaincumtime = 0.d0
 
   !if( QeigenDC ) then
   !  allocate( this%iwork(3+5*nstuse) )
@@ -126,18 +142,249 @@ subroutine initialize_PropPriv(this)
   !allocate( this%psi1(nstates) )
 
 
+
 end subroutine initialize_PropPriv
 
 subroutine deconstruct_PropPriv(this)
   implicit none
-
   class(PropagationPrivate), intent(inout) :: this
 
-  !write(iout, *) "Deallocating Priv!"
-  deallocate( this%rate_aa(noa*noa), this%rate_ab(noa*nob), this%rate_ba(nob*noa), this%rate_bb(nob*nob) )
-  deallocate( this%rate_a(noa), this%rate_b(nob) )
+  if(h5inc_enable) then
+    !$OMP CRITICAL (IO_LOCK)
+    call h5_close_group(this%dir_grpid)
+    call h5_close_file(this%file_id)
+    !$OMP END CRITICAL (IO_LOCK)
+  end if
+
+  deallocate( this%density_complex, this%transition_rates )
+  deallocate( this%rate_aa(noa*noa), this%rate_ab(noa*nob) )
+  deallocate( this%rate_ba(nob*noa), this%rate_bb(nob*nob) )
+  deallocate( this%rate_a(noa+nva), this%rate_b(nob+nva+2) )
 
 end subroutine deconstruct_PropPriv
+
+subroutine write_h5metadata(datetime_start)
+  implicit none
+  integer(8), intent(in) :: datetime_start(8)
+
+  integer(HID_T) :: file_id, group_id
+  logical :: file_exists
+  character(len=2048) :: opath, group_path
+  character(len=128) :: str_id
+  integer(8) :: datetime_end(8)
+
+  write(iout, *) "Writing metadata.h5"
+  write(opath, '( "metadata.h5" )')
+  write(group_path, '( "/metadata" )')
+  inquire(file=opath, exist=file_exists)
+  if (file_exists) then
+    call execute_command_line("rm -f " // opath) ! I don't think this works.
+  end if
+  call h5_open_file(trim(opath), file_id)
+  call h5_create_group(file_id, group_path, group_id)
+  call h5_write_attribute_int(group_id, "nemax", [nemax])
+  call h5_write_attribute_int(group_id, "ndir", [ndir])
+  call h5_write_attribute_int(group_id, "nbasis", [nbasis])
+  call h5_write_attribute_int(group_id, "nrorb", [nrorb])
+  call h5_write_attribute_int(group_id, "noa", [noa])
+  call h5_write_attribute_int(group_id, "nob", [nob])
+  call h5_write_attribute_int(group_id, "nva", [nva])
+  call h5_write_attribute_int(group_id, "nvb", [nvb])
+  call h5_write_attribute_int(group_id, "nstates", [nstates])
+  call h5_write_attribute_int(group_id, "nstuse", [nstuse])
+  call h5_write_attribute_int(group_id, "ip_states", [ip_states])
+  call DATE_AND_TIME(VALUES=datetime_end)
+  call h5_write_attribute_int(group_id, "datetime_start", datetime_start)
+  call h5_write_attribute_int(group_id, "datetime_end", datetime_end)
+
+  call h5_write_static_real(group_id, "orben", Mol%orben)
+  call h5_write_static_real(group_id, "vabsmoa", Mol%vabsmoa)
+  call h5_write_static_real(group_id, "cmo_a", Mol%cmo_a)
+  call h5_write_static_real(group_id, "dipxmoa", Mol%dipxmoa)
+  call h5_write_static_real(group_id, "dipymoa", Mol%dipymoa)
+  call h5_write_static_real(group_id, "dipzmoa", Mol%dipzmoa)
+
+  call h5_write_static_int(group_id, "hole_index", hole_index)
+  call h5_write_static_int(group_id, "part_index", part_index)
+  call h5_write_static_int(group_id, "hole_ip_index", hole_ip_index)
+  call h5_write_static_int(group_id, "part_ip_index", part_ip_index)
+
+
+  call h5_close_group(group_id)
+  call h5_close_file(file_id)
+
+end subroutine write_h5metadata
+
+
+
+!: Create new h5 file for the direction thread
+subroutine init_h5dir(Priv, idir)
+  implicit none
+  class(PropagationPrivate), intent(inout) :: Priv
+  integer(8), intent(in) ::  idir
+
+  integer(HID_T) :: file_id, grp_id, dset_id_real
+  character(len=128) :: gpath, fpath
+  logical :: file_exists
+
+  write(fpath, '( "thread", i0, ".h5" )') idir
+  inquire(file=fpath, exist=file_exists)
+  if (file_exists) then
+    call execute_command_line("rm -f " // fpath)
+  end if
+  file_id = -1
+  call h5_open_file(fpath, file_id)
+  Priv%file_id = file_id
+
+  write(gpath, '( "/direction_", i0 )') idir
+  call h5_create_group(file_id, gpath, grp_id)
+  call h5_write_attribute_real(grp_id, &
+         "field_direction", [Priv%dirx1,Priv%diry1,Priv%dirz1])
+  Priv%dir_grpid = grp_id
+
+end subroutine init_h5dir
+
+!: Create the /directionX/fieldY direction
+subroutine init_h5emax(Priv, iemax, idir)
+  class(PropagationPrivate), intent(inout) :: Priv
+  integer(8), intent(in) :: iemax, idir
+  integer(HSIZE_T), dimension(1) :: one_dim, nrorb_dim, nrorb2_dim, norb_dim
+  integer(HSIZE_T), dimension(1) :: noa_dim, nob_dim, noa2_dim, noanob_dim, nob2_dim, &
+    ip_states_dim, rate_b_dim, ion_coeff_dim, nstuse_dim, nstates_dim
+  
+  character(len=128) :: gpath
+  integer(HID_T) :: grp_id
+
+  grp_id = -1
+  write(gpath, '( "/direction_", i0, "/field_", i0 )') idir, iemax
+  !write(iout, *) "before create emax group ", Priv%file_id, gpath ; flush(iout)
+
+  call h5_create_group(Priv%dir_grpid, gpath, grp_id)
+  Priv%field_grpid = grp_id
+  !write(iout, *) "emax group created: ", grp_id, Priv%field_grpid ; flush(iout)
+
+  !: We have to declare these as integer(HSIZE_T) arrays
+  one_dim = [1]
+  nrorb_dim = [nrorb]
+  norb_dim = [norb]
+  nrorb2_dim = [nrorb*nrorb]
+  noa2_dim = [noa*noa]
+  noanob_dim = [noa*nob]
+  nob2_dim = [nob*nob]
+  noa_dim = [noa]
+  nob_dim = [nob]
+  ip_states_dim = [ip_states]
+  rate_b_dim = [nrorb+2]
+  ion_coeff_dim = [max(2*ip_states*(nva+nvb),ip_states*ip_states)]
+  nstuse_dim = [nstuse]
+  nstates_dim = [nstates]
+
+  call h5_create_dataset_real(grp_id, "time", one_dim, Priv%time_dsid)
+  call h5_create_dataset_real(grp_id, "efield1", one_dim, Priv%efield1_dsid)
+  call h5_create_dataset_real(grp_id, "efield2", one_dim, Priv%efield2_dsid)
+  call h5_create_dataset_real(grp_id, "efieldx", one_dim, Priv%efieldx_dsid)
+  call h5_create_dataset_real(grp_id, "efieldy", one_dim, Priv%efieldy_dsid)
+  call h5_create_dataset_real(grp_id, "efieldz", one_dim, Priv%efieldz_dsid)
+  call h5_create_dataset_real(grp_id, "norm2", one_dim, Priv%norm2_dsid)
+  call h5_create_dataset_real(grp_id, "mux", one_dim, Priv%mux_dsid)
+  call h5_create_dataset_real(grp_id, "muy", one_dim, Priv%muy_dsid)
+  call h5_create_dataset_real(grp_id, "muz", one_dim, Priv%muz_dsid)
+  call h5_create_dataset_real(grp_id, "rate", one_dim, Priv%rate_dsid)
+
+  call h5_create_dataset_int(grp_id, "nva99MO", one_dim, Priv%nva99MO_dsid)
+  call h5_create_dataset_int(grp_id, "nva99MOsort", one_dim, Priv%nva99MOsort_dsid)
+  call h5_create_dataset_int(grp_id, "nva99NO", one_dim, Priv%nva99NO_dsid)
+  call h5_create_dataset_int(grp_id, "nva99NOsort", one_dim, Priv%nva99NOsort_dsid)
+  if(h5inc_density) then
+    call h5_create_dataset_real(grp_id, "density", nrorb2_dim, Priv%dens_dsid)
+  end if
+  if(h5inc_psi) then
+    call h5_create_dataset_complex(grp_id, "psi", nstuse_dim, Priv%psi_dsid)
+  end if
+  if(h5inc_psi_det0) then
+    call h5_create_dataset_complex(grp_id, "psi_det0", nstates_dim, Priv%psi_det0_dsid)
+  end if
+
+  !: funit(3)
+  call h5_create_dataset_real(grp_id, "pop1", norb_dim, Priv%pop1_dsid)
+  if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
+
+    call h5_create_dataset_real(grp_id, "rate_aa", noa2_dim, Priv%rate_aa_dsid)
+    call h5_create_dataset_real(grp_id, "rate_ab", noanob_dim, Priv%rate_ab_dsid)
+    call h5_create_dataset_real(grp_id, "rate_bb", nob2_dim, Priv%rate_bb_dsid)
+
+  else !: flag_cis, flag_soc
+    call h5_create_dataset_real(grp_id, "rate_a", nrorb_dim, Priv%rate_a_dsid)
+    call h5_create_dataset_real(grp_id, "rate_b", rate_b_dim, Priv%rate_b_dsid)
+  end if
+
+  !: funit(4)
+  call h5_create_dataset_real(grp_id, "ion", norb_dim, Priv%ion_dsid)
+  call h5_create_dataset_complex(grp_id, "ion_coeff", ion_coeff_dim, Priv%ion_coeff_dsid)
+
+
+end subroutine init_h5emax
+
+
+subroutine write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, &
+                                  ion_coeff, scratch, itime, idata, pop1, ion)
+  implicit none
+
+  class(PropagationPrivate), intent(inout) :: Priv
+  
+  complex(8), intent(inout) :: psi(nstuse), psi1(nstates), psi_det0(:)
+  complex(8), intent(inout) :: Zion_coeff(:), ion_coeff(:)
+  real(8), intent(inout) :: scratch(:)
+
+  integer(8), intent(inout) :: itime, idata
+  real(8), intent(inout) :: pop1(:), ion(:)
+  integer(8) :: ndim2
+
+  ndim2 = (noa+nva)*(noa+nva)
+
+  call h5_append_real(Priv%time_dsid , [dble(itime)*dt*au2fs])
+  call h5_append_real(Priv%efield1_dsid , [Priv%efield1])
+  call h5_append_real(Priv%efield2_dsid , [Priv%efield2])
+  call h5_append_real(Priv%efieldx_dsid , [Priv%efieldx])
+  call h5_append_real(Priv%efieldy_dsid , [Priv%efieldy])
+  call h5_append_real(Priv%efieldz_dsid , [Priv%efieldz])
+  call h5_append_real(Priv%norm2_dsid , [Priv%norm**2])
+  call h5_append_real(Priv%mux_dsid , [Priv%mux])
+  call h5_append_real(Priv%muy_dsid , [Priv%muy])
+  call h5_append_real(Priv%muz_dsid , [Priv%muz])
+  call h5_append_real(Priv%rate_dsid , [Priv%rate/au2fs])
+
+  call h5_append_int(Priv%nva99MO_dsid , [Priv%nva99_MO])
+  call h5_append_int(Priv%nva99MOsort_dsid , [Priv%nva99_MO_sort])
+  call h5_append_int(Priv%nva99NO_dsid , [Priv%nva99_NO])
+  call h5_append_int(Priv%nva99NOsort_dsid , [Priv%nva99_NO_sort])
+  if(h5inc_density) then
+    call h5_append_real(Priv%dens_dsid, scratch(:ndim2))
+  end if
+  if(h5inc_psi) then
+    call h5_append_complex(Priv%psi_dsid, psi(:nstuse))
+  end if
+  if(h5inc_psi_det0) then
+    call h5_append_complex(Priv%psi_det0_dsid, psi_det0)
+  end if
+
+  call h5_append_real(Priv%pop1_dsid, pop1)
+  if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
+    call h5_append_real(Priv%rate_aa_dsid, Priv%rate_aa)
+    call h5_append_real(Priv%rate_ab_dsid, Priv%rate_ab)
+    call h5_append_real(Priv%rate_bb_dsid, Priv%rate_bb)
+  else !: flag_cis, flag_soc
+    call h5_append_real(Priv%rate_a_dsid, Priv%rate_a)
+    call h5_append_real(Priv%rate_b_dsid, Priv%rate_b)
+  end if
+  call h5_append_real(Priv%ion_dsid, ion)
+  !write(*,*) "test", max(2*ip_states*(nva+nvb),ip_states*ip_states), size(ion_coeff)
+  call h5_append_complex(Priv%ion_coeff_dsid, ion_coeff)
+
+
+
+end subroutine write_h5_step
+
 
 !: Run once for each thread at start of propagation
 !: Sets up the funit values and writes headers to .dat files.
@@ -166,7 +413,6 @@ subroutine PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, 
   !: for writing out files later
   write( Priv%emaxstr, '(i0)' ) iemax
   write( Priv%dirstr, '(i0)' )  idir
-
 
   Priv%funit(1) = 0    +1000*iemax + idir
   Priv%funit(2) = 10000+1000*iemax + idir
@@ -349,21 +595,21 @@ subroutine PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff, scrat
   if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
     if(Priv%norm.ne.0) then
       write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
-             idata, dble(itime)*dt*au2fs,Priv%nva99max,Priv%nva99max_direct,Priv%efield1,Priv%efield2,&
+             idata, dble(itime)*dt*au2fs,Priv%nva99_NO,Priv%nva99_MO,Priv%efield1,Priv%efield2,&
              Priv%efieldx,Priv%efieldy,Priv%efieldz, &
              Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz, &
              !Priv%norm**2, tmprate, Priv%rate, Priv%rate/au2fs, Priv%muz, &
              (dble(dconjg(psi(i))*psi(i))/Priv%norm**2,i=1,20)
     else !: norm is zero? when does this happen?
       write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
-             idata, dble(itime)*dt*au2fs,Priv%nva99max,Priv%nva99max_direct,Priv%efield1,Priv%efield2,&
+             idata, dble(itime)*dt*au2fs,Priv%nva99_NO,Priv%nva99_MO,Priv%efield1,Priv%efield2,&
              Priv%efieldx,Priv%efieldy,Priv%efieldz, &
              Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz,&
              0.d0,0.d0,0.d0,0.d0,0.d0,0.d0
     end if
   else
     write( Priv%funit(2),"( i5,f10.4,2i5,1x,5(f10.7,1x),2(1x,f15.10),500(1x,f15.10))") &
-           idata, dble(itime)*dt*au2fs,Priv%nva99max,Priv%nva99max_direct,Priv%efield1,Priv%efield2,&
+           idata, dble(itime)*dt*au2fs,Priv%nva99_NO,Priv%nva99_MO,Priv%efield1,Priv%efield2,&
            Priv%efieldx,Priv%efieldy,Priv%efieldz, &
            Priv%norm**2, Priv%rate/au2fs, Priv%mux, Priv%muy, Priv%muz 
            !Priv%norm**2, tmprate, Priv%rate, Priv%rate/au2fs, Priv%muz 
@@ -511,7 +757,6 @@ subroutine PrivSetField(Priv, itime, iemax)
     Priv%temp2 = dt * Priv%efield2
   end if
     
-
 end subroutine PrivSetField
 
 !==================================================================!
@@ -546,25 +791,25 @@ subroutine initialize_PropShared(Prop)
   Prop%U_NO = 0.d0
   Prop%U_NO_abs = 0.d0
   Prop%opdm_avg_N = ndir*(nstep/outstep)
-  write(iout, '(A,i5)') "opdm_avg_N: ", Prop%opdm_avg_N
+  !write(iout, '(A,i5)') "opdm_avg_N: ", Prop%opdm_avg_N
 
   !if ( .true. ) then
   if ( flag_ReadU_NO ) then
     call read_dbin( Prop%U_NO_input, (nrorb*nrorb), "U_NO_input.bin", info)
   end if
 
-  Prop%nva95maxmax = 0 ; Prop%nva99maxmax = 0 ; Prop%nva95maxmaxMO = 0 ; Prop%nva99maxmaxMO = 0
-  Prop%nva95maxmax_direct = 0 ; Prop%nva99maxmax_direct = 0 ; Prop%nva95maxMO_sort = 0
-  Prop%nva99maxMO_sort = 0 ; Prop%nva95maxNO_sort = 0 ; Prop%nva99maxNO_sort = 0
+  if(datfile_enable) then
+    call write_dbin_safe( Mol%vabsmoa, nrorb*nrorb, "matrices/Vabs_MO.bin" )
+    call write_dbin_safe( Mol%cmo_a, nbasis*nrorb, "matrices/CMO.bin" )
+    call write_dbin_safe( Mol%dipxmoa, nbasis*nrorb, "matrices/dipxmoa.bin" )
+    call write_dbin_safe( Mol%dipymoa, nbasis*nrorb, "matrices/dipymoa.bin" )
+    call write_dbin_safe( Mol%dipzmoa, nbasis*nrorb, "matrices/dipzmoa.bin" )
+  end if
 
-  call write_dbin_safe( Mol%vabsmoa, nrorb*nrorb, "matrices/Vabs_MO.bin" )
-  call write_dbin_safe( Mol%cmo_a, nbasis*nrorb, "matrices/CMO.bin" )
-  call write_dbin_safe( Mol%dipxmoa, nbasis*nrorb, "matrices/dipxmoa.bin" )
-  call write_dbin_safe( Mol%dipymoa, nbasis*nrorb, "matrices/dipymoa.bin" )
-  call write_dbin_safe( Mol%dipzmoa, nbasis*nrorb, "matrices/dipzmoa.bin" )
-
-  write(iout, "('Maximum(cis_eig)=',f10.4)") maxval(cis_eig, 1)
-  write(iout, "('Minimum(cis_eig)=',f10.4)") minval(cis_eig, 1)
+  if(verbosity.gt.1) then
+    write(iout, "('Maximum(cis_eig)=',f10.4)") maxval(cis_eig, 1)
+    write(iout, "('Minimum(cis_eig)=',f10.4)") minval(cis_eig, 1)
+  end if
   min_temp = 0.0 ; max_temp = 0.0
   i_min = 0 ; i_max = 0 ; j_min = 0 ; j_max = 0
   do i = 1,nrorb
@@ -581,8 +826,10 @@ subroutine initialize_PropShared(Prop)
       end if
     end do
   end do
-  write(iout, "('Maximum(vabsmoa)=',i5,i5,f10.4)") i_max, j_max, max_temp
-  write(iout, "('Minimum(vabsmoa)=',i5,i5,f10.4)") i_min, j_min, min_temp
+  if(verbosity.gt.1) then
+    write(iout, "('Maximum(vabsmoa)=',i5,i5,f10.4)") i_max, j_max, max_temp
+    write(iout, "('Minimum(vabsmoa)=',i5,i5,f10.4)") i_min, j_min, min_temp
+  end if
   ! Dipole
   min_temp = 0.0 ; max_temp = 0.0
   i_min = 0 ; i_max = 0 ; j_min = 0 ; j_max = 0
@@ -601,12 +848,26 @@ subroutine initialize_PropShared(Prop)
       end if
     end do
   end do
-  write(iout, "('Maximum(MO dipole norm                 )=',i5,i5,f10.4)") i_max, j_max, max_temp
-  write(iout, "('Maximum(MO dipole norm (diagonals only))=',i5,i5,f10.4)") i_min, i_min, min_temp
+  if(verbosity.gt.1) then
+    write(iout, "('Maximum(MO dipole norm                 )=',i5,i5,f10.4)") i_max, j_max, max_temp
+    write(iout, "('Maximum(MO dipole norm (diagonals only))=',i5,i5,f10.4)") i_min, i_min, min_temp
+  end if
+  call DATE_AND_TIME(VALUES=Prop%datetime_start)
 
 
 
 end subroutine initialize_PropShared
+
+
+subroutine deconstruct_PropShared(this)
+  class(PropagationShared), intent(inout) :: this
+
+  deallocate( this%opdm_avg , this%opdm_avg_abs )
+  deallocate( this%natorb_occ, this%natorb_occ_abs )
+  deallocate( this%U_NO, this%U_NO_abs )
+  deallocate( this%U_NO_input )
+end subroutine deconstruct_PropShared
+
 
 
 
@@ -706,17 +967,12 @@ subroutine trotter_linear
   !: write psi0
   call writeme_propagate( 'trot_lin', 'psi0' )    
 
-
   !: Start loop over directions.
-
-  !if ( write_binaries .or. Qmo_dens ) then
-  !  call omp_set_num_threads(8) ! Limit threads when they have heavy I/O
-  !end if
 
   !$OMP PARALLEL DEFAULT(NONE),&
   !$OMP PRIVATE(Priv, i, idata, idir, iemax, ii, itime, j, jj, k, kk, ithread, &
   !$OMP norm0, lscratch, liwork, scratch, iwork, info1, start1, finish1, &
-  !$OMP psi_j, psi_k, psi, psi1, start3, finish3, times, &
+  !$OMP psi_j, psi_k, psi, psi1, start2, finish2, start3, finish3, times, &
   !$OMP pop1, ion, ion_coeff, psi_det0,  &
   !$OMP hp1, tdvals1, Zion_coeff ),  &
   !$OMP SHARED( Mol, Prop, jobtype, nbasis, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
@@ -726,7 +982,7 @@ subroutine trotter_linear
   !$OMP state_ip_index, ip_states, read_states, ip_vec, Zproj_ion, Qread_ion_coeff, Qwrite_ion_coeff, &
   !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
   !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save, &
-  !$OMP flag_ReadU_NO, write_orb_transitionrates )
+  !$OMP flag_ReadU_NO, write_orb_transitionrates, h5inc_enable, datfile_enable, verbosity )
   
   !$OMP DO  
   dir_loop : do idir=1, ndir
@@ -737,7 +993,6 @@ subroutine trotter_linear
     psi = 0 ; psi1 = 0
     tdvals1 = 0.d0 ;
 
-    !write(iout, '(A, I5, L1)') "Priv allocated at start of thread ", ithread , allocated(Priv)
     allocate(Priv)
     call Priv%initialize()
 
@@ -745,6 +1000,13 @@ subroutine trotter_linear
     Priv%dirx1 = tdciresults(idir)%x0  
     Priv%diry1 = tdciresults(idir)%y0  
     Priv%dirz1 = tdciresults(idir)%z0  
+
+    if(h5inc_enable) then
+      !$OMP CRITICAL (IO_LOCK)
+      !: Create the /direction_idir group in the h5 file
+      call init_h5dir(Priv, idir)
+      !$OMP END CRITICAL (IO_LOCK)
+    end if
 
     !: get mu dot e-vector matrix elements in CIS basis.  diagonalize
     hp1(:) = Priv%dirx1*tdx(1:nstuse2) &
@@ -773,18 +1035,35 @@ subroutine trotter_linear
     !: loop over intensities
     emax_loop : do iemax=1, nemax
 
-      call cpu_time(start1)
       !: get emax
       Priv%emax1 = tdciresults(1+(iemax-1)*ndir)%fstrength0
 
-
       !$OMP CRITICAL (IO_LOCK)
-      call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
-      if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
-      write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
-      write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
-      write( iout, "('  Minimum(tdvals1) = ',f12.4)") minval(tdvals1)
+
+      if(datfile_enable) then
+        call cpu_time(start2)
+        call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
+        call cpu_time(finish2)
+        Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+      end if
+
+      if(h5inc_enable) then
+        call cpu_time(start2)
+        call init_h5emax(Priv, iemax, idir)
+        call cpu_time(finish2)
+        Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+      end if
+
+      if(verbosity.gt.1) then
+        if(iemax.eq.1) write(iout,"(12x,'Init, TD diag, and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
+        write(iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
+      end if
+      if(verbosity.gt.2) then
+        write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
+        write( iout, "('  Minimum(tdvals1) = ',f12.4)") minval(tdvals1)
+      end if
       flush( iout )
+
       !$OMP END CRITICAL (IO_LOCK)
                   
       !: initialize psi
@@ -808,197 +1087,238 @@ subroutine trotter_linear
         psi0 = psi
       end if
       if( Qread_ion_coeff ) psi = dcmplx(0.d0,0.d0)
-
       call cpu_time(finish3)
       times(1) = start3 - finish3
 
       !: begin Looping over time
       call cpu_time( Priv%start2 )
-        timestep_loop : do itime=1, nstep-1
+      timestep_loop : do itime=1, nstep-1
 
-          call cpu_time(start3)
-          call PrivSetField(Priv, itime, iemax) 
+        call cpu_time(start3)
+        call PrivSetField(Priv, itime, iemax) 
 
-          !: How can we factor out this ion sampling stuff?
-          if( itime.lt.ion_sample_start(iemax) ) psi = dcmplx(0.d0,0.d0)
-          if( Qread_ion_coeff ) then
-            if( itime.ge.ion_sample_start(iemax) .and. &
-                itime.le.ion_sample_start(iemax)+ion_sample_width(iemax) ) then
-              ii = (itime-1)*(noa+nob)*(noa+nob+1)
-              !: tranform ion_coeff to CI basis and add to psi
-              !write(iout,"('R0',i5,i3,16F10.6)") itime,ion_sample_state(iemax)
-              call get_ion_psi1(iout,nstates,nstuse,noa+nob,ion_sample_state(iemax), &
-                     dt,cis_vec,psi,Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),psi_det0)
-            end if
-          else
-            if( itime.eq.ion_sample_start(iemax) ) psi = psi0
-          end if
-          call cpu_time(finish3)
-          times(2) = finish3 - start3
-
-          !: Below follows Equation (6) from https://doi.org/10.3389/fchem.2022.866137 
-          call cpu_time(start3)
-          !: psi contains C(t)
-          !: psi = exp(-iHel dt/2 ) * C(t)
-          do i=1, nstuse
-            psi(i) = exphel(i) * psi(i)
-          end do
-          call cpu_time(finish3)
-          times(3) = finish3 - start3
-
-           
-          call cpu_time(start3)
-          !: psi contains exp(-iHel dt/2 ) * C(t)
-          !: psi1 = W * exp(-Vabs dt/2) * psi
-          psi1 = dcmplx(0.d0,0.d0)
-          do j = 1, nstuse
-            jj = ( j-1) * nstuse  
-            psi_j = psi(j)
-            do k=1, nstuse
-              psi1(k) = psi1(k) + hp1( jj+k ) * psi_j
-            end do
-          end do
-          call cpu_time(finish3)
-          times(4) = finish3 - start3
-
-           
-          call cpu_time(start3)
-          !: psi1 contains W * exp(-Vabs dt/2) * exp(-iHel dt/2 ) * C(t)
-          !: psi1 = exp(-E(t+dt/2)*mu*dt) * psi1
-          do j = 1, nstuse
-            Priv%temp = dt * Priv%efield1 * tdvals1(j)
-            psi1(j) = dcmplx( dcos(Priv%temp),dsin(Priv%temp) ) * psi1(j)
-          end do
-          call cpu_time(finish3)
-          times(5) = finish3 - start3
-
-           
-          call cpu_time(start3)
-          !: psi1 contains exp(-E(t+dt/2)*mu*dt) * W 
-          !:               * exp(-Vabs dt/2) * exp(-iHel dt/2 ) * C(t)
-          !: psi = exp(-iHel dt/2) * exp(-Vabs dt/2) * W.T * psi1
-          do j = 1, nstuse
-            jj = nstuse * ( j-1 )
-            psi_j = dcmplx( 0.d0, 0.d0 )
-            do k=1, nstuse
-               psi_j  = psi_j + hp1( jj+k ) * psi1(k)
-            end do
-              psi(j) = exphel(j) * psi_j
-          end do
-          !: psi now contains the result of Equation (6), C(t+dt) = 
-          !:   exp(-iHel dt/2) * exp(-Vabs dt/2)
-          !:    * W.T * exp(-E(t+dt/2)*mu*dt) * W
-          !:    * exp(-Vabs dt/2) * exp(-iHel dt/2 ) * C(t)
-          call cpu_time(finish3)
-          times(6) = finish3 - start3
-           
-          call cpu_time(start3)
-          if( Qwrite_ion_coeff ) then
-            call get_norm( Priv%norm, nstuse, psi )
-            call get_psid( nstuse, nstates, cis_vec, Priv%norm, psi, psi_det0 )
+        !: How can we factor out this ion sampling stuff?
+        if( itime.lt.ion_sample_start(iemax) ) psi = dcmplx(0.d0,0.d0)
+        if( Qread_ion_coeff ) then
+          if( itime.ge.ion_sample_start(iemax) .and. &
+              itime.le.ion_sample_start(iemax)+ion_sample_width(iemax) ) then
             ii = (itime-1)*(noa+nob)*(noa+nob+1)
-            call get_ion_coeff(hole_index,part_index,psi_det0,psi1,Priv%norm,&
-                   Mol%vabsmoa,Mol%vabsmob,Priv%rate,&
-                   Zion_coeff( ii+1 : ii+(noa+nob)*(noa+nob+1) ),ion_coeff,scratch)
-            !write(iout,"('W0',i5,i7,16f12.8)") itime,ii,rate,scratch(1:noa+nob)
-            do i = 1,noa+nob
-              do j =1,noa+nob
-                Zion_coeff(ii+i*(noa+nob)+j) =  &
-                    dsqrt(Priv%rate) * scratch(i) * Zion_coeff(ii+i*(noa+nob)+j)
-              end do
-            end do
-            !if ( mod(itime,outstep).eq.0 )  write(iout,"(i5,' SVD ',10(5F12.8/))") &
-            !                                       itime,norm,(scratch(i),i=1,noa+nob)               
+            !: tranform ion_coeff to CI basis and add to psi
+            !write(iout,"('R0',i5,i3,16F10.6)") itime,ion_sample_state(iemax)
+            call get_ion_psi1(iout,nstates,nstuse,noa+nob,ion_sample_state(iemax), &
+                   dt,cis_vec,psi,Zion_coeff(ii+1:ii+(noa+nob)*(noa+nob+1)),psi_det0)
           end if
-          call cpu_time(finish3)
-          times(7) = finish3 - start3
+        else
+          if( itime.eq.ion_sample_start(iemax) ) psi = psi0
+        end if
+        call cpu_time(finish3)
+        times(2) = finish3 - start3
 
-          analysis : if ( mod(itime,outstep).eq.0 ) then                
-              
-            idata = int( itime/outstep)  
-              
-            call get_norm( Priv%norm, nstuse, psi )
-            call get_psid( nstuse, nstates, cis_vec, Priv%norm, psi, psi_det0 )
+        !: Below follows Equation (6) from https://doi.org/10.3389/fchem.2022.866137 
+        call cpu_time(start3)
+        !: psi contains C(t)
+        !: psi = exp(-iHel dt/2 ) * C(t)
+        do i=1, nstuse
+          psi(i) = exphel(i) * psi(i)
+        end do
+        call cpu_time(finish3)
+        times(3) = finish3 - start3
 
-            !$OMP CRITICAL (IO_LOCK)
+         
+        call cpu_time(start3)
+        !: psi contains exp(-iHel dt/2 ) * C(t)
+        !: psi1 = W * exp(-Vabs dt/2) * psi
+        psi1 = dcmplx(0.d0,0.d0)
+        do j = 1, nstuse
+          jj = ( j-1) * nstuse  
+          psi_j = psi(j)
+          do k=1, nstuse
+            psi1(k) = psi1(k) + hp1( jj+k ) * psi_j
+          end do
+        end do
+        call cpu_time(finish3)
+        times(4) = finish3 - start3
 
-            if ( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip ) then
-              call pop_rate_ip(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
-                   hole_index,part_index,state_ip_index,ip_states, &
-                   pop1,ion,ion_coeff,Priv%rate_aa,Priv%rate_ab,Priv%rate_ba,Priv%rate_bb, &
-                   psi_det0,psi1,Priv%normV,Mol%vabsmoa,Mol%vabsmob,scratch,au2fs,Priv%rate_direct)
-            else
-              call pop_rate(Mol,jj,kk,hole_index,part_index,state_ip_index, &
-                   pop1,ion,ion_coeff,Priv%rate_a,Priv%rate_b,psi_det0,psi1,Priv%normV, &
-                   Mol%vabsmoa,Mol%vabsmob,scratch,Priv%rate_direct)
-            end if 
-            !: 1-RDM (opdm) should be stored in scratch now.
-            ! Calculate complex density matrix and transition rates
-            if ( write_orb_transitionrates ) then
-              write(iout,*) "before make_complex_density  ", ithread, " ", itime 
-              flush(iout)
-              call make_complex_density(hole_index(:,1),part_index(:,1),psi_det0,noa,nva,nstates,Priv%density_complex)
-              write(iout,*) "before make_transition_rate  ", ithread, " ", itime 
-              flush(iout)
-              call make_transition_rate((noa+nva), Mol%ham_mo, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Priv%efieldx, &
-                     Priv%efieldy, Priv%efieldz, Mol%vabsmoa, Priv%density_complex, Priv%transition_rates)
+         
+        call cpu_time(start3)
+        !: psi1 contains W * exp(-Vabs dt/2) * exp(-iHel dt/2 ) * C(t)
+        !: psi1 = exp(-E(t+dt/2)*mu*dt) * psi1
+        do j = 1, nstuse
+          Priv%temp = dt * Priv%efield1 * tdvals1(j)
+          psi1(j) = dcmplx( dcos(Priv%temp),dsin(Priv%temp) ) * psi1(j)
+        end do
+        call cpu_time(finish3)
+        times(5) = finish3 - start3
 
-              write( Priv%datafile, '(A,A,A,A,A,I0,A)') "matrices/MO_TransitionRate-e",&
-                trim(Priv%emaxstr),"-d", trim(Priv%dirstr), ".", itime, ".bin"
+         
+        call cpu_time(start3)
+        !: psi1 contains exp(-E(t+dt/2)*mu*dt) * W 
+        !:               * exp(-Vabs dt/2) * exp(-iHel dt/2 ) * C(t)
+        !: psi = exp(-iHel dt/2) * exp(-Vabs dt/2) * W.T * psi1
+        do j = 1, nstuse
+          jj = nstuse * ( j-1 )
+          psi_j = dcmplx( 0.d0, 0.d0 )
+          do k=1, nstuse
+             psi_j  = psi_j + hp1( jj+k ) * psi1(k)
+          end do
+            psi(j) = exphel(j) * psi_j
+        end do
+        !: psi now contains the result of Equation (6), C(t+dt) = 
+        !:   exp(-iHel dt/2) * exp(-Vabs dt/2)
+        !:    * W.T * exp(-E(t+dt/2)*mu*dt) * W
+        !:    * exp(-Vabs dt/2) * exp(-iHel dt/2 ) * C(t)
+        call cpu_time(finish3)
+        times(6) = finish3 - start3
+         
+        call cpu_time(start3)
+        if( Qwrite_ion_coeff ) then
+          call get_norm( Priv%norm, nstuse, psi )
+          call get_psid( nstuse, nstates, cis_vec, Priv%norm, psi, psi_det0 )
+          ii = (itime-1)*(noa+nob)*(noa+nob+1)
+          call get_ion_coeff(hole_index,part_index,psi_det0,psi1,Priv%norm,&
+                 Mol%vabsmoa,Mol%vabsmob,Priv%rate,&
+                 Zion_coeff( ii+1 : ii+(noa+nob)*(noa+nob+1) ),ion_coeff,scratch)
+          !write(iout,"('W0',i5,i7,16f12.8)") itime,ii,rate,scratch(1:noa+nob)
+          do i = 1,noa+nob
+            do j =1,noa+nob
+              Zion_coeff(ii+i*(noa+nob)+j) =  &
+                  dsqrt(Priv%rate) * scratch(i) * Zion_coeff(ii+i*(noa+nob)+j)
+            end do
+          end do
+          !if ( mod(itime,outstep).eq.0 )  write(iout,"(i5,' SVD ',10(5F12.8/))") &
+          !                                       itime,norm,(scratch(i),i=1,noa+nob)               
+        end if
+        call cpu_time(finish3)
+        times(7) = finish3 - start3
 
-              call write_dbin_safe(Priv%transition_rates, (noa+nva)*(noa+nva), Priv%datafile )
-            end if
-            !: 1-RDM stored in scratch now.
+        analysis : if ( mod(itime,outstep).eq.0 ) then                
+            
+          idata = int( itime/outstep)  
+            
+          call get_norm( Priv%norm, nstuse, psi )
+          call get_psid( nstuse, nstates, cis_vec, Priv%norm, psi, psi_det0 )
 
-            call get_norm( Priv%norm,nstuse, psi )
-            call get_expectation( nstuse, Priv%norm, psi, abp, Priv%rate) !: rate expectation value
-            call get_expectation( nstuse, Priv%norm, psi, tdx, Priv%mux ) !: mux  expectation value
-            call get_expectation( nstuse, Priv%norm, psi, tdy, Priv%muy ) !: muy  expectation value
-            call get_expectation( nstuse, Priv%norm, psi, tdz, Priv%muz ) !: muz  expectation value
-            !write(iout,*) " expectation Priv%rate", itime,Priv%norm,Priv%rate
-            Priv%rate = -2.d0 * Priv%rate * Priv%norm**2
+          !$OMP CRITICAL (IO_LOCK)
 
+          if ( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip ) then
+            call pop_rate_ip(Mol,nbasis,iout,noa,nob,norb,nstates,nva,nvb,jj,kk, &
+                 hole_index,part_index,state_ip_index,ip_states, &
+                 pop1,ion,ion_coeff,Priv%rate_aa,Priv%rate_ab,Priv%rate_ba,Priv%rate_bb, &
+                 psi_det0,psi1,Priv%normV,Mol%vabsmoa,Mol%vabsmob,scratch,au2fs,Priv%rate_direct)
+          else
+            call pop_rate(Mol,jj,kk,hole_index,part_index,state_ip_index, &
+                 pop1,ion,ion_coeff,Priv%rate_a,Priv%rate_b,psi_det0,psi1,Priv%normV, &
+                 Mol%vabsmoa,Mol%vabsmob,scratch,Priv%rate_direct)
+          end if 
+          !: 1-RDM (opdm) should be stored in scratch now.
+
+          !: Update nva
+          call update_maxnva( Priv%nva95_MO, Priv%nva99_MO, Priv%nva95_NO, Priv%nva99_NO, &
+            Priv%nva95_MO_sort, Priv%nva99_MO_sort, Priv%nva95_NO_sort, Priv%nva99_NO_sort, &
+            Priv%nva95_debug, Priv%nva99_debug, Priv%rate_debug, Priv%rate_noabs, &
+            scratch, Prop%U_NO_input, Mol%vabsmoa, .false. ) !: last arg verbosity
+
+
+          call add_opdm_average( Prop%opdm_avg, scratch, Prop%opdm_avg_N )
+          call add_opdm_average( Prop%opdm_avg_abs, scratch, &
+                                 Prop%opdm_avg_N, .false., .true. )
+
+
+          !: Should we rip this out? It never worked.
+          ! Calculate complex density matrix and transition rates
+          if ( write_orb_transitionrates ) then
+            write(iout,*) "before make_complex_density  ", ithread, " ", itime 
+            flush(iout)
+            call make_complex_density(hole_index(:,1),part_index(:,1),psi_det0,noa,nva,nstates,Priv%density_complex)
+            write(iout,*) "before make_transition_rate  ", ithread, " ", itime 
+            flush(iout)
+            call make_transition_rate((noa+nva), Mol%ham_mo, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Priv%efieldx, &
+                   Priv%efieldy, Priv%efieldz, Mol%vabsmoa, Priv%density_complex, Mol%orben, Priv%transition_rates)
+
+            write( Priv%datafile, '(A,A,A,A,A,I0,A)') "matrices/MO_TransitionRate-e",&
+              trim(Priv%emaxstr),"-d", trim(Priv%dirstr), ".", itime, ".bin"
+
+            call write_dbin_safe(Priv%transition_rates, (noa+nva)*(noa+nva), Priv%datafile )
+          end if
+          !: 1-RDM stored in scratch now.
+
+          call get_norm( Priv%norm,nstuse, psi )
+          call get_expectation( nstuse, Priv%norm, psi, abp, Priv%rate) !: rate expectation value
+          call get_expectation( nstuse, Priv%norm, psi, tdx, Priv%mux ) !: mux  expectation value
+          call get_expectation( nstuse, Priv%norm, psi, tdy, Priv%muy ) !: muy  expectation value
+          call get_expectation( nstuse, Priv%norm, psi, tdz, Priv%muz ) !: muz  expectation value
+          !write(iout,*) " expectation Priv%rate", itime,Priv%norm,Priv%rate
+          Priv%rate = -2.d0 * Priv%rate * Priv%norm**2
+
+          if(datfile_enable) then
+            call cpu_time(start2)
             call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
                                scratch, itime, idata, pop1, ion)
+            call cpu_time(finish2)
+            Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+          end if
 
-            !$OMP END CRITICAL (IO_LOCK)
+          if(h5inc_enable) then
+            call cpu_time(start2)
+            call write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff,&
+                               scratch, itime, idata, pop1, ion)
+            call cpu_time(finish2)
+            Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+          end if
 
-          end if analysis
-           
-        end do timestep_loop
-        call cpu_time(Priv%finish2)
+          !$OMP END CRITICAL (IO_LOCK)
 
-        if( Qci_save ) close(Priv%funit(1))
-        close(Priv%funit(2))
-        close(Priv%funit(3))
-        close(Priv%funit(4))
+        end if analysis
+         
+      end do timestep_loop
+      
+      call cpu_time(Priv%finish2)
 
-        if( Qwrite_ion_coeff ) write(Priv%funit(5)) Zion_coeff
-        if( Qread_ion_coeff .or. Qwrite_ion_coeff ) close(Priv%funit(5))
+      if( Qci_save ) close(Priv%funit(1))
+      close(Priv%funit(2))
+      close(Priv%funit(3))
+      close(Priv%funit(4))
 
-        if( Qmo_dens ) close(Priv%funit(6))
+      if( Qwrite_ion_coeff ) write(Priv%funit(5)) Zion_coeff
+      if( Qread_ion_coeff .or. Qwrite_ion_coeff ) close(Priv%funit(5))
 
-        !$OMP CRITICAL (IO_LOCK)
-        !: record data at last timestep
-        tdciresults( idir + (iemax-1)*ndir)%norm0 = Priv%norm**2
-        tdciresults( idir + (iemax-1)*ndir)%dipx  = Priv%mux
-        tdciresults( idir + (iemax-1)*ndir)%dipy  = Priv%muy
-        tdciresults( idir + (iemax-1)*ndir)%dipz  = Priv%muz
-        
+      if( Qmo_dens ) close(Priv%funit(6))
+
+      !$OMP CRITICAL (IO_LOCK)
+      if(h5inc_enable) then
+        !write(iout,*) "Closing h5 emax group ", idir, iemax, Priv%dir_grpid, Priv%field_grpid
+        call h5_close_group(Priv%field_grpid)
+        !write(iout,*) "Done closing h5 emax group ", idir, iemax, Priv%dir_grpid, Priv%field_grpid
+      end if
+      !: record data at last timestep
+      tdciresults( idir + (iemax-1)*ndir)%norm0 = Priv%norm**2
+      tdciresults( idir + (iemax-1)*ndir)%dipx  = Priv%mux
+      tdciresults( idir + (iemax-1)*ndir)%dipy  = Priv%muy
+      tdciresults( idir + (iemax-1)*ndir)%dipz  = Priv%muz
+      
+      if(verbosity.gt.1) then
         write(iout,"(' thread # ',i0,' propagation done for direction',i4,' and intensity',i4)") ithread, idir, iemax
         write(iout,"(12x,'dir = (',f8.5,',',f8.5,',',f8.5,')    emax = ',f8.5,' au')")           Priv%dirx1, Priv%diry1, Priv%dirz1, Priv%emax1
-        write(iout,"(12x,'propagation time:',f12.4,' s')") Priv%finish2 - Priv%start2  
-        write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
-        write(iout,"(12x,'final rate = ',f18.10)")          Priv%rate
+        if(h5inc_enable) then
+          write(iout,"(12x,'h5 calls time:            ',f12.4,' s')") Priv%h5cumtime
+        end if
+        if(datfile_enable) then 
+          write(iout,"(12x,'plain output calls time:  ',f12.4,' s')") Priv%plaincumtime
+        end if
+        write(iout,  "(12x,'propagation time:         ',f12.4,' s')") Priv%finish2 - Priv%start2
+        write(iout,  "(12x,'final norm = ',f10.5)")  Priv%norm**2
+        write(iout,  "(12x,'final rate = ',f18.10)") Priv%rate
+      end if !: verbosity.gt.1
 
-        !: debug times
+      !: debug times
+      if(verbosity.gt.2) then
         do i=1,7
           write(iout, "('time ',i5,': ',f14.6,' s')") i, times(i) 
         end do
+      end if
 
-        !$OMP END CRITICAL (IO_LOCK)
+      !$OMP END CRITICAL (IO_LOCK)
      end do emax_loop
-
     call Priv%deconstruct()
     deallocate(Priv)
 
@@ -1007,6 +1327,20 @@ subroutine trotter_linear
   !$OMP END DO
   !$OMP END PARALLEL
 
+  call write_dbin_safe(Prop%opdm_avg, (noa+nva)*(noa+nva), "opdm_avg.bin")
+  call write_dbin_safe(Prop%opdm_avg_abs, (noa+nva)*(noa+nva), "opdm_avg_abs.bin")
+
+  call generate_natural_orbitals( Prop%opdm_avg, Prop%U_NO, Prop%natorb_occ, .false. )
+  call generate_natural_orbitals( Prop%opdm_avg_abs, Prop%U_NO_abs, Prop%natorb_occ_abs, .false. )
+  call write_dbin_safe(Prop%U_NO, (noa+nva)*(noa+nva), "U_NO_out.bin")
+  call write_dbin_safe(Prop%U_NO_abs, (noa+nva)*(noa+nva), "U_NO_abs_out.bin")
+
+
+
+  if(h5inc_enable) then
+    call write_h5metadata(Prop%datetime_start)
+  end if
+  call Prop%deconstruct()
   call write_header( 'trotter_linear','propagate','leave' )
   call cpu_time(finish)
   write(iout,"(2x,'Total propagation time:',f12.4,' s')") finish - start  
@@ -1087,7 +1421,7 @@ subroutine trotter_circular
   !$OMP state_ip_index, ip_states, read_states, ip_vec, Zproj_ion, Qread_ion_coeff, Qwrite_ion_coeff, &
   !$OMP read_state1, read_state2, read_coeff1, read_coeff2, read_shift, &
   !$OMP ion_sample_start, ion_sample_width, ion_sample_state, unrestricted, QeigenDC, Qmo_dens, Qci_save, &
-  !$OMP flag_ReadU_NO, write_orb_transitionrates )
+  !$OMP flag_ReadU_NO, write_orb_transitionrates, h5inc_enable, datfile_enable, verbosity )
 
   !$OMP DO
   dir_loop : do idir=1, ndir 
@@ -1106,6 +1440,13 @@ subroutine trotter_circular
     Priv%dirx1 = tdciresults(idir)%x1 ; Priv%dirx2 = tdciresults(idir)%x2
     Priv%diry1 = tdciresults(idir)%y1 ; Priv%diry2 = tdciresults(idir)%y2
     Priv%dirz1 = tdciresults(idir)%z1 ; Priv%dirz2 = tdciresults(idir)%z2
+
+    if(h5inc_enable) then
+      !$OMP CRITICAL (IO_LOCK)
+      !: Create the /direction_idir group in the h5 file
+      call init_h5dir(Priv, idir)
+      !$OMP END CRITICAL (IO_LOCK)
+    end if
 
     !: Form the transition dipole in (dirx1,diry1,dirz1) and (dirx2,diry2,dirz2) directions,
     hp1(:) = Priv%dirx1*tdx(1:nstuse2) + Priv%diry1*tdy(1:nstuse2) + Priv%dirz1*tdz(1:nstuse2)
@@ -1142,11 +1483,29 @@ subroutine trotter_circular
       Priv%emax2 = tdciresults((iemax-1)*ndir+1)%fstrength2
 
       !$OMP CRITICAL (IO_LOCK)
-      call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
-      if(iemax.eq.1) write(iout,"(12x,'TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
-      write( iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
-      write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
-      write( iout, "('  Minimum(tdvals1) = ',f12.4)") minval(tdvals1)
+
+      if(datfile_enable) then
+        call cpu_time(start2)
+        call PropWriteDataHeaders(Priv, iemax, idir, tdciresults, psi0, psi_det0, Zion_coeff, 0)
+        call cpu_time(finish2)
+        Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+      end if
+
+      if(h5inc_enable) then
+        call cpu_time(start2)
+        call init_h5emax(Priv, iemax, idir)
+        call cpu_time(finish2)
+        Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+      end if
+
+      if(verbosity.gt.1) then
+        if(iemax.eq.1) write(iout,"(12x,'Init, TD diag, and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
+        write(iout,"(' start propagation for direction',i4,' intensity',i4,' thread # ',i0)" ) idir, iemax, ithread
+      end if
+      if(verbosity.gt.2) then
+        write( iout, "('  Maximum(tdvals1) = ',f12.4)") maxval(tdvals1)
+        write( iout, "('  Minimum(tdvals1) = ',f12.4)") minval(tdvals1)
+      end if
       flush( iout )
       !$OMP END CRITICAL (IO_LOCK)
         
@@ -1306,7 +1665,7 @@ subroutine trotter_circular
                  pop1,ion,ion_coeff,Priv%rate_a,Priv%rate_b,psi_det0,psi1,Priv%normV, &
                  Mol%vabsmoa,Mol%vabsmob,scratch,Priv%rate_direct)
             end if
-            !: MO-based density matrix stored in rwork now.
+            !: MO-based density matrix stored in scratch now.
 
             call get_norm( Priv%norm,nstuse, psi )
             call get_expectation( nstuse, Priv%norm, psi, abp, Priv%rate) !: rate expectation value
@@ -1316,8 +1675,21 @@ subroutine trotter_circular
             !write(iout,*) " expectation rate", itime,Priv%rate
             Priv%rate = -2.d0 * Priv%rate * Priv%norm**2
 
-            call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
-                               scratch, itime, idata, pop1, ion)
+            if(datfile_enable) then
+              call cpu_time(start2)
+              call PropWriteData(Priv, psi, psi1, psi_det0, Zion_coeff,ion_coeff,&
+                                 scratch, itime, idata, pop1, ion)
+              call cpu_time(finish2)
+              Priv%plaincumtime = Priv%plaincumtime + (finish2-start2)
+            end if
+
+            if(h5inc_enable) then
+              call cpu_time(start2)
+              call write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, ion_coeff,&
+                                 scratch, itime, idata, pop1, ion)
+              call cpu_time(finish2)
+              Priv%h5cumtime = Priv%h5cumtime + (finish2-start2)
+            end if
 
             !$OMP END CRITICAL (IO_LOCK)
 
@@ -1342,19 +1714,23 @@ subroutine trotter_circular
         tdciresults( idir + (iemax-1)*ndir)%dipy  = Priv%muy
         tdciresults( idir + (iemax-1)*ndir)%dipz  = Priv%muz
 
-        write(iout,"(' thread # ',i0,' propagation done for direction',i4,' and intensity',i4)") ithread,idir,iemax
-        write(iout,"(12x,'dir1 = (',f8.5,',',f8.5,',',f8.5,')  emax1 = ',f8.5,' au')") Priv%dirx1,Priv%diry1,Priv%dirz1,Priv%emax1
-        write(iout,"(12x,'dir2 = (',f8.5,',',f8.5,',',f8.5,')  emax2 = ',f8.5,' au')") Priv%dirx2,Priv%diry2,Priv%dirz2,Priv%emax2
-        write(iout,"(12x,'(iemax=1) TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
-        write(iout,"(12x,'(iemax=1) LAPACK dysev TD diagonalization INFO=',i0)") info1
-        write(iout,"(12x,'propagation time:',f12.4,' s')") finish2-start2
-        write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
-        write(iout,"(12x,'final rate = ',f10.5)")          Priv%rate
+        if(verbosity.gt.1) then
+          write(iout,"(' thread # ',i0,' propagation done for direction',i4,' and intensity',i4)") ithread,idir,iemax
+          write(iout,"(12x,'dir1 = (',f8.5,',',f8.5,',',f8.5,')  emax1 = ',f8.5,' au')") Priv%dirx1,Priv%diry1,Priv%dirz1,Priv%emax1
+          write(iout,"(12x,'dir2 = (',f8.5,',',f8.5,',',f8.5,')  emax2 = ',f8.5,' au')") Priv%dirx2,Priv%diry2,Priv%dirz2,Priv%emax2
+          write(iout,"(12x,'(iemax=1) TD diag and TDvec*exp_abp time: ',f12.4,' s')") finish1 - start1
+          write(iout,"(12x,'(iemax=1) LAPACK dysev TD diagonalization INFO=',i0)") info1
+          write(iout,"(12x,'propagation time:',f12.4,' s')") finish2-start2
+          write(iout,"(12x,'final norm = ',f10.5)")          Priv%norm**2
+          write(iout,"(12x,'final rate = ',f10.5)")          Priv%rate
+        end if !: verbosity.gt.1
 
         !: debug times
-        do i=1,7
-          write(iout, "('time ',i5,': ',f14.6,' s')") i, times(i) 
-        end do
+        if(verbosity.gt.2) then
+          do i=1,7
+            write(iout, "('time ',i5,': ',f14.6,' s')") i, times(i) 
+          end do
+        end if
 
         !$OMP END CRITICAL (IO_LOCK)
      end do emax_loop
@@ -1367,6 +1743,10 @@ subroutine trotter_circular
   !$OMP END DO
   !$OMP END PARALLEL
 
+  if(h5inc_enable) then
+    call write_h5metadata(Prop%datetime_start)
+  end if
+  call Prop%deconstruct()
   call write_header( 'trotter_circular','propagate','leave' )
   call cpu_time(finish)
   write(iout,"(2x,'Total propagation time:',f12.4,' s')") finish - start  
@@ -1604,515 +1984,18 @@ subroutine generate_natural_orbitals( opdm, U_NO, evals, verbosity )
 end subroutine generate_natural_orbitals
 
 
-subroutine NO_rate_sanity( opdm, U_NO, NO_occ, Vabs, C_AO )
-  implicit none
 
-  real(8), intent(in) :: opdm(norb*norb) !: One-particle density matrix in MO basis
-  real(8), intent(in) :: U_NO(norb*norb) !: Transformation matrix from MO -> NO.
-  real(8), intent(in) :: NO_occ(norb)    !: NO occupations (eigenvalues)
-  real(8), intent(in) :: Vabs(norb*norb) !: Expectation value <n|Vabs|m> in MO basis
-  real(8), intent(in) :: C_AO(norb*norb) !: AO -> MO Coefficients
-
-  real(8) :: rate_NO, rate_MO, rate_NO_abs, rate_MO_abs, rate_NO2 
-  integer :: nva95_NO, nva99_NO, nva95_MO, nva99_MO
-  real(8) :: tmp_NO, tmp_MO
- 
-  integer :: i, j, k, ndim
-  real(8) :: temp(norb*norb), temp2(norb*norb) !: Temporary matrix for multiplication
-  real(8) :: tmprate_NO(norb), tmprate_MO(norb)
-  real(8) :: opdm_NO(norb*norb) !: opdm in NO basis
-  real(8) :: Vabs_NO(norb*norb) !: Expectation value <n|Vabs|m> in NO basis
-  logical :: verbose
-
-  temp = 0.d0
-  opdm_NO = 0.d0
-  Vabs_NO = 0.d0
-  tmprate_NO = 0.d0
-  tmprate_MO = 0.d0
-  verbose = .false.
-  !: LATER ADD CASES FOR UHF
-  ndim = noa+nvb
-
-  !: Write U_NO
-  if (verbose) then
-    write(iout, '(A)') 'U_NO:'
-    do i = 1, ndim
-      do j = 1, ndim
-        write(iout, *, advance='no') U_NO((i-1)*ndim+j)
-      end do
-      write(iout, *) ! New line after each row
-    end do
-  end if
-
-  !: Write Vabs (MO)
-  if (verbose) then
-    write(iout, '(A)') 'Vabs (MO):'
-    do i = 1, ndim
-      do j = 1, ndim
-        write(iout, *, advance='no') Vabs((i-1)*ndim+j)
-      end do
-      write(iout, *) ! New line after each row
-    end do
-  end if
-
-  !: Transform Vabs to NO basis
-  !: U_NO^T * Vabs * U_NO = Vabs_NO
-  call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_NO, ndim, Vabs, ndim, 0.d0, temp, ndim)
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_NO, ndim, 0.d0, Vabs_NO, ndim)
-
-  !: Transform opdm to NO basis
-  !: U_NO^T * opdm * U_NO = opdm_NO
-  temp = 0.d0
-  call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_NO, ndim, opdm, ndim, 0.d0, temp, ndim)
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_NO, ndim, 0.d0, opdm_NO, ndim)
-
-
-  !: rate = 2*Tr(opdm_NO * Vabs_NO)
-  !: temp = opdm_NO * Vabs_NO
-  temp = 0.d0
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, opdm_NO, ndim, Vabs_NO, ndim, 0.d0, temp, ndim)
-  !: temp2 = opdm_MO * Vabs_MO
-  temp2 = 0.d0
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, opdm, ndim, Vabs, ndim, 0.d0, temp2, ndim)
-
-
-  !: Write opdm_NO
-  if (verbose) then
-    write(iout, '(A)') 'opdm_NO:'
-    do i = 1, ndim
-      do j = 1, ndim
-        write(iout, *, advance='no') opdm_NO((i-1)*ndim+j)
-      end do
-      write(iout, *) ! New line after each row
-    end do
-  end if
-
-  !: Calculate rate (Matrix multiply method)
-  rate_NO = 0.d0
-  rate_MO = 0.d0
-  rate_NO_abs = 0.d0
-  rate_MO_abs = 0.d0
-  do i = 1, ndim
-    rate_NO = rate_NO + 2.d0*(temp((i-1)*ndim+i))  !: temp[i][i]
-    rate_MO = rate_MO + 2.d0*(temp2((i-1)*ndim+i)) !: temp2[i][i]
-    rate_NO_abs = rate_NO_abs + 2.d0*abs(temp((i-1)*ndim+i))  !: temp[i][i]
-    rate_MO_abs = rate_MO_abs + 2.d0*abs(temp2((i-1)*ndim+i)) !: temp2[i][i]
-  end do
-
-  !: Calculate rate as dot(occ,Vabs_NO) since Vabs_NO is diagonal
-  rate_NO2 = 0.d0
-  do i=1,ndim
-    rate_NO2 = rate_NO2 + 2.d0*NO_occ(i)*Vabs_NO((i-1)*ndim+i)
-  end do
-
-  !write(iout, '(A)') 'Natural Orbital Rate Analysis (Matrix Multiply):'
-  !write(iout, '(A)') '  Orb#  Occ            Vabs_NO        Rate'
-  !write(iout, '(A)') '=========================================='
-  !do i = ndim,1, -1
-  !  write(iout,'(I5, A, F12.10, A, F12.10, A, F12.10)') i, ",  ", NO_occ(i), &
-  !   ",  ", Vabs_NO((i-1)*ndim+i), ",  ", abs(2.d0*temp((i-1)*ndim+i))
-  !end do
-
-  write(iout, '(A, E24.16)') '2*Tr(    opdm_NO * Vabs_NO)):   ', rate_NO
-  write(iout, '(A, E24.16)') '2*Tr(    opdm_MO * Vabs_MO)):   ', rate_MO
-  write(iout, '(A, E24.16)') '2*Tr(abs(opdm_NO * Vabs_NO)):   ', rate_NO_abs
-  write(iout, '(A, E24.16)') '2*Tr(abs(opdm_MO * Vabs_MO)):   ', rate_MO_abs
-  write(iout, '(A, E24.16)') 'dot(NO_occ, diag(Vabs_NO)   : ', rate_NO2
-
-  !: Calculate rate for Matrix Multiply rate = 2*Tr(abs(opdm*Vabs))
-  tmp_NO = 0.d0
-  tmp_MO = 0.d0
-  nva95_NO = 0
-  nva99_NO = 0
-  nva95_MO = 0
-  nva99_MO = 0
-  ! U_NO should be sorted by descending evals
-  !do i=ndim,1, -1
-  do i=1,ndim
-    !write(iout, '(I5, A, F12.10)' ) i, ' NO: ', 2*temp((i-1)*ndim+i)
-    tmp_NO = tmp_NO + abs(2.d0*temp((i-1)*ndim+i))
-    if (tmp_NO/rate_NO .lt. 0.95d0) nva95_NO = nva95_NO + 1
-    if (tmp_NO/rate_NO .lt. 0.99d0) nva99_NO = nva99_NO + 1
-  end do
-  do i=1,ndim
-    !write(iout, '(I5, A, F12.10)' ) i, ' MO: ', 2*temp2((i-1)*ndim+i)
-    tmp_MO = tmp_MO + abs(2.d0*temp2((i-1)*ndim+i))
-    if (tmp_MO/rate_MO .lt. 0.95d0) nva95_MO = i
-    if (tmp_MO/rate_MO .lt. 0.99d0) nva99_MO = i
-  end do
-
-  write(iout, '(A)') "Rate with matrix multiply rate = 2*Tr(opdm*Vabs):"
-  !write(iout, '(A, I5, I5, I5, I5, I5)') "nva, nva95_NO, nva99_NO, nva95_MO, nva99_MO: ", nvb, &
-  !  nva95_NO, nva99_NO, nva95_MO, nva99_MO
-
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",rate_NO,", nva=",nva, &
-    ", nva95_NO= ",nva95_NO,", nva99_NO= ",nva99_NO
-
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",rate_MO,", nva=",nva, &
-    ", nva95_MO= ",nva95_MO,", nva99_MO= ",nva99_MO
-
-
-  write(iout, '(A)') "Rate with rate = sum_{i,j} abs(opdm_{i,j} * Vabs_{i,j}):"
-
-  !: Calculate rate component-wise way rate = sum_{i,j} abs(opdm_{i,j} * Vabs_{i,j})
-  tmp_NO = 0.d0
-  tmp_MO = 0.d0
-  nva95_NO = 0
-  nva99_NO = 0
-  nva95_MO = 0
-  nva99_MO = 0
-  tmprate_MO(1) = 2*abs( opdm(1) * Vabs(1) )
-  do i=2,ndim
-    tmprate_MO(i) = tmprate_MO(i-1) + 2*abs(opdm((i-1)*ndim+i) * Vabs((i-1)*ndim+i) )
-    do j=1,i-1
-      tmprate_MO(i) = tmprate_MO(i) + 2*abs(opdm((i-1)*ndim+j) * Vabs((i-1)*ndim+j) )
-      tmprate_MO(i) = tmprate_MO(i) + 2*abs(opdm((j-1)*ndim+i) * Vabs((j-1)*ndim+i) )
-    end do
-  end do
-  do i=1,ndim
-    if(tmprate_MO(i).lt.0.95d0*tmprate_MO(ndim)) nva95_MO = i
-    if(tmprate_MO(i).lt.0.99d0*tmprate_MO(ndim)) nva99_MO = i
-  end do
-  
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmprate_MO(ndim),", nva=",nva, &
-    ", nva95_MO= ",nva95_MO,", nva99_MO= ",nva99_MO
-
-
-  tmprate_NO(1) = 2*abs( opdm_NO(1) * Vabs_NO(1) )
-  do i=2,ndim
-    tmprate_NO(i) = tmprate_NO(i-1) + 2*abs(opdm_NO((i-1)*ndim+i) * Vabs_NO((i-1)*ndim+i) )
-    do j=1,i-1
-      tmprate_NO(i) = tmprate_NO(i) + 2*abs(opdm_NO((i-1)*ndim+j) * Vabs_NO((i-1)*ndim+j) )
-      tmprate_NO(i) = tmprate_NO(i) + 2*abs(opdm_NO((j-1)*ndim+i) * Vabs_NO((j-1)*ndim+i) )
-    end do
-  end do
-  do i=1,ndim
-    if(tmprate_NO(i).lt.0.95d0*tmprate_NO(ndim)) nva95_NO = i
-    if(tmprate_NO(i).lt.0.99d0*tmprate_NO(ndim)) nva99_NO = i
-  end do
-  
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmprate_NO(ndim),", nva=",nva, &
-    ", nva95_NO= ",nva95_NO,", nva99_NO= ",nva99_NO
-
-
-  !write(iout, '(A)') 'Natural Orbital Rate Analysis (Component-wise):'
-  !write(iout, '(A)') '  Orb#  Occ          Vabs_NO(i,i)   Cumulative Rate'
-  !write(iout, '(A)') '====================================================='
-  !!do i = ndim,1, -1
-  !do i = 1,ndim
-  !  write(iout,'(I5, A, F12.10, A, F12.10, A, F12.10)') i, ",  ", NO_occ(i), &
-  !   ",  ", Vabs_NO((i-1)*ndim+i), ",  ", tmprate_NO(i)
-  !end do
-
-  !write(iout, '(A)') 'Molecular Orbital Rate Analysis (Component-wise):'
-  !write(iout, '(A)') '  Orb#            Vabs_MO(i,i)   Cumulative Rate'
-  !write(iout, '(A)') '================================================='
-  !!do i = ndim,1, -1
-  !do i = 1,ndim
-  !  write(iout,'(I5, A, F12.10, A, F12.10)') i,  &
-  !   ",  ", Vabs((i-1)*ndim+i), ",  ", tmprate_MO(i)
-  !end do
-  flush(iout)    
-
-end subroutine NO_rate_sanity
-
-!: Sorry to code replicate!
-!: This one includes analysis for the abs, keeping the old one for each-step analysis.
-subroutine NO_rate_sanity2( opdm, U_NO, NO_occ, opdm_abs, U_absNO, NO_occ_abs, Vabs, C_AO )
-  implicit none
-
-  real(8), intent(in) :: opdm(norb*norb) !: One-particle density matrix in MO basis
-  real(8), intent(in) :: U_NO(norb*norb) !: Transformation matrix from MO -> NO.
-  real(8), intent(in) :: NO_occ(norb)    !: NO occupations (eigenvalues)
-  real(8), intent(in) :: opdm_abs(norb*norb) !: One-particle density matrix in MO basis
-  real(8), intent(in) :: U_absNO(norb*norb) !: Transformation matrix from MO -> NO.
-  real(8), intent(in) :: NO_occ_abs(norb)    !: NO occupations (eigenvalues)
-  real(8), intent(in) :: Vabs(norb*norb) !: <n|Vabs|m> in MO basis
-  real(8), intent(in) :: C_AO(norb*norb) !: AO -> MO Coefficients
-
-  real(8) :: rate_NO, rate_MO, rate_NO_abs, rate_MO_abs, rate_NO2 
-  real(8) :: rate_absNO, rate_absNO2
-  integer :: nva95_NO, nva99_NO, nva95_MO, nva99_MO
-  integer :: nva95_absNO, nva99_absNO
-  real(8) :: tmp_NO, tmp_MO, tmp_absNO
- 
-  integer :: i, j, k, ndim
-  real(8) :: temp(norb*norb), temp2(norb*norb), temp3(norb*norb) !: Temporary matrix for multiplication
-  real(8) :: tmprate_NO(norb), tmprate_MO(norb), tmprate_absNO(norb)
-  real(8) :: opdm_NO(norb*norb), opdm_absNO(norb*norb) !: opdm in NO basis
-  real(8) :: Vabs_NO(norb*norb), Vabs_absNO(norb*norb) !: Expectation value <n|Vabs|m> in NO basis
-  logical :: verbose
-
-  temp = 0.d0
-  opdm_NO = 0.d0
-  Vabs_NO = 0.d0
-  tmprate_NO = 0.d0
-  tmprate_MO = 0.d0
-  verbose = .false.
-  !: LATER ADD CASES FOR UHF
-  ndim = noa+nvb
-
-  !: Write U_NO
-  if (verbose) then
-    write(iout, '(A)') 'U_NO:'
-    do i = 1, ndim
-      do j = 1, ndim
-        write(iout, *, advance='no') U_NO((i-1)*ndim+j)
-      end do
-      write(iout, *) ! New line after each row
-    end do
-  end if
-
-  !: Write Vabs (MO)
-  if (verbose) then
-    write(iout, '(A)') 'Vabs (MO):'
-    do i = 1, ndim
-      do j = 1, ndim
-        write(iout, *, advance='no') Vabs((i-1)*ndim+j)
-      end do
-      write(iout, *) ! New line after each row
-    end do
-  end if
-
-  !: Transform Vabs to NO basis
-  !: U_NO^T * Vabs * U_NO = Vabs_NO
-  call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_NO, ndim, Vabs, ndim, 0.d0, temp, ndim)
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_NO, ndim, 0.d0, Vabs_NO, ndim)
-
-  !: Transform opdm to NO basis
-  !: U_NO^T * opdm * U_NO = opdm_NO
-  temp = 0.d0
-  call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_NO, ndim, opdm, ndim, 0.d0, temp, ndim)
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_NO, ndim, 0.d0, opdm_NO, ndim)
-
-
-  !: Transform Vabs to absNO basis
-  !: U_absNO^T * Vabs * U_absNO = Vabs_absNO
-  temp = 0.d0
-  call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_absNO, ndim, Vabs, ndim, 0.d0, temp, ndim)
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_absNO, ndim, 0.d0, Vabs_absNO, ndim)
-
-  !: Transform opdm_abs to absNO basis
-  !: U_absNO^T * opdm_abs * U_absNO = opdm_absNO
-  temp = 0.d0
-  call dgemm('T', 'N', ndim, ndim, ndim, 1.d0, U_absNO, ndim, opdm_abs, ndim, 0.d0, temp, ndim)
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, temp, ndim, U_absNO, ndim, 0.d0, opdm_absNO, ndim)
-
-
-  !: rate = 2*Tr(opdm_NO * Vabs_NO)
-  !: temp = opdm_NO * Vabs_NO
-  temp = 0.d0
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, opdm_NO, ndim, Vabs_NO, ndim, 0.d0, temp, ndim)
-  !: temp2 = opdm_MO * Vabs_MO
-  temp2 = 0.d0
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, opdm, ndim, Vabs, ndim, 0.d0, temp2, ndim)
-  !: temp3 = opdm_absNO * Vabs_absNO
-  temp3 = 0.d0
-  call dgemm('N', 'N', ndim, ndim, ndim, 1.d0, opdm_absNO, ndim, Vabs_absNO, ndim, 0.d0, temp3, ndim)
-
-
-  !: Write opdm_NO
-  if (verbose) then
-    write(iout, '(A)') 'opdm_NO:'
-    do i = 1, ndim
-      do j = 1, ndim
-        write(iout, *, advance='no') opdm_NO((i-1)*ndim+j)
-      end do
-      write(iout, *) ! New line after each row
-    end do
-  end if
-
-  !: Calculate rate (Matrix multiply method)
-  rate_NO = 0.d0
-  rate_MO = 0.d0
-  rate_NO_abs = 0.d0
-  rate_MO_abs = 0.d0
-  rate_absNO = 0.d0
-
-  do i = 1, ndim
-    rate_NO = rate_NO + 2.d0*(temp((i-1)*ndim+i))  !: temp[i][i]
-    rate_MO = rate_MO + 2.d0*(temp2((i-1)*ndim+i)) !: temp2[i][i]
-    rate_NO_abs = rate_NO_abs + 2.d0*abs(temp((i-1)*ndim+i))  !: temp[i][i]
-    rate_MO_abs = rate_MO_abs + 2.d0*abs(temp2((i-1)*ndim+i)) !: temp2[i][i]
-    rate_absNO = rate_absNO + 2.d0*abs(temp3((i-1)*ndim+i))
-  end do
-
-  !: Calculate rate as dot(occ,Vabs_NO) since Vabs_NO is diagonal
-  rate_NO2 = 0.d0
-  do i=1,ndim
-    rate_NO2 = rate_NO2 + 2.d0*NO_occ(i)*Vabs_NO((i-1)*ndim+i)
-  end do
-  rate_absNO2 = 0.d0
-  do i=1,ndim
-    rate_absNO2 = rate_absNO2 + 2.d0*NO_occ_abs(i)*Vabs_absNO((i-1)*ndim+i)
-  end do
-
-  !write(iout, '(A)') 'Natural Orbital Rate Analysis (Matrix Multiply):'
-  !write(iout, '(A)') '  Orb#  Occ            Vabs_NO        Rate'
-  !write(iout, '(A)') '=========================================='
-  !do i = ndim,1, -1
-  !  write(iout,'(I5, A, F12.10, A, F12.10, A, F12.10)') i, ",  ", NO_occ(i), &
-  !   ",  ", Vabs_NO((i-1)*ndim+i), ",  ", abs(2.d0*temp((i-1)*ndim+i))
-  !end do
-
-  write(iout, '(A, E24.16)') '2*Tr(    opdm_NO * Vabs_NO) :   ', rate_NO
-  write(iout, '(A, E24.16)') '2*Tr(    opdm_MO * Vabs_MO) :   ', rate_MO
-  write(iout, '(A, E24.16)') '2*Tr(abs(opdm_NO * Vabs_NO)):   ', rate_NO_abs
-  write(iout, '(A, E24.16)') '2*Tr(abs(opdm_MO * Vabs_MO)):   ', rate_MO_abs
-  write(iout, '(A, E24.16)') '2*Tr(opdm_absNO * Vabs_absNO):   ', rate_absNO
-  write(iout, '(A, E24.16)') 'dot(NO_occ, diag(Vabs_NO)   : ', rate_NO2
-  write(iout, '(A, E24.16)') 'dot(NO_occ_abs, diag(Vabs_absNO)   : ', rate_absNO2
-
-  !: Calculate rate for Matrix Multiply rate = 2*Tr(abs(opdm*Vabs))
-  tmp_NO = 0.d0
-  tmp_MO = 0.d0
-  tmp_absNO = 0.d0
-  nva95_NO = 0
-  nva99_NO = 0
-  nva95_MO = 0
-  nva99_MO = 0
-  nva95_absNO = 0
-  nva99_absNO = 0
-  ! U_NO should be sorted by descending evals
-  !do i=ndim,1, -1
-  do i=1,ndim
-    !write(iout, '(I5, A, F12.10)' ) i, ' NO: ', 2*temp((i-1)*ndim+i)
-    tmp_NO = tmp_NO + abs(2.d0*temp((i-1)*ndim+i))
-    if (tmp_NO/rate_NO .lt. 0.95d0) nva95_NO = nva95_NO + 1
-    if (tmp_NO/rate_NO .lt. 0.99d0) nva99_NO = nva99_NO + 1
-  end do
-  do i=1,ndim
-    !write(iout, '(I5, A, F12.10)' ) i, ' MO: ', 2*temp2((i-1)*ndim+i)
-    tmp_MO = tmp_MO + abs(2.d0*temp2((i-1)*ndim+i))
-    if (tmp_MO/rate_MO .lt. 0.95d0) nva95_MO = i
-    if (tmp_MO/rate_MO .lt. 0.99d0) nva99_MO = i
-  end do
-  do i=1,ndim
-    !write(iout, '(I5, A, F12.10)' ) i, ' NO: ', 2*temp((i-1)*ndim+i)
-    tmp_absNO = tmp_absNO + abs(2.d0*temp3((i-1)*ndim+i))
-    if (tmp_absNO/rate_absNO .lt. 0.95d0) nva95_absNO = nva95_absNO + 1
-    if (tmp_absNO/rate_absNO .lt. 0.99d0) nva99_absNO = nva99_absNO + 1
-  end do
-
-  write(iout, '(A)') "Rate with matrix multiply rate = 2*Tr(opdm*Vabs):"
-  !write(iout, '(A, I5, I5, I5, I5, I5)') "nva, nva95_NO, nva99_NO, nva95_MO, nva99_MO: ", nvb, &
-  !  nva95_NO, nva99_NO, nva95_MO, nva99_MO
-
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",rate_NO,", nva=",nva, &
-    ", nva95_NO= ",nva95_NO,", nva99_NO= ",nva99_NO
-
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",rate_MO,", nva=",nva, &
-    ", nva95_MO= ",nva95_MO,", nva99_MO= ",nva99_MO
-
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",rate_absNO,", nva=",nva, &
-    ", nva95_absNO= ",nva95_absNO,", nva99_absNO= ",nva99_absNO
-
-  write(iout, '(A)') "Rate with rate = sum_{i,j} abs(opdm_{i,j} * Vabs_{i,j}):"
-
-  !: Calculate rate component-wise way rate = sum_{i,j} abs(opdm_{i,j} * Vabs_{i,j})
-  tmp_NO = 0.d0
-  tmp_MO = 0.d0
-  tmp_absNO = 0.d0
-  nva95_NO = 0
-  nva99_NO = 0
-  nva95_MO = 0
-  nva99_MO = 0
-  nva95_absNO = 0
-  nva99_absNO = 0
-  tmprate_MO(1) = 2*abs( opdm(1) * Vabs(1) )
-  do i=2,ndim
-    tmprate_MO(i) = tmprate_MO(i-1) + 2*abs(opdm((i-1)*ndim+i) * Vabs((i-1)*ndim+i) )
-    do j=1,i-1
-      tmprate_MO(i) = tmprate_MO(i) + 2*abs(opdm((i-1)*ndim+j) * Vabs((i-1)*ndim+j) )
-      tmprate_MO(i) = tmprate_MO(i) + 2*abs(opdm((j-1)*ndim+i) * Vabs((j-1)*ndim+i) )
-    end do
-  end do
-  do i=1,ndim
-    if(tmprate_MO(i).lt.0.95d0*tmprate_MO(ndim)) nva95_MO = i
-    if(tmprate_MO(i).lt.0.99d0*tmprate_MO(ndim)) nva99_MO = i
-  end do
-  
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmprate_MO(ndim),", nva=",nva, &
-    ", nva95_MO= ",nva95_MO,", nva99_MO= ",nva99_MO
-
-
-  tmprate_NO(1) = 2*abs( opdm_NO(1) * Vabs_NO(1) )
-  do i=2,ndim
-    tmprate_NO(i) = tmprate_NO(i-1) + 2*abs(opdm_NO((i-1)*ndim+i) * Vabs_NO((i-1)*ndim+i) )
-    do j=1,i-1
-      tmprate_NO(i) = tmprate_NO(i) + 2*abs(opdm_NO((i-1)*ndim+j) * Vabs_NO((i-1)*ndim+j) )
-      tmprate_NO(i) = tmprate_NO(i) + 2*abs(opdm_NO((j-1)*ndim+i) * Vabs_NO((j-1)*ndim+i) )
-    end do
-  end do
-  do i=1,ndim
-    if(tmprate_NO(i).lt.0.95d0*tmprate_NO(ndim)) nva95_NO = i
-    if(tmprate_NO(i).lt.0.99d0*tmprate_NO(ndim)) nva99_NO = i
-  end do
-  
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmprate_NO(ndim),", nva=",nva, &
-    ", nva95_NO= ",nva95_NO,", nva99_NO= ",nva99_NO
-
-  tmprate_absNO(1) = 2*abs( opdm_absNO(1) * Vabs_absNO(1) )
-  do i=2,ndim
-    tmprate_absNO(i) = tmprate_absNO(i-1) + 2*abs(opdm_absNO((i-1)*ndim+i) * Vabs_absNO((i-1)*ndim+i) )
-    do j=1,i-1
-      tmprate_absNO(i) = tmprate_absNO(i) + 2*abs(opdm_absNO((i-1)*ndim+j) * Vabs_absNO((i-1)*ndim+j) )
-      tmprate_absNO(i) = tmprate_absNO(i) + 2*abs(opdm_absNO((j-1)*ndim+i) * Vabs_absNO((j-1)*ndim+i) )
-    end do
-  end do
-  do i=1,ndim
-    if(tmprate_absNO(i).lt.0.95d0*tmprate_absNO(ndim)) nva95_absNO = i
-    if(tmprate_absNO(i).lt.0.99d0*tmprate_absNO(ndim)) nva99_absNO = i
-  end do
-  
-  write(iout, '(A, F10.7, A, I5, A, I5, A, I5)') " rate= ",tmprate_absNO(ndim),", nva=",nva, &
-    ", nva95_absNO= ",nva95_absNO,", nva99_absNO= ",nva99_absNO
-
-  !write(iout, '(A)') 'Natural Orbital Rate Analysis (Component-wise):'
-  !write(iout, '(A)') '  Orb#  Occ          Vabs_NO(i,i)   Cumulative Rate'
-  !write(iout, '(A)') '====================================================='
-  !!do i = ndim,1, -1
-  !do i = 1,ndim
-  !  write(iout,'(I5, A, F12.10, A, F12.10, A, F12.10)') i, ",  ", NO_occ(i), &
-  !   ",  ", Vabs_NO((i-1)*ndim+i), ",  ", tmprate_NO(i)
-  !end do
-
-  !write(iout, '(A)') 'Molecular Orbital Rate Analysis (Component-wise):'
-  !write(iout, '(A)') '  Orb#            Vabs_MO(i,i)   Cumulative Rate'
-  !write(iout, '(A)') '================================================='
-  !!do i = ndim,1, -1
-  !do i = 1,ndim
-  !  write(iout,'(I5, A, F12.10, A, F12.10)') i,  &
-  !   ",  ", Vabs((i-1)*ndim+i), ",  ", tmprate_MO(i)
-  !end do
-
-
-  write(iout, '(A)') 'ABS Natural Orbital Rate Analysis (Component-wise):'
-  write(iout, '(A)') '  Orb#  Occ       Vabs_absNO(i,i)   Cumulative Rate'
-  write(iout, '(A)') '====================================================='
-  !do i = ndim,1, -1
-  do i = 1,ndim
-    write(iout,'(I5, A, F12.10, A, F12.10, A, F12.10)') i, ",  ", NO_occ_abs(i), &
-     ",  ", Vabs_absNO((i-1)*ndim+i), ",  ", tmprate_absNO(i)
-  end do
-
-  flush(iout)    
-
-end subroutine NO_rate_sanity2
-
-subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
-                          nva95maxMO_sort, nva99maxMO_sort, nva95maxNO_sort, nva99maxNO_sort, &
-                          nva95max_debug, nva99max_debug, rate_debug, rate_raw, &
-                          !nva95max_density, nva99max_density, rate_density, &
+subroutine update_maxnva( nva95_MO, nva99_MO, nva95_NO, nva99_NO, &
+                          nva95_MO_sort, nva99_MO_sort, nva95_NO_sort, nva99_NO_sort, &
+                          nva95_debug, nva99_debug, rate_debug, rate_noabs, &
                           opdm, U_NO, Vabs, verbosity)
   implicit none
-  integer(8), intent(inout) :: nva95maxMO, nva99maxMO
-  integer(8), intent(inout) :: nva95maxNO, nva99maxNO
-  integer(8), intent(inout) :: nva95maxMO_sort, nva99maxMO_sort
-  integer(8), intent(inout) :: nva95maxNO_sort, nva99maxNO_sort
-  integer(8), intent(inout) :: nva95max_debug, nva99max_debug 
-  !integer(8), intent(inout) :: nva95max_density, nva99max_density 
-  real(8), intent(inout) :: rate_debug, rate_raw  !, rate_density
+  integer(8), intent(inout) :: nva95_MO, nva99_MO
+  integer(8), intent(inout) :: nva95_NO, nva99_NO
+  integer(8), intent(inout) :: nva95_MO_sort, nva99_MO_sort
+  integer(8), intent(inout) :: nva95_NO_sort, nva99_NO_sort
+  integer(8), intent(inout) :: nva95_debug, nva99_debug 
+  real(8), intent(inout) :: rate_debug, rate_noabs  !, rate_density
   real(8), intent(in) :: opdm(:) !: One-particle density matrix in MO basis
   real(8), intent(in) :: U_NO(:) !: Transformation matrix from MO -> NO.
   !: Interesting, vabsmo is a 2D array (:,:), so I can't do Vabs(:) here.
@@ -2122,8 +2005,6 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
 
   logical :: verbose
   integer(8) :: i, j, k, ndim, idx
-  integer(8) :: nva95_NO, nva99_NO, nva95_MO, nva99_MO
-  integer(8) :: nva95_NO_sort, nva99_NO_sort, nva95_MO_sort, nva99_MO_sort
   integer(8) :: nva95, nva99
   real(8) :: rate, tmp
   real(8) :: tmprate(nrorb*nrorb) !: way too big but doesnt matter
@@ -2198,15 +2079,12 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
     if (tmp/rate .lt. 0.99d0) nva99_NO = k
   end do
 
-  if ( nva95_NO .gt. nva95maxNO) nva95maxNO = nva95_NO
-  if ( nva99_NO .gt. nva99maxNO) nva99maxNO = nva99_NO
 
-
-  !: For MOs ( DEBUG, UNSORTED )
+  !: For MOs ( DEBUG, UNSORTED, ABS(OPDM*VABS) )
   rate = 0.d0
   tmp = 0.d0
-  nva95 = 0
-  nva99 = 0
+  nva95_debug = 0
+  nva99_debug = 0
   tmprate = 0.d0
   tmprate(1) = abs(opdm(1)*Vabs(1))
   do i = 2,noa+nva
@@ -2217,28 +2095,24 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
     end do
   end do
   do i = 1,nva
-    if (tmprate(i).lt.0.95d0*tmprate(noa+nva)) nva95 = i
-    if (tmprate(i).lt.0.99d0*tmprate(noa+nva)) nva99 = i
+    if (tmprate(i).lt.0.95d0*tmprate(noa+nva)) nva95_debug = i
+    if (tmprate(i).lt.0.99d0*tmprate(noa+nva)) nva99_debug = i
   end do
-  if ( nva95 .gt. nva95maxMO) nva95max_debug = nva95
-  if ( nva99 .gt. nva99maxMO) then
-    nva99max_debug = nva99
-    rate_debug = tmprate(noa+nva)
-  end if
+  rate_debug = tmprate(noa+nva)
 
-  !: For MOs (Raw, no abs())
+  !: For MOs (no abs())
   rate = 0.d0
   temp = 0.d0
-  rate_raw = 0.d0
+  rate_noabs = 0.d0
   do i=1,ndim*ndim
-    rate_raw = rate_raw + opdm(i)*Vabs(i)
+    rate_noabs = rate_noabs + opdm(i)*Vabs(i)
   end do
 
   !: For MOs (UNSORTED)
   rate = 0.0d0
   tmp = 0.0d0
-  nva95_NO = 0
-  nva99_NO = 0
+  nva95_MO = 0
+  nva99_MO = 0
   do i=1,ndim
     do j=1,ndim
       !: 2*Tr(opdm * Vabs) componentwise
@@ -2252,12 +2126,9 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
         tmp = tmp + abs(opdm((i-1)*ndim+j) * Vabs((i-1)*ndim+j))
       end do
     end do
-    if (tmp/rate .lt. 0.95d0) nva95_NO = k
-    if (tmp/rate .lt. 0.99d0) nva99_NO = k
+    if (tmp/rate .lt. 0.95d0) nva95_MO = k
+    if (tmp/rate .lt. 0.99d0) nva99_MO = k
   end do
-
-  if ( nva95_NO .gt. nva95maxMO) nva95maxMO = nva95_NO
-  if ( nva99_NO .gt. nva99maxMO) nva99maxMO = nva99_NO
 
   
   !: For NOs (SORTED)
@@ -2279,14 +2150,14 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
   end do
   call quicksort_descending(sort_vals, vals_sorted, sort_key)
 
-  !if (verbose) then 
-  !  write(iout, *) "NO Contribution Analysis"
-  !  write(iout, *) "i, i_sort, rate, rate_sort"
-  !  write(iout, *) "=========================="
-  !  do i=1,ndim
-  !    write(iout, "(i4, i4, f12.8, f12.8)") i, sort_key(i), sort_vals(i), vals_sorted(i)
-  !  end do
-  !end if
+  if (verbose) then 
+    write(iout, *) "NO Contribution Analysis"
+    write(iout, *) "i, i_sort, rate, rate_sort"
+    write(iout, *) "=========================="
+    do i=1,ndim
+      write(iout, "(i4, i4, f12.8, f12.8)") i, sort_key(i), sort_vals(i), vals_sorted(i)
+    end do
+  end if
 
   do i=1,ndim
     do j=1,ndim
@@ -2306,9 +2177,6 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
     if (tmp/rate .lt. 0.95d0) nva95_NO_sort = k
     if (tmp/rate .lt. 0.99d0) nva99_NO_sort = k
   end do
-  if ( nva95_NO_sort .gt. nva95maxNO_sort) nva95maxNO_sort = nva95_NO_sort
-  if ( nva99_NO_sort .gt. nva99maxNO_sort) nva99maxNO_sort = nva99_NO_sort
-
 
 
   !: For MOs (SORTED)
@@ -2357,23 +2225,17 @@ subroutine update_maxnva( nva95maxMO, nva99maxMO, nva95maxNO, nva99maxNO, &
     if (tmp/rate .lt. 0.95d0) nva95_MO_sort = k
     if (tmp/rate .lt. 0.99d0) nva99_MO_sort = k
   end do
-  if ( nva95_MO_sort .gt. nva95maxMO_sort) nva95maxMO_sort = nva95_MO_sort
-  if ( nva99_MO_sort .gt. nva99maxMO_sort) nva99maxMO_sort = nva99_MO_sort
 
+  if (verbose) then
+    write(iout,"('nva99_MO=',i5,' , nva99_MO_sort=',i5,' , nva99_NO=',i5,' , nva99_NO_sort=',i5)") nva99_MO, nva99_MO_sort, nva99_NO, nva99_NO_sort
+  end if
 
   deallocate( temp )
   deallocate( temp2 )
   deallocate( opdm_NO )
   deallocate( Vabs_NO )
 
-  if (verbose) then
-    write(iout,"('For input NOs, averaged opdm (UNSORTED) : nva95max=',i5,', nva99max=',i5)") nva95maxNO, nva99maxNO
-    write(iout,"('For       MOs, averaged opdm (UNSORTED) : nva95max=',i5,', nva99max=',i5)") nva95maxMO, nva99maxMO
-    write(iout,"('For input NOs, averaged opdm (  SORTED) : nva95max=',i5,', nva99max=',i5)") nva95_NO_sort, nva99_NO_sort
-    write(iout,"('For       MOs, averaged opdm (  SORTED) : nva95max=',i5,', nva99max=',i5)") nva95_MO_sort, nva99_MO_sort
-  end if
-
-end subroutine
+end subroutine update_maxnva
 
 
 function matrix_is_symmetric(A, n) result(output)
@@ -2587,14 +2449,14 @@ subroutine write_vabsmo_table(nrorb, Vabs_MO, orben)
   real(8) :: vabs_sum
 
   write(iout,*) "Vabs MO summary:"
-  write(iout,*) "i, orben(i), Vabs(i,i), sum(Vabs(i)) "
+  write(iout,*) "  i,     Energy (eV), Vabs(i,i), sum(Vabs(i)) "
   write(iout,*) "====================================="
   do i=1,nrorb
     vabs_sum = 0.0
     do j=1,nrorb
       vabs_sum = vabs_sum + Vabs_MO((i-1)*nrorb+j)
     end do
-    write(iout,'(I4,A2,F8.4,A2,F8.4,A2,F8.4)') i, ", ", orben(i), ", ", Vabs_MO((i-1)*nrorb+i), ", ", vabs_sum
+    write(iout,'(I4,A2,F14.4,A2,F8.4,A2,F8.4)') i, ", ", orben(i)*au2ev, ", ", Vabs_MO((i-1)*nrorb+i), ", ", vabs_sum
     !write(iout,*) i, ",", orben(i), ",", Vabs_MO((i-1)*nrorb+i), ",", vabs_sum
   end do
   write(iout,*) ""

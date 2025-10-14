@@ -297,7 +297,7 @@ cd TDCI-CAP
 make
 ```
 
-After compilation completes, you will find the `tdci` executable in the `bin/` subdirectory.
+The first time TDCI-CAP is built, it may take several minutes to compile its dependencies hdf5 and makedepf90. After compilation completes, you will find the `tdci` executable in the `bin/` subdirectory.
 
 
 ## Gaussian Input
@@ -413,9 +413,11 @@ The `FIELD` section specifies that a "static" field (slowly ramps up to a static
 
 The `FIELD_strengths` section specifies that we will only propagate one field strength of 0.0500 atomic units.
 
-The `FIELD_directions` section says that we will apply this field in two different directions, the $(\theta,\phi)=(0,0)$ direction, and the $(\theta,\phi)=(30,0)$ direction.
+The `FIELD_directions` section specifies that we will apply this field in two different directions, the $(\theta,\phi)=(0,0)$ direction, and the $(\theta,\phi)=(30,0)$ direction.
 
 The parameters in the `SYSTEM` section control the propagation scheme, including the duration and number of timesteps. 
+
+The `hdf5` section requests and h5 file be written, and that density matrices be included.
 
 
 ```
@@ -469,56 +471,67 @@ The parameters in the `SYSTEM` section control the propagation scheme, including
  restartbinfile  = 'OUTPUT_RESTART.bin'
  Qmo_dens        = .false.
  /
+ &hdf5
+ h5inc_enable = .true.
+ h5inc_density = .true.
+ h5inc_psi = .false.
+ h5inc_psi_det0 = .false.
+ /
 
 ```
 
 Table of input parameters:
 
 
-| **Namelist**       | **Parameter**       | **Description**                                                                                                     | **Allowed values**                          | **Notes**                                                                                                                                                        |
-|--------------------|---------------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| DYNAMICS           | init_states(i)      | Init_state(0) is the number of initial states. Init_state(i) for i>0 is the state index of state i.                 | N/A                                         |                                                                                                                                                                   |
-| DYNAMICS           | init_coeffs(i)      | Initial coefficient of state i                                                                                      | Complex (e.g., (1.00, 0.00))                | Example: Init_coeffs(1) = (1.0, 0.0)                                                                                                                              |
-| DYNAMICS           | restart             | Reads RESTART.bin to restart the propagation                                                                       | .true. or .false.                           |                                                                                                                                                                   |
-| DYNAMICS           | Qsave               | Writes RESTART.bin                                                                                                | .true. or .false.                                        |                                                                                                                                                                   |
-| FIELD_units        | omega_units         | Units for the omega parameter                                                                                       | ‘au’                                        | ‘au’ angular frequency in atomic units \\ 'nm' wavelength in nanometer                                                                                                                                             |
-| FIELD              | dirform             | Coordinate system used for FIELD_directions namelist.                                                              | ‘polar’, ‘cart’                             | ‘polar’: Polar coordinates \\ ‘cart’: Cartesian coordinates                                                                                                       |
-| FIELD              | ellipt              | Ellipticity for circularly polarized fields                                                                        | Float from 0.0–1.0                          | A value of 1.0 corresponds to a circular pulse.                                                                                                                   |
-| FIELD              | envelope            | Envelope that outlines the pulse                                                                          | ‘none’, ‘cos2’, ‘trap’, ‘gaus’, ‘stat’, ‘band’, ‘ramp’, ‘sin2’, ‘cirl’, ‘cirr’ | For a full description of the options, see the relevant section in documentation.                                              |
-| FIELD              | ncyc                | Number of optical cycles that are enclosed by the envelope                                                  | Positive integer                            | Does not apply to fields ‘none’, ‘static’, and ‘ramp’.                                                                                                            |
-| FIELD              | omega               | Frequency of the pulse                                                                                   | Positive float                              | Units are set by the omega_units parameter.                                                                                                                       |
-| FIELD              | phase               | Carrier envelope phase (CEP) in degrees                                                                             | float                              |                                                                                                                                                                   |
-| FIELD              | euler               | Sets the Euler angle (gamma) for elliptical pulses.                                                                | float                          |                                                                                                                                                                   |
-| FIELD_strengths    | nemax               | Number of propagations to perform with different field strengths                                                             | Positive integer                            | Read_emax(i) must be set for i=1,…,nemax                                                                                                                           |
-| FIELD_strengths    | read_emax(i)        | Maximum field strength of field i.                                                                                 | Non-negative float (i=1,…,nemax)          |                                                                                                                                                                   |
-| FIELD_directions   | ndir                | Number of propagations to perform with different field polarization directions.                                    | Positive integer                            | Read_theta(i) and Read_phi(i) must be set for i=1,…,ndir. The total number of propagations will be nemax×ndir.                                                    |
-| FIELD_directions   | read_theta(i)       | Theta coordinate for field polarization direction i                                                                | Float from 0–180 (i=1,…,ndir)                           | Requires dirform=’polar’                                                                                                                                         |
-| FIELD_directions   | read_phi(i)         | Phi coordinate for field polarization direction i                                                                  | Float from 0–360 (i=1,…,ndir)                           | Requires dirform=’polar’                                                                                                                                         |
-| FIELD_directions   | read_x(i)           | x coordinate for field polarization direction i                                                                    | Float                                       | Requires dirform=’cart’                                                                                                                                          |
-| FIELD_directions   | read_y(i)           | y coordinate for field polarization direction i                                                                    | Float                                       | Requires dirform=’cart’                                                                                                                                          |
-| FIELD_directions   | read_z(i)           | z coordinate for field polarization direction i                                                                    | Float                                       | Requires dirform=’cart’                                                                                                                                          |
-| SYSTEM_units       | dt_units            | Units for the ‘dt’ parameter.                                                                                      | ‘au’, 'as', 'fs', 'ps'                                        | ‘au’ atomic units \\ 'as' -attosec \\ 'fs' femtosec \\ 'ps' picosec                                                                                                                                              |
-| SYSTEM_units       | eigmax_units        | Units for the ‘eigmax’ parameter.                                                                                  | ‘au’, 'eV'                                        | ‘au’ atomic units \\ 'eV' electron volts                                                                                                                                              |
-| SYSTEM             | dt                  | Size of the propagation timestep                                                                                   | Positive float                              |                                                                                                                                                                   |
-| SYSTEM             | eigmax              | Ignore states with energies above eigmax+ionization                                                                                    | Positive float                              |                                                                                                                                                                   |
-| SYSTEM             | ionization          | estimated ionization energy                                                                          | Float                                       | if ionization = -1.0, use -HOMO energy                                                                                                                                                                  |
-| SYSTEM             | jobtype             | Selects the type of propagation to be performed                                                                    | ‘cis’, ‘cisip’, ‘soc’, ‘socip’              | ‘cis’: TD-CIS \\ ‘cisip’: TD-CISDIP \\ ‘soc’: TD-CIS with spin-orbit coupling \\ ‘socip’: TD-CISDIP with spin-orbit coupling                                   |
-| SYSTEM             | nstep               | Number of timesteps to be propagated                                                                               | Positive integer                            |                                                                                                                                                                   |
-| SYSTEM             | outstep             | Output data will only be written on step numbers divisible by outstep                                              | Positive integer                            | If nstep=50 and outstep=10, data will be written on steps 10, 20, 30, 40, and 50.                                                                                 |
-| SYSTEM             | nactive             | Number of active occupied orbitals (lower orbitals are ignored)                                                    | positive integer                                         | nactive = 0 to use all occupied orbitals                                                                                                                                                                  |
-| SYSTEM             | nvirtual            | Number of active virtual orbitals (higher orbitals are ignored)                                                    | positive integer                                         | nvirtual = 0 to use all virtual orbitals                                                                                                                                                                  |
-| SYSTEM             | socfac              | Spin-orbit coupling scale factor                                                                  | float                                        |  socfac = 1.0 for full SOC \\ socfac = 0.0 to turn off SOC                                                                                                                                                                 |
-| SYSTEM             | socfacZ             | Scales z-component of spin-orbit coupling                                                       | N/A                                         |                                                                                                                                                                   |
-| SYSTEM             | IP_alpha_beta       |  Which electrons to ionize                                                                                                                   | .true. or .false.                           | .true. ionize both alpha and beta \\ .false. ionize only beta electrons                                                                                                                                                                  |
-| SYSTEM             | QeigenDC            | use divide-and-conquer eigenvalue solver                                                                                                                    | .true. or .false.                           |                                                                                                                                                                   |
-| InOutFILES         | Qread_tdcidata      | Type of Gaussian data file to read                                                                                 | .true. or .false.                           | For legacy TDCI.dat files, use .true. \\ For new MatrixElements.faf files, use .false.                                                                            |
-| InOutFILES         | tdcidatfile         | Specifies the filename of the Gaussian data file                                                                   | String                                      |                                                                                                                                                                   |
-| InOutFILES         | outputfile          | Name of output log file                                                                                            | String                                      |                                                                                                                                                                   |
-| InOutFILES         | restartbinfile      | Name of the restart file                                                                                           | String                                      | Setting parameter ‘restart’ to .true. will read from this file. \\ Setting parameter ‘Qsave’ to .true. will write this file.                                     |
-| InOutFILES         | Qwrite_ion_coeff    | For sequential double ionization, writes the ion coefficients                                                      | .true. or .false.                           |                                                                                                                                                                   |
-| InOutFILES         | Qread_ion_coeff     | For sequential double ionization, reads the ion coefficients                                                       | .true. or .false.                           |                                                                                                                                                                   |
-| InOutFILES         | Qmo_dens            | Writes the density matrix to MO_density files                                                                      | .true. or .false.                           |                                                                                                                                                                   |
-
+| **Namelist**       | **Parameter**       | **Description**              | **Allowed values**                          | **Notes**               |
+|-----------------------------------------|-------------------------------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| DYNAMICS           | init_states(i)      | init_state(0) is the number of initial states. Init_state(i) for i>0 is the state index of state i, where 1 is the ground state.    | N/A    |         |
+| DYNAMICS           | init_coeffs(i)      | Initial coefficient of state i    | Complex (e.g., (1.00, 0.00))       | Example: Init_coeffs(1) = (1.0, 0.0)    |
+| DYNAMICS           | restart             | Reads RESTART.bin to restart the propagation    | .true. or .false.                           |         |
+| DYNAMICS           | Qsave               | Writes RESTART.bin         | .true. or .false.        |         |
+| FIELD_units        | omega_units         | Units for the omega parameter    | ‘au’ | ‘au’ angular frequency in atomic units \\ 'nm' wavelength in nanometers    |
+| FIELD              | dirform             | Coordinate system used for FIELD_directions namelist.   | ‘polar’, ‘cart’  | ‘polar’: Polar coordinates \\ ‘cart’: Cartesian coordinates                |
+| FIELD              | ellipt              | Ellipticity for circularly polarized fields     | Float from 0.0–1.0                          | A value of 1.0 corresponds to a circular pulse.                            |
+| FIELD              | envelope            | Envelope that outlines the pulse       | ‘none’, ‘cos2’, ‘trap’, ‘gaus’, ‘stat’, ‘band’, ‘ramp’, ‘sin2’, ‘cirl’, ‘cirr’ | For a full description of the options, see the relevant section in documentation.  |
+| FIELD              | ncyc                | Number of optical cycles that are enclosed by the envelope     | Positive integer   | Does not apply to fields ‘none’, ‘static’, and ‘ramp’.   |
+| FIELD              | omega               | Frequency of the pulse  | Positive float   | Units are set by the omega_units parameter.   |
+| FIELD              | phase               | Carrier envelope phase (CEP) in degrees    | float   |    |
+| FIELD              | euler               | Sets the Euler angle (gamma) for elliptical pulses.   | float   |     |
+| FIELD_strengths    | nemax               | Number of propagations to perform with different field strengths   | Positive integer | Read_emax(i) must be set for i=1,…,nemax      |
+| FIELD_strengths    | read_emax(i)        | Maximum field strength of field i.     | Non-negative float (i=1,…,nemax)    |         |
+| FIELD_directions   | ndir                | Number of propagations to perform with different field polarization directions. | Positive integer | Read_theta(i) and Read_phi(i) must be set for i=1,…,ndir. The total number of propagations will be nemax×ndir.   |
+| FIELD_directions   | read_theta(i)       | Theta coordinate for field polarization direction i | Float from 0–180 (i=1,…,ndir) | Requires dirform=’polar’   |
+| FIELD_directions   | read_phi(i)         | Phi coordinate for field polarization direction i     | Float from 0–360 (i=1,…,ndir)  | Requires dirform=’polar’   |
+| FIELD_directions   | read_x(i)           | x coordinate for field polarization direction i      | Float  | Requires dirform=’cart’   |
+| FIELD_directions   | read_y(i)           | y coordinate for field polarization direction i    | Float    | Requires dirform=’cart’   |
+| FIELD_directions   | read_z(i)           | z coordinate for field polarization direction i   | Float   | Requires dirform=’cart’   |
+| SYSTEM_units       | dt_units            | Units for the ‘dt’ parameter.   | ‘au’, 'as', 'fs', 'ps'  | ‘au’ atomic units \\ 'as' attosec \\ 'fs' femtosec \\ 'ps' picosec     |
+| SYSTEM_units       | eigmax_units        | Units for the ‘eigmax’ parameter.   | ‘au’, 'eV' | ‘au’ atomic units \\ 'eV' electron volts     |
+| SYSTEM             | dt                  | Size of the propagation timestep   | Positive float   |  |
+| SYSTEM             | eigmax              | Ignore states with energies above eigmax+ionization   | Positive float     |     |
+| SYSTEM             | ionization          | estimated ionization energy    | Float   | if ionization = -1.0, use -HOMO energy        |
+| SYSTEM             | jobtype             | Selects the type of propagation to be performed    | ‘cis’, ‘cisip’, ‘soc’, ‘socip’  | ‘cis’: TD-CIS \\ ‘cisip’: TD-CISDIP \\ ‘soc’: TD-CIS with spin-orbit coupling \\ ‘socip’: TD-CISDIP with spin-orbit coupling    |
+| SYSTEM             | nstep               | Number of timesteps to be propagated   | Positive integer    |         |
+| SYSTEM             | outstep             | Output data will only be written on step numbers divisible by outstep    | Positive integer   | If nstep=50 and outstep=10, data will be written on steps 10, 20, 30, 40, and 50. |
+| SYSTEM             | nactive             | Number of active occupied orbitals (lower orbitals are ignored)   | positive integer   | nactive = 0 to use all occupied orbitals  |
+| SYSTEM             | nvirtual            | Number of active virtual orbitals (higher orbitals are ignored)   | positive integer   | nvirtual = 0 to use all virtual orbitals  |
+| SYSTEM             | socfac              | Spin-orbit coupling scale factor                | float                                        |  socfac = 1.0 for full SOC \\ socfac = 0.0 to turn off SOC       |
+| SYSTEM             | socfacZ             | Scales z-component of spin-orbit coupling     | N/A                                         |         |
+| SYSTEM             | IP_alpha_beta       |  Which electrons to ionize                            | .true. or .false.  | .true. ionize both alpha and beta \\ .false. ionize only beta electrons        |
+| SYSTEM             | QeigenDC            | use divide-and-conquer eigenvalue solver   | .true. or .false.  |   |
+| InOutFILES         | Qread_tdcidata      | Type of Gaussian data file to read              | .true. or .false.  | For legacy TDCI.dat files, use .true. \\ For new MatrixElements.faf files, use .false. |
+| InOutFILES         | tdcidatfile         | Specifies the filename of the Gaussian data file  | String  |   |
+| InOutFILES         | outputfile          | Name of output log file   | String   |    |
+| InOutFILES         | restartbinfile      | Name of the restart file    | String | Setting parameter ‘restart’ to .true. will read from this file. \\ Setting parameter ‘Qsave’ to .true. will write this file.                                     |
+| InOutFILES         | Qwrite_ion_coeff    | For sequential double ionization, writes the ion coefficients    | .true. or .false.  |   |
+| InOutFILES         | Qread_ion_coeff     | For sequential double ionization, reads the ion coefficients  | .true. or .false.  |   |
+| InOutFILES         | Qmo_dens            | Writes the density matrix to MO_density files      | .true. or .false.      |    |
+| InOutFILES         | verbosity           | How chatty should the OUTPUT log file be? Higher=More debug text   | Integer    |  default=2    |
+| InOutFILES         | datfile_enable      | Enable writing the plaintext RESULTS, POP, ION dat files. | .true. or .false.   |  default=.true.   |
+| hdf5    |  h5inc_enable  | Enables h5 file output | .true. or .false. | default=.true. | 
+| hdf5    |  h5inc_density  | Write density matrix to h5 file at each timestep | .true. or .false. | | 
+| hdf5    |  h5inc_psi  | Write CI in state basis to h5 file at each timestep | .true. or .false. | | 
+| hdf5    |  h5inc_psi_det0  | Write CI in determinant basis to h5 file at each timestep | .true. or .false. | | 
 
 ## Output Files
 
@@ -555,6 +568,10 @@ Also contains the ionization rate for the normalized wavefunction partitioned in
 
 Tracks the populations of orbitals and states in the ionized system (the first line describe the contents).
 
+### data.h5
+
+Requires `h5inc_enable = .true.`
+Contains hdf5 group "metadata" for system specific data (dipole moments, CMO coefficients, determinant indexing arrays). Each propagation direction has a group "direction_i" where i is the direction index, which contains subgroups "field_j" where j is the field strength index. Each propagation subgroup "direction_i/field_j/" contains the same data contained in the RESULTS, POP, and ION files. Based on input flags, the MO density matrix and CI vector (in determinant or state basis) at each timestep may be written.
 
 
 [^1]: [Krause, P.; Sonk, J. A.; Schlegel, H. B., Strong field ionization rates simulated with time-dependent configuration interaction and an absorbing potential. J. Chem. Phys. 2014, 140, 174113. 10.1063/1.4874156](https://doi.org/10.1063/1.4874156) -- ([Mirror](https://schlegelgroup.wayne.edu/Pub_folder/369.pdf))

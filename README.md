@@ -9,13 +9,14 @@ TDCI-CAP can be compiled with nvfortran on unix systems supported by NVIDIA's HP
 The NVIDIA HPC SDK can be downloaded at https://developer.nvidia.com/hpc-sdk-downloads
 NVIDIA's install instructions https://docs.nvidia.com/hpc-sdk/hpc-sdk-install-guide/index.html
 
-Once the environment is prepared, you can clone the repo and compile the tdci code.
-
+Once the environment is prepared, you can clone the repository and compile the tdci code.
 ```
 git clone https://github.com/hbschlegel/TDCI-CAP
 cd TDCI-CAP
 make
 ```
+
+The code depends on makedepf90 and HDF5, which are automatically installed by the configure script called by make. Compiling these dependencies may take several minutes.
 
 To test your installation, you can use the test utility in the test folder
 ```

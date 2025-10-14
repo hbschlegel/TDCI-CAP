@@ -840,7 +840,7 @@ C
       Real*8 Buf(LenBuf),Arr(N1,N2)
 CF2PY Intent (Out) Arr
 C
-      write(42,*) "Rd_RBf2 ",IU,NTot,N1,N2,LenBuf
+C      write(42,*) "Rd_RBf2 ",IU,NTot,N1,N2,LenBuf
       IJ = LenBuf
       Do 20 I = 1, N2
         Do 10 J = 1, N1
@@ -861,7 +861,7 @@ C
       Real*8 Buf(LenBuf),Arr(N1,N2)
 CF2PY Intent (Out) Arr
 C
-      write(42,*) "Rd_RBf3 ",IU,NTot,N1,N2,LenBuf
+C      write(42,*) "Rd_RBf3 ",IU,NTot,N1,N2,LenBuf
       IJ = LenBuf
       Do 20 I = 1, N2
         Do 10 J = I, N1

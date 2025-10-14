@@ -1,131 +1,88 @@
 # Makefile to compile tdci
-# /wsu/el7/pgi/2018-187/linux86-64/18.7/lib/
 
 SHELL := /bin/bash
 
-
 # Directories
-# Source, object, binary, and module directories
-SRC = src
-OBJ = obj
-BIN = bin
-MOD = $(OBJ)/modules
+SRC := src
+OBJ := obj
+MOD := $(OBJ)/modules
+DEP := $(OBJ)/dep
+BIN := bin
+
+HDF5_DIR := dep/hdf5-1.14.4-3/hdf5-install
+HDF5_INC  := -I$(HDF5_DIR)/include
+HDF5_LIB  := -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5
 
 # Source and object files
-F90_SOURCES = $(wildcard $(SRC)/*.f90)
-F_SOURCES = $(wildcard $(SRC)/*.F)
-SOURCES = $(F90_SOURCES) $(F_SOURCES)
+F90_SOURCES := $(wildcard $(SRC)/*.f90)
+F_SOURCES   := $(wildcard $(SRC)/*.F)
+SOURCES     := $(F90_SOURCES) $(F_SOURCES)
 
-F90_OBJECTS = $(patsubst $(SRC)/%.f90,$(OBJ)/%.o,$(F90_SOURCES))
-F_OBJECTS = $(patsubst $(SRC)/%.F,$(OBJ)/%.o,$(F_SOURCES))
-OBJECTS = $(F90_OBJECTS) $(F_OBJECTS)
-
-$(info SOURCES: $(SOURCES))
-$(info OBJECTS: $(OBJECTS))
-
+F90_OBJECTS := $(patsubst $(SRC)/%.f90,$(OBJ)/%.o,$(F90_SOURCES))
+F_OBJECTS   := $(patsubst $(SRC)/%.F,$(OBJ)/%.o,$(F_SOURCES))
+OBJECTS     := $(F90_OBJECTS) $(F_OBJECTS)
 
 # If the working directory 'dirty' (does not exactly match the commit), append '+'
-dirty := $(shell if [ -z "$$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; \
-                 then echo ""; else echo "+"; fi)
-
+dirty := $(shell if [ -z "$$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then echo ""; else echo "+"; fi)
 # Include git version number and dirty indicator
 GIT_HASH := $(shell git rev-parse --short HEAD)$(dirty)
 
-#FC = pgf95
-FC = nvfortran
-FFLAGS = -tp=host -O3 -g -Mpreprocess -DGIT_HASH=\"$(GIT_HASH)\"
-LAPACK_LIBS = -llapack -lblas
-OPT_FLAGS = -Minfo -Mneginfo -time -fast -Mconcur=allcores -mp=allcores -Munroll -Mvect
-O_FLAGS = -module $(MOD) -I$(MOD)
+# Compiler and flags
+FC          := nvfortran
+FFLAGS      := -tp=host -O3 -g -Mpreprocess -DGIT_HASH=\"$(GIT_HASH)\"
+OPT_FLAGS   := -Minfo -Mneginfo -time -fast -Mconcur=allcores -mp=allcores -Munroll -Mvect
+O_FLAGS     := -module $(MOD) -I$(MOD) $(HDF5_INC)
+LIBS        := -llapack -lblas $(HDF5_LIB)
+DEPFLAGS    := -MMD -MF $(DEP)/$*.d
 
-#ALL_OBJECTS = $(OBJ)/tdci.o $(OBJ)/variables_units.o $(OBJ)/variables_setup.o $(OBJ)/variables_control.o $(OBJ)/variables_global.o $(OBJ)/write_info.o $(OBJ)/readintegrals.o $(OBJ)/initialize.o $(OBJ)/getfield.o $(OBJ)/util.o $(OBJ)/sort.o $(OBJ)/io_binary.o $(OBJ)/getham0_cisd.o $(OBJ)/getham0.o $(OBJ)/getham.o $(OBJ)/propagate.o $(OBJ)/Zpropagate.o $(OBJ)/analysis.o $(OBJ)/davidson_ip.o $(OBJ)/qcmatrixio.o
+DEPLIST := $(DEP)/deps.mk
 
 
 
-all : update $(BIN)/tdci 
+# Default target
+.PHONY : all
+all : update dep $(DEPLIST) $(BIN)/tdci $(BIN)/tdci_core
 
-$(BIN)/tdci : $(OBJECTS)
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(OBJECTS) $(LAPACK_LIBS) $(O_FLAGS) -o $(BIN)/tdci
+.PHONY : dep
+dep :
+	@echo "==> running ./configure to install HDF5 and makedepf90"
+	@./configure
+	@echo "==> dependencies ready"
 
-# General pattern rule for object files
-$(OBJ)/%.o : $(SRC)/%.f90
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
 
-# Require all other objects be built
-$(OBJ)/tdci.o : $(SRC)/tdci.f90 $(filter-out $(OBJ)/tdci.o,$(OBJECTS))
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
+$(BIN)/tdci : $(SRC)/tdci.sh
+	cp $(SRC)/tdci.sh $@
+	chmod +x $@
 
-#$(OBJ)/davidson_cisd.o : $(SRC)/davidson_cisd.f90 $(OBJ)/variables_global.o $(OBJ)/util.o $(OBJ)/getham0_cisd.o
-#	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $(SRC)/davidson_cisd.f90 -o $(OBJ)/davidson_cisd.o
+$(BIN)/tdci_core : $(OBJECTS)
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(OBJECTS) $(LIBS) $(O_FLAGS) -o $@
 
-$(OBJ)/davidson_ip.o : $(SRC)/davidson_ip.f90 $(OBJ)/variables_global.o $(OBJ)/util.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
+$(DEP)/deps.mk : $(SOURCES) | $(DEP)
+	@echo '  [makedepf90] scanning sources …'
+	@dep/makedepf90/bin/makedepf90 -b $(OBJ)/ -I$(SRC) -I$(MOD) $(HDF5_INC) $(SOURCES) > $@
 
-$(OBJ)/Zpropagate.o : $(SRC)/Zpropagate.f90 $(OBJ)/analysis.o $(OBJ)/util.o $(OBJ)/variables_global.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
+# Pattern rules
+$(OBJ)/%.o : $(SRC)/%.f90 | $(DEP)
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(O_FLAGS) -c $< -o $@
 
-$(OBJ)/propagate.o : $(SRC)/propagate.f90 $(OBJ)/analysis.o $(OBJ)/util.o $(OBJ)/variables_global.o $(OBJ)/sort.o $(OBJ)/io_binary.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
+$(OBJ)/%.o : $(SRC)/%.F | $(DEP)
+	$(FC) $(FFLAGS) $(OPT_FLAGS) $(O_FLAGS) -c $< -o $@
 
-$(OBJ)/analysis.o : $(SRC)/analysis.f90 $(OBJ)/util.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
+$(MOD)/%.mod : $(OBJ)/%.o ;
 
-$(OBJ)/getham.o : $(SRC)/getham.f90 $(OBJ)/getham0.o $(OBJ)/getham0_cisd.o $(OBJ)/variables_global.o $(OBJ)/util.o $(OBJ)/sort.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
+# Directory setup
+update : | $(BIN) $(OBJ) $(MOD) $(DEP)
 
-$(OBJ)/getham0.o : $(SRC)/getham0.f90 $(OBJ)/variables_global.o $(OBJ)/readintegrals.o $(OBJ)/util.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
+$(BIN) $(OBJ) $(MOD) $(DEP) :
+	@mkdir -p $@
 
-$(OBJ)/getham0_cisd.o : $(SRC)/getham0_cisd.f90 $(OBJ)/variables_global.o $(OBJ)/readintegrals.o $(OBJ)/util.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
+# Include generated dependency files
+-include $(DEPLIST)
 
-$(OBJ)/getfield.o : $(SRC)/getfield.f90 $(OBJ)/variables_global.o $(OBJ)/util.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
-
-$(OBJ)/initialize.o : $(SRC)/initialize.f90 $(OBJ)/readintegrals.o $(OBJ)/variables_global.o $(OBJ)/util.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
-
-$(OBJ)/readintegrals.o : $(SRC)/readintegrals.f90 $(OBJ)/io_binary.o $(OBJ)/variables_global.o $(OBJ)/qcmatrixio.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
-
-$(OBJ)/write_info.o : $(SRC)/write_info.f90 $(OBJ)/variables_units.o $(OBJ)/variables_setup.o $(OBJ)/variables_control.o $(OBJ)/variables_global.o $(OBJ)/util.o
-	$(FC) $(O_FLAGS) -c $< -o $@ 
-
-$(OBJ)/util.o : $(SRC)/util.f90 $(OBJ)/readintegrals.o
-	$(FC) $(FFLAGS) $(OPT_FLAGS) $(LAPACK_LIBS) $(O_FLAGS) -c $< -o $@
-
-$(OBJ)/variables_global.o : $(SRC)/variables_global.f90 $(OBJ)/variables_units.o $(OBJ)/variables_setup.o $(OBJ)/variables_control.o 
-	$(FC) $(O_FLAGS) -c $< -o $@ 
-
-$(OBJ)/variables_control.o : $(SRC)/variables_control.f90
-	$(FC) $(O_FLAGS) -c $< -o $@ 
-
-$(OBJ)/variables_setup.o : $(SRC)/variables_setup.f90 
-	$(FC) $(O_FLAGS) -c $< -o $@ 
-
-$(OBJ)/variables_units.o : $(SRC)/variables_units.f90
-	$(FC) $(O_FLAGS) -c $< -o $@ 
-
-$(OBJ)/sort.o : $(SRC)/sort.f90
-	$(FC) $(O_FLAGS) -c $< -o $@ 
-
-$(OBJ)/io_binary.o : $(SRC)/io_binary.f90 $(OBJ)/variables_global.o
-	$(FC) $(O_FLAGS) -c $< -o $@ 
-
-update : 
-	mkdir -p $(BIN)
-	mkdir -p $(OBJ)
-	mkdir -p $(MOD)
-
-$(OBJ)/qcmatrixio.o : $(SRC)/qcmatrixio.F
-	pgfortran $(O_FLAGS) -c $< -o $@
-
+.PHONY : clean
 clean :
-	@( echo " *** CLEANING *** ")
-	rm -r obj/
-	rm -r bin/
-	mkdir obj/
-	mkdir bin/
+	@echo '*** CLEANING ***'
+	@rm -rf $(OBJ) $(BIN)
 
 
 

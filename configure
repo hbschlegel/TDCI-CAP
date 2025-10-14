@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+# ---------------- user-tunable bits ---------------------------------
+HDF5_VER=1.14.4-3
+HDF5_TAR="hdf5-${HDF5_VER}.tar.gz"
+#https://github.com/HDFGroup/hdf5/releases/download/hdf5_1.14.4.3/hdf5-1.14.4-3.tar.gz
+HDF5_URL="https://github.com/HDFGroup/hdf5/releases/download/hdf5_${HDF5_VER//-/.}/${HDF5_TAR}"
+HDF5_SRC="hdf5-${HDF5_VER}"
+HDF5_PREFIX="${HDF5_SRC}/hdf5-install"
+
+MDF90_VER=2.8.9
+MDF90_TAR="makedepf90-upstream-${MDF90_VER}.tar.gz"
+MDF90_URL="https://github.com/amckinstry/makedepf90/archive/refs/tags/upstream/${MDF90_VER}.tar.gz"
+MDF90_SRC="makedepf90-upstream-${MDF90_VER}"
+MDF90_PREFIX="makedepf90"
+# --------------------------------------------------------------------
+
+NCPU=$(nproc || sysctl -n hw.ncpu || echo 4)
+
+# helper: download if file missing
+fetch () {
+  local url=$1 tar=$2
+  [[ -f "$tar" ]] || { echo ">> downloading $url" ; curl -L -o "$tar" "$url"; }
+}
+
+# --------------------------------------------------------------------
+# 1) makedepf90
+# --------------------------------------------------------------------
+if [[ -x "dep/${MDF90_PREFIX}/bin/makedepf90" ]]; then
+  echo "==> makedepf90 already present."
+else
+  echo "==> Building makedepf90 ${MDF90_VER}"
+  mkdir -p dep
+  pushd dep >/dev/null
+    fetch "$MDF90_URL" "$MDF90_TAR"
+    tar xf "$MDF90_TAR"
+    mkdir -p "${MDF90_PREFIX}"
+    pushd "${MDF90_SRC}" >/dev/null
+      export CC=nvc
+      export CFLAGS="-O2"
+      ./configure --prefix="$PWD/../makedepf90"
+      make
+      make install
+    popd >/dev/null
+  popd >/dev/null
+  echo "   installed to dep/${MDF90_PREFIX}"
+fi
+
+# --------------------------------------------------------------------
+# 2) HDF5
+# --------------------------------------------------------------------
+if [[ -f "dep/${HDF5_PREFIX}/lib/libhdf5_fortran.so" ]]; then
+  echo "==> HDF5 already present."
+else
+  echo "==> Building HDF5 ${HDF5_VER} with NVHPC compilers"
+  mkdir -p dep
+  pushd dep >/dev/null
+    fetch "$HDF5_URL" "$HDF5_TAR"
+    tar xf "$HDF5_TAR"
+    pushd "${HDF5_SRC}" >/dev/null
+      export CC=nvc   CXX=nvc++  FC=nvfortran
+      ./configure --prefix="$PWD/hdf5-install" \
+                  --enable-fortran             \
+                  --enable-shared
+      make -j${NCPU}
+      make install
+    popd >/dev/null
+  popd >/dev/null
+  echo "   installed to ${HDF5_PREFIX}"
+fi
+
+
