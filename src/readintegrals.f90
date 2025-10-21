@@ -282,7 +282,7 @@ contains
       if (.not.allocated(Mol%soczao)) then
         write(iout, *) "Mol%soczao is not allocated. Stopping."
         flush(iout)
-        STOP "SOC elements not found."
+        STOP "SOC elements not found. Include IOp(3/117=1) in your Gaussian job."
       end if
     end if 
 

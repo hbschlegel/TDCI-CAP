@@ -22,14 +22,14 @@ F90_OBJECTS := $(patsubst $(SRC)/%.f90,$(OBJ)/%.o,$(F90_SOURCES))
 F_OBJECTS   := $(patsubst $(SRC)/%.F,$(OBJ)/%.o,$(F_SOURCES))
 OBJECTS     := $(F90_OBJECTS) $(F_OBJECTS)
 
-# If the working directory 'dirty' (does not exactly match the commit), append '+'
+# If the working directory is 'dirty' (does not exactly match the commit), append '+'
 dirty := $(shell if [ -z "$$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then echo ""; else echo "+"; fi)
 # Include git version number and dirty indicator
 GIT_HASH := $(shell git rev-parse --short HEAD)$(dirty)
 
 # Compiler and flags
 FC          := nvfortran
-FFLAGS      := -tp=host -O3 -g -Mpreprocess -DGIT_HASH=\"$(GIT_HASH)\"
+FFLAGS      := -tp=host -O0 -g -Mpreprocess -Mbounds -Mchkptr -Mchkstk -traceback -DGIT_HASH=\"$(GIT_HASH)\"
 OPT_FLAGS   := -Minfo -Mneginfo -time -fast -Mconcur=allcores -mp=allcores -Munroll -Mvect
 O_FLAGS     := -module $(MOD) -I$(MOD) $(HDF5_INC)
 LIBS        := -llapack -lblas $(HDF5_LIB)

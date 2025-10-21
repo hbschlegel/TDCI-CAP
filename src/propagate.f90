@@ -775,7 +775,11 @@ subroutine initialize_PropShared(Prop)
 
   real(8) :: min_temp, max_temp, dip_temp
   integer(8) :: i, j, i_min, i_max, j_min, j_max
+  integer(8) :: naorb, nborb
   
+  naorb = nva+noa
+  nborb = nvb+nob
+
   !: Natural Orbital initialization
   allocate( Prop%opdm_avg(nrorb*nrorb) )
   allocate( Prop%opdm_avg_abs(nrorb*nrorb) )
@@ -812,31 +816,48 @@ subroutine initialize_PropShared(Prop)
   end if
   min_temp = 0.0 ; max_temp = 0.0
   i_min = 0 ; i_max = 0 ; j_min = 0 ; j_max = 0
-  do i = 1,nrorb
-    do j = 1,nrorb
-      if (Mol%vabsmoa((i-1)*nrorb+j) > max_temp) then
-        max_temp = Mol%vabsmoa((i-1)*nrorb+j)
+  do i = 1,naorb
+    do j = 1,naorb
+      if (Mol%vabsmoa(i,j) > max_temp) then
+        max_temp = Mol%vabsmoa(i,j)
         i_max = i
         j_max = j
       end if
-      if (Mol%vabsmoa((i-1)*nrorb+j) < min_temp) then
-        min_temp = Mol%vabsmoa((i-1)*nrorb+j)
+      if (Mol%vabsmoa(i,j) < min_temp) then
+        min_temp = Mol%vabsmoa(i,j)
         i_min = i
         j_min = j
       end if
     end do
   end do
+  if (unrestricted .and. allocated(Mol%vabsmob)) then
+    !write(iout, *) allocated(Mol%vabsmob), shape(Mol%vabsmob)
+    !flush(iout)
+    do i = 1,nborb
+      do j = 1,nborb
+        if (Mol%vabsmob(i,j) > max_temp) then
+          max_temp = Mol%vabsmob(i,j)
+          i_max = i
+          j_max = j
+        end if
+        if (Mol%vabsmob(i,j) < min_temp) then
+          min_temp = Mol%vabsmob(i,j)
+          i_min = i
+          j_min = j
+        end if
+      end do
+    end do
+  end if
   if(verbosity.gt.1) then
-    write(iout, "('Maximum(vabsmoa)=',i5,i5,f10.4)") i_max, j_max, max_temp
-    write(iout, "('Minimum(vabsmoa)=',i5,i5,f10.4)") i_min, j_min, min_temp
+    write(iout, "('Maximum(vabsmo)=',i5,i5,f10.4)") i_max, j_max, max_temp
+    write(iout, "('Minimum(vabsmo)=',i5,i5,f10.4)") i_min, j_min, min_temp
   end if
   ! Dipole
   min_temp = 0.0 ; max_temp = 0.0
   i_min = 0 ; i_max = 0 ; j_min = 0 ; j_max = 0
-  do i = 1,nrorb
-    do j = 1,nrorb
-      flush(iout)
-      dip_temp = sqrt( (Mol%dipxmoa((i-1)*nrorb+j))**2 + (Mol%dipymoa((i-1)*nrorb+j))**2 + (Mol%dipzmoa((i-1)*nrorb+j))**2 )
+  do i = 1,naorb
+    do j = 1,naorb
+      dip_temp = sqrt( (Mol%dipxmoa(i,j))**2 + (Mol%dipymoa(i,j))**2 + (Mol%dipzmoa(i,j))**2 )
       if (dip_temp > max_temp) then
         max_temp = dip_temp
         i_max = i
@@ -848,13 +869,28 @@ subroutine initialize_PropShared(Prop)
       end if
     end do
   end do
+  if (unrestricted .and. allocated(Mol%dipxmob)) then
+    do i=1,nborb
+      do j=1,nborb
+        dip_temp = sqrt( (Mol%dipxmob(i,j))**2 + (Mol%dipymob(i,j))**2 + (Mol%dipzmob(i,j))**2 )
+        if (dip_temp > max_temp) then
+          max_temp = dip_temp
+          i_max = i
+          j_max = j
+        end if
+        if ((i.eq.j) .and. (dip_temp > min_temp)) then
+          min_temp = dip_temp
+          i_min = i
+        end if
+      end do
+    end do
+  end if
+
   if(verbosity.gt.1) then
     write(iout, "('Maximum(MO dipole norm                 )=',i5,i5,f10.4)") i_max, j_max, max_temp
     write(iout, "('Maximum(MO dipole norm (diagonals only))=',i5,i5,f10.4)") i_min, i_min, min_temp
   end if
   call DATE_AND_TIME(VALUES=Prop%datetime_start)
-
-
 
 end subroutine initialize_PropShared
 
@@ -862,12 +898,14 @@ end subroutine initialize_PropShared
 subroutine deconstruct_PropShared(this)
   class(PropagationShared), intent(inout) :: this
 
-  deallocate( this%opdm_avg , this%opdm_avg_abs )
-  deallocate( this%natorb_occ, this%natorb_occ_abs )
-  deallocate( this%U_NO, this%U_NO_abs )
-  deallocate( this%U_NO_input )
+  if (allocated(this%opdm_avg)) deallocate(this%opdm_avg)
+  if (allocated(this%opdm_avg_abs)) deallocate(this%opdm_avg_abs)
+  if (allocated(this%natorb_occ)) deallocate(this%natorb_occ)
+  if (allocated(this%natorb_occ_abs)) deallocate(this%natorb_occ_abs)
+  if (allocated(this%U_NO)) deallocate(this%U_NO)
+  if (allocated(this%U_NO_abs)) deallocate(this%U_NO_abs)
+  if (allocated(this%U_NO_input)) deallocate(this%U_NO_input)
 end subroutine deconstruct_PropShared
-
 
 
 
@@ -1150,7 +1188,6 @@ subroutine trotter_linear
         call cpu_time(finish3)
         times(5) = finish3 - start3
 
-         
         call cpu_time(start3)
         !: psi1 contains exp(-E(t+dt/2)*mu*dt) * W 
         !:               * exp(-Vabs dt/2) * exp(-iHel dt/2 ) * C(t)
@@ -1210,7 +1247,7 @@ subroutine trotter_linear
                  pop1,ion,ion_coeff,Priv%rate_a,Priv%rate_b,psi_det0,psi1,Priv%normV, &
                  Mol%vabsmoa,Mol%vabsmob,scratch,Priv%rate_direct)
           end if 
-          !: 1-RDM (opdm) should be stored in scratch now.
+          !: 1-RDM (opdm) is stored in scratch now.
 
           !: Update nva
           call update_maxnva( Priv%nva95_MO, Priv%nva99_MO, Priv%nva95_NO, Priv%nva99_NO, &
@@ -1223,24 +1260,6 @@ subroutine trotter_linear
           call add_opdm_average( Prop%opdm_avg_abs, scratch, &
                                  Prop%opdm_avg_N, .false., .true. )
 
-
-          !: Should we rip this out? It never worked.
-          ! Calculate complex density matrix and transition rates
-          if ( write_orb_transitionrates ) then
-            write(iout,*) "before make_complex_density  ", ithread, " ", itime 
-            flush(iout)
-            call make_complex_density(hole_index(:,1),part_index(:,1),psi_det0,noa,nva,nstates,Priv%density_complex)
-            write(iout,*) "before make_transition_rate  ", ithread, " ", itime 
-            flush(iout)
-            call make_transition_rate((noa+nva), Mol%ham_mo, Mol%dipxmoa, Mol%dipymoa, Mol%dipzmoa, Priv%efieldx, &
-                   Priv%efieldy, Priv%efieldz, Mol%vabsmoa, Priv%density_complex, Mol%orben, Priv%transition_rates)
-
-            write( Priv%datafile, '(A,A,A,A,A,I0,A)') "matrices/MO_TransitionRate-e",&
-              trim(Priv%emaxstr),"-d", trim(Priv%dirstr), ".", itime, ".bin"
-
-            call write_dbin_safe(Priv%transition_rates, (noa+nva)*(noa+nva), Priv%datafile )
-          end if
-          !: 1-RDM stored in scratch now.
 
           call get_norm( Priv%norm,nstuse, psi )
           call get_expectation( nstuse, Priv%norm, psi, abp, Priv%rate) !: rate expectation value
@@ -1708,6 +1727,11 @@ subroutine trotter_circular
         if( Qmo_dens ) close(Priv%funit(6))
 
         !$OMP CRITICAL (IO_LOCK)
+        if(h5inc_enable) then
+          !write(iout,*) "Closing h5 emax group ", idir, iemax, Priv%dir_grpid, Priv%field_grpid
+          call h5_close_group(Priv%field_grpid)
+          !write(iout,*) "Done closing h5 emax group ", idir, iemax, Priv%dir_grpid, Priv%field_grpid
+        end if
         !: record data at last timestep
         tdciresults( idir + (iemax-1)*ndir)%norm0 = Priv%norm**2
         tdciresults( idir + (iemax-1)*ndir)%dipx  = Priv%mux

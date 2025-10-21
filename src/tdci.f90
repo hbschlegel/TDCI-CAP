@@ -176,6 +176,7 @@ program main
             call Ztrott_serial_lin
           else
             call Ztrotter_linear
+            write(iout,*) "AFTER ZTROTTER_LINEAR" ; flush(iout)
           end if
         end select
      else ! circular

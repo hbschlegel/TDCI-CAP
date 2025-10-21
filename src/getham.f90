@@ -38,7 +38,11 @@ contains
     
     !: set ionization to Koopman's value, determine number of
     if ( ionization.lt.0.d0 ) then       
-       ionization = min( Mol%orben(noa),Mol%orben(nob) )
+       if (nob.eq.0) then
+         ionization = Mol%orben(noa)
+       else
+         ionization = min( Mol%orben(noa),Mol%orben(nob) )
+       end if
        ionization = abs(ionization)
        write(iout,'(A)') ' ionization parameter < 0.  Setting value to HOMO MO energy'
     else
