@@ -48,8 +48,8 @@ def run(root=".", tol_ref: float=1e-6, tol_phys: float=0.05) -> int:
   # Dipole response along field
   rx, ry, rz = dipole_rms_xyz(g0["mux"][0], g0["muy"][0], g0["muz"][0])
   ratio = rz / (max(rx, ry) + 1e-12)
-  if ratio >= 2.0: check.pass_(f"Dipole aligned (0°): RMSz/RMSperp={ratio:.2f}.")
-  else:            check.warn (f"Dipole weakly aligned (0°): RMSz/RMSperp={ratio:.2f}.")
+  if ratio >= 2.0: check.pass_(f"Dipole aligned (0°): RMSz/RMSperp={ratio:.3e}.")
+  else:            check.warn (f"Dipole weakly aligned (0°): RMSz/RMSperp={ratio:.3e}.")
 
 
   return check.summarize()

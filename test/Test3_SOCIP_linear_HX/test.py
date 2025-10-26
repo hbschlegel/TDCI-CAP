@@ -16,14 +16,14 @@ This test checks:
 
 from __future__ import annotations
 import os
-from testutils import Check, read_group, ion_yield_from_norm2, compare_to_reference
+from testutils import Check, read_group, compare_to_reference
 
 def run(root=".", tol_ref: float=1e-6, tol_phys: float=0.05) -> int:
   T = "Test3_SOCIP_linear_HX"
   check = Check(T)
 
   def yield_for(runname: str) -> float:
-    test = os.path.join(root, T, dirpath, f"rundir/{runname}/data.h5")
+    test = os.path.join(root, T, f"rundir/{runname}/data.h5")
     ref  = os.path.join(root, T, f"{runname}.ref.h5")
     ok, details = compare_to_reference(
       test, ref, "direction_1/field_1",

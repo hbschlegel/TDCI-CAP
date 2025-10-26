@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, importlib.util, os, sys
+import argparse, importlib.util, os, sys, subprocess
 
 
 # Returns CompletedProcess which has members stdout stderr and returncode

@@ -51,14 +51,14 @@ def run(root=".", tol_ref: float=1e-6, tol_phys: float=0.05) -> int:
     # Dipole circularity increases with ε
     cH = dipole_circularity(mux_hi, muz_hi)
     cL = dipole_circularity(mux_lo, muz_lo)
-    if cH > cL + 0.10: check.pass_(f"Circularity increased: {cH:.2f} (ε=1) > {cL:.2f} (ε=0.5).")
-    else:              check.warn (f"Circularity weak increase: {cH:.2f} vs {cL:.2f}.")
+    if cH > cL + 0.10: check.pass_(f"Dipole circularity increased with field circularity: {cH:.2f} (ε=1) > {cL:.2f} (ε=0.5).")
+    else:              check.warn (f"Dipole circularity weird: {cH:.2f} vs {cL:.2f}.")
 
     # Dipole path matches chirality of field
     # when field normal is along y+, cirr should give positive, cirl should give negative.
     A_ = shoelace_signed_area(mux_hi, muz_hi)
-    if (A_ > 0.0): check.pass_(f"Dipole path matches chirality of field (shoelace signed area: {A_})")
-    else:          check.warn (f"Dipole path does not match chirality of field (shoelace signed area: {A_})")
+    if (A_ > 0.0): check.pass_(f"Dipole path matches chirality of field (shoelace signed area: {A_:.2f})")
+    else:          check.warn (f"Dipole path does not match chirality of field (shoelace signed area: {A_:.2f})")
 
 
     return check.summarize()
