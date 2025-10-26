@@ -1,0 +1,1314 @@
+ THIS IS A WONDERFUL DAY, I HAVE NEVER SEEN THIS ONE BEFORE
+ - Maya Angelous
+ _______________________________________________
+ git version 0cb1baa+
+ Oct 19 2025    5:26: 1:522 PM
+ in subroutine read_input in MODULE initialize
+ 
+ finished reading Field and System variables from file 'input' 
+ &DYNAMICS
+ init_states(0) = 1
+ init_states(1) = 1
+ init_coeffs(1) = (1.00000,0.00000)
+ restart        = .False. 
+ Qsave          = .False. 
+ /
+ &FIELD_units
+ omega_units = 'nm'
+ /
+ &FIELD
+ dirform  = 'polar'
+ ellipt   =  0.500
+ envelope = 'cirr'
+ ncyc     =      6
+ omega    =800.000
+ phase    =  0.000
+ euler    =  0.000
+ /
+&FIELD_strengths 
+ nemax =       1
+ read_emax(1) =     0.1000
+ /
+&FIELD_directions 
+ ndir =       1
+ read_theta( 1) =    90.0000
+ read_phi( 1)   =    90.0000
+ &SYSTEM_units
+ dt_units     = 'au' 
+ eigmax_units = 'au' 
+ /
+ &SYSTEM
+ dt          =  0.050
+ eigmax      = 10.000
+ ionization  = -1.000
+ jobtype     =  'cis'
+ nstep       =  14000
+ outstep     =    100
+ nactive     =      0
+ nvirtual    =      0
+ socfac      =  1.00000000
+ socfacz     =  1.00100000
+ ffieldx     =  0.00000
+ ffieldy     =  0.00000
+ ffieldz     =  0.00000
+ IP_alpha_beta  = .False.  
+ QsocA2B  = .True.  
+ QeigenDC  = .True.  
+ Qserial  = .False.  
+ /
+ &InOutFILES
+ verbosity =    10
+ Qread_TDCIdata  = .False.  
+ tdcidatfile     = 'MatrixElements.faf'
+ outputfile      = 'OUTPUT'
+ restartbinfile  = 'OUTPUT_RESTART.bin'
+ Qmo_dens  = .True.  
+ write_binaries = .True.   
+ /
+&Davidson
+ flag_davidson = .False. 
+ /
+ &ReadU_NO
+ flag_ReadU_NO = .True. 
+ /
+ &hdf5
+ h5inc_enable = .True. 
+ h5inc_density = .False. 
+ h5inc_psi = .False. 
+ h5inc_psi_det0 = .False. 
+ /
+ 
+ leaving subroutine read_input
+ _______________________________________________
+ in subroutine read_matrixelements in MODULE initialize
+ 
+ Label Gaussian matrix elements IVers= 3 NLab=11 Version=ES64L-GDVRevJ.28+
+ Title Title Card Required                                         
+ Mol%NAtoms=     1 NBasis=    65 NBsUse=    65 ICharg=     0 Multip=     1 NE=    18 Len12L=4 Len4L=4 IOpCl=     1 ICGU=112
+ Label SHELL TO ATOM MAP                                NI= 1 NR= 0 NRI=1 NTot=      21 LenBuf=    4000 N=    21     1     1     1     1 ASym=F
+ ***SHELL TO ATOM MAP***
+ skipping SHELL TO ATOM MAP                                               
+ Label SHELL TYPES                                      NI= 1 NR= 0 NRI=1 NTot=      21 LenBuf=    4000 N=    21     1     1     1     1 ASym=F
+ ***SHELL TYPES***
+ skipping SHELL TYPES                                                     
+ Label NUMBER OF PRIMITIVES PER SHELL                   NI= 1 NR= 0 NRI=1 NTot=      21 LenBuf=    4000 N=    21     1     1     1     1 ASym=F
+ ***NUMBER OF PRIMITIVES PER SHELL***
+ skipping NUMBER OF PRIMITIVES PER SHELL                                  
+ Label PRIMITIVE EXPONENTS                              NI= 0 NR= 1 NRI=1 NTot=      55 LenBuf=    4000 N=    55     1     1     1     1 ASym=F
+ ***PRIMITIVE EXPONENTS***
+ skipping PRIMITIVE EXPONENTS                                             
+ Label CONTRACTION COEFFICIENTS                         NI= 0 NR= 1 NRI=1 NTot=      55 LenBuf=    4000 N=    55     1     1     1     1 ASym=F
+ ***CONTRACTION COEFFICIENTS***
+ skipping CONTRACTION COEFFICIENTS                                        
+ Label P(S=P) CONTRACTION COEFFICIENTS                  NI= 0 NR= 1 NRI=1 NTot=      55 LenBuf=    4000 N=    55     1     1     1     1 ASym=F
+ ***P(S=P) CONTRACTION COEFFICIENTS***
+ skipping P(S=P) CONTRACTION COEFFICIENTS                                 
+ Label COORDINATES OF EACH SHELL                        NI= 0 NR= 1 NRI=1 NTot=      63 LenBuf=    4000 N=    63     1     1     1     1 ASym=F
+ ***COORDINATES OF EACH SHELL***
+ skipping COORDINATES OF EACH SHELL                                       
+ Label ONIOM CHARGE/MULT                                NI= 1 NR= 0 NRI=1 NTot=      32 LenBuf=    4000 N=    32     1     1     1     1 ASym=F
+ ***ONIOM CHARGE/MULT***
+ skipping ONIOM CHARGE/MULT                                               
+ Label ONIOM ATOM LAYERS                                NI= 1 NR= 0 NRI=1 NTot=       1 LenBuf=    4000 N=     1     1     1     1     1 ASym=F
+ ***ONIOM ATOM LAYERS***
+ skipping ONIOM ATOM LAYERS                                               
+ Label ONIOM ATOM MODIFIERS                             NI= 1 NR= 0 NRI=1 NTot=       1 LenBuf=    4000 N=     1     1     1     1     1 ASym=F
+ ***ONIOM ATOM MODIFIERS***
+ skipping ONIOM ATOM MODIFIERS                                            
+ Label ONIOM ATOM TYPES                                 NI= 1 NR= 0 NRI=1 NTot=       1 LenBuf=    4000 N=     1     1     1     1     1 ASym=F
+ ***ONIOM ATOM TYPES***
+ skipping ONIOM ATOM TYPES                                                
+ Label ONIOM LINK ATOMS                                 NI= 1 NR= 0 NRI=1 NTot=       1 LenBuf=    4000 N=     1     1     1     1     1 ASym=F
+ ***ONIOM LINK ATOMS***
+ skipping ONIOM LINK ATOMS                                                
+ Label ONIOM LINK CHARGES                               NI= 0 NR= 1 NRI=1 NTot=       1 LenBuf=    4000 N=     1     1     1     1     1 ASym=F
+ ***ONIOM LINK CHARGES***
+ skipping ONIOM LINK CHARGES                                              
+ Label ONIOM LINK DISTANCES                             NI= 0 NR= 1 NRI=1 NTot=       4 LenBuf=    4000 N=     1     4     1     1     1 ASym=F
+ ***ONIOM LINK DISTANCES***
+ skipping ONIOM LINK DISTANCES                                            
+ Label SYMINF INTEGERS                                  NI= 1 NR= 0 NRI=1 NTot=      26 LenBuf=    4000 N=    26     1     1     1     1 ASym=F
+ ***SYMINF INTEGERS***
+ skipping SYMINF INTEGERS                                                 
+ Label ROTTR TO INPUT ORIENTATION                       NI= 0 NR= 1 NRI=1 NTot=      12 LenBuf=    4000 N=     3     4     1     1     1 ASym=F
+ ***ROTTR TO INPUT ORIENTATION***
+ skipping ROTTR TO INPUT ORIENTATION                                      
+ Label TITLE                                            NI= 1 NR= 0 NRI=1 NTot=       5 LenBuf=    4000 N=     5     1     1     1     1 ASym=F
+ ***TITLE***
+ skipping TITLE                                                           
+ Label ROUTE                                            NI= 1 NR= 0 NRI=1 NTot=      71 LenBuf=    4000 N=    71     1     1     1     1 ASym=F
+ ***ROUTE***
+ skipping ROUTE                                                           
+ Label INFO1-9                                          NI= 1 NR= 0 NRI=1 NTot=       9 LenBuf=    4000 N=     9     1     1     1     1 ASym=F
+ ***INFO1-9***
+ skipping INFO1-9                                                         
+ Label METHOD                                           NI= 1 NR= 0 NRI=1 NTot=       2 LenBuf=    4000 N=     2     1     1     1     1 ASym=F
+ ***METHOD***
+ skipping METHOD                                                          
+ Label BASIS NAME                                       NI= 1 NR= 0 NRI=1 NTot=       1 LenBuf=    4000 N=     1     1     1     1     1 ASym=F
+ ***BASIS NAME***
+ skipping BASIS NAME                                                      
+ Label LINK0 COMMANDS                                   NI= 1 NR= 0 NRI=1 NTot=       8 LenBuf=    4000 N=     8     1     1     1     1 ASym=F
+ ***LINK0 COMMANDS***
+ skipping LINK0 COMMANDS                                                  
+ Label POINT GROUP                                      NI= 1 NR= 0 NRI=1 NTot=       4 LenBuf=    4000 N=     4     1     1     1     1 ASym=F
+ ***POINT GROUP***
+ skipping POINT GROUP                                                     
+ Label POINT GROUP DIMENSIONS                           NI= 1 NR= 0 NRI=1 NTot=       8 LenBuf=    4000 N=     8     1     1     1     1 ASym=F
+ ***POINT GROUP DIMENSIONS***
+ skipping POINT GROUP DIMENSIONS                                          
+ Label POINT GROUP IRREP NAMES                          NI= 1 NR= 0 NRI=1 NTot=      20 LenBuf=    4000 N=    20     1     1     1     1 ASym=F
+ ***POINT GROUP IRREP NAMES***
+ skipping POINT GROUP IRREP NAMES                                         
+ Label POINT GROUP CLASS NAMES                          NI= 1 NR= 0 NRI=1 NTot=      20 LenBuf=    4000 N=    20     1     1     1     1 ASym=F
+ ***POINT GROUP CLASS NAMES***
+ skipping POINT GROUP CLASS NAMES                                         
+ Label POINT GROUP GENERATORS                           NI= 1 NR= 0 NRI=1 NTot=       3 LenBuf=    4000 N=     3     1     1     1     1 ASym=F
+ ***POINT GROUP GENERATORS***
+ skipping POINT GROUP GENERATORS                                          
+ Label POINT GROUP CLASS OF OPERATORS                   NI= 1 NR= 0 NRI=1 NTot=      48 LenBuf=    4000 N=    48     1     1     1     1 ASym=F
+ ***POINT GROUP CLASS OF OPERATORS***
+ skipping POINT GROUP CLASS OF OPERATORS                                  
+ Label POINT GROUP ROTATIONS                            NI= 0 NR= 1 NRI=1 NTot=     576 LenBuf=    4000 N=     3     4    48     1     1 ASym=F
+ ***POINT GROUP ROTATIONS***
+ skipping POINT GROUP ROTATIONS                                           
+ Label POINT GROUP CELL TRANS                           NI= 1 NR= 0 NRI=1 NTot=     144 LenBuf=    4000 N=     3    48     1     1     1 ASym=F
+ ***POINT GROUP CELL TRANS***
+ skipping POINT GROUP CELL TRANS                                          
+ Label POINT GROUP CHAR TABLE                           NI= 0 NR= 1 NRI=1 NTot=     100 LenBuf=    4000 N=    10    10     1     1     1 ASym=F
+ ***POINT GROUP CHAR TABLE***
+ skipping POINT GROUP CHAR TABLE                                          
+ Label POINT GROUP ATOM PERMUTATIONS                    NI= 1 NR= 0 NRI=1 NTot=      48 LenBuf=    4000 N=     1    48     1     1     1 ASym=F
+ ***POINT GROUP ATOM PERMUTATIONS***
+ skipping POINT GROUP ATOM PERMUTATIONS                                   
+ Label ILSW                                             NI= 1 NR= 0 NRI=1 NTot=     100 LenBuf=    4000 N=   100     1     1     1     1 ASym=F
+ ***ILSW***
+ skipping ILSW                                                            
+ Label RLSW                                             NI= 0 NR= 1 NRI=1 NTot=     100 LenBuf=    4000 N=   100     1     1     1     1 ASym=F
+ ***RLSW***
+ skipping RLSW                                                            
+ Label GAUSSIAN SCALARS                                 NI= 1 NR= 1 NRI=1 NTot=      18 LenBuf=    2000 N=  1000     1     1     1     1 ASym=F
+ ***GAUSSIAN SCALARS***
+ skipping GAUSSIAN SCALARS                                                
+ Label OPTIMIZATION FLAGS                               NI= 1 NR= 0 NRI=1 NTot=       1 LenBuf=    4000 N=     1     1     1     1     1 ASym=F
+ ***OPTIMIZATION FLAGS***
+ skipping OPTIMIZATION FLAGS                                              
+ Label INTEGER ISO                                      NI= 1 NR= 0 NRI=1 NTot=       1 LenBuf=    4000 N=     1     1     1     1     1 ASym=F
+ ***INTEGER ISO***
+ skipping INTEGER ISO                                                     
+ Label REAL ZEFFECTIVE                                  NI= 0 NR= 1 NRI=1 NTot=       1 LenBuf=    4000 N=     1     1     1     1     1 ASym=F
+ ***REAL ZEFFECTIVE***
+ skipping REAL ZEFFECTIVE                                                 
+ Label REAL ZNUCLEAR                                    NI= 0 NR= 1 NRI=1 NTot=       1 LenBuf=    4000 N=     1     1     1     1     1 ASym=F
+ ***REAL ZNUCLEAR***
+ skipping REAL ZNUCLEAR                                                   
+ Label MULLIKEN CHARGES                                 NI= 0 NR= 1 NRI=1 NTot=       1 LenBuf=    4000 N=     1     1     1     1     1 ASym=F
+ ***MULLIKEN CHARGES***
+ skipping MULLIKEN CHARGES                                                
+ Label NUCLEAR GRADIENT                                 NI= 0 NR= 1 NRI=1 NTot=       3 LenBuf=    4000 N=     3     1     1     1     1 ASym=F
+ ***NUCLEAR GRADIENT***
+ skipping NUCLEAR GRADIENT                                                
+ Label NON-ADIABATIC COUPLING                           NI= 0 NR= 1 NRI=1 NTot=       3 LenBuf=    4000 N=     3     1     1     1     1 ASym=F
+ ***NON-ADIABATIC COUPLING***
+ skipping NON-ADIABATIC COUPLING                                          
+ Label ETRAN SCALARS                                    NI= 1 NR= 0 NRI=1 NTot=      20 LenBuf=    4000 N=    20     1     1     1     1 ASym=F
+ ***ETRAN SCALARS***
+ skipping ETRAN SCALARS                                                   
+ Label ETRAN SPINS                                      NI= 1 NR= 0 NRI=1 NTot=      15 LenBuf=    4000 N=    15     1     1     1     1 ASym=F
+ ***ETRAN SPINS***
+ skipping ETRAN SPINS                                                     
+ Label ETRAN SYMS                                       NI= 1 NR= 0 NRI=1 NTot=      15 LenBuf=    4000 N=    15     1     1     1     1 ASym=F
+ ***ETRAN SYMS***
+ skipping ETRAN SYMS                                                      
+ Label ETRAN STATE VALUES                               NI= 0 NR= 1 NRI=1 NTot=     240 LenBuf=    4000 N=    16     1    15     1     1 ASym=F
+ ***ETRAN STATE VALUES***
+ skipping ETRAN STATE VALUES                                              
+ Label MO TRANSFORMATION WINDOW                         NI= 1 NR= 0 NRI=1 NTot=       2 LenBuf=    4000 N=     2     1     1     1     1 ASym=F
+ ***MO TRANSFORMATION WINDOW***
+ skipping MO TRANSFORMATION WINDOW                                        
+ Label HARM CONSTRAINT C AND FC                         NI= 0 NR= 1 NRI=1 NTot=       6 LenBuf=    4000 N=     6     1     1     1     1 ASym=F
+ ***HARM CONSTRAINT C AND FC***
+ skipping HARM CONSTRAINT C AND FC                                        
+ Label FINITE EM FIELD                                  NI= 0 NR= 1 NRI=1 NTot=     105 LenBuf=    4000 N=    35     3     1     1     1 ASym=F
+ ***FINITE EM FIELD***
+ skipping FINITE EM FIELD                                                 
+ Label OVERLAP                                          NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=   -65    65     1     1     1 ASym=F
+ ***OVERLAP***
+ skipping OVERLAP                                                         
+ Label CORE HAMILTONIAN ALPHA                           NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=   -65    65     1     1     1 ASym=F
+ ***CORE HAMILTONIAN ALPHA***
+ skipping CORE HAMILTONIAN ALPHA                                          
+ Label CORE HAMILTONIAN BETA                            NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=   -65    65     1     1     1 ASym=F
+ ***CORE HAMILTONIAN BETA***
+ skipping CORE HAMILTONIAN BETA                                           
+ Label KINETIC ENERGY                                   NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=   -65    65     1     1     1 ASym=F
+ ***KINETIC ENERGY***
+ skipping KINETIC ENERGY                                                  
+ Label ORTHONORMAL BASIS                                NI= 0 NR= 1 NRI=1 NTot=    4225 LenBuf=    4000 N=    65    65     1     1     1 ASym=F
+ ***ORTHONORMAL BASIS***
+ skipping ORTHONORMAL BASIS                                               
+ Label DIPOLE INTEGRALS                                 NI= 0 NR= 1 NRI=1 NTot=    6435 LenBuf=    4000 N=   -65    65     3     1     1 ASym=F
+ ***DIPOLE INTEGRALS***
+ Label DIP VEL INTEGRALS                                NI= 0 NR= 1 NRI=1 NTot=    6435 LenBuf=    4000 N=   -65    65     3     1     1 ASym=T
+ ***DIP VEL INTEGRALS***
+ skipping DIP VEL INTEGRALS                                               
+ Label R X DEL INTEGRALS                                NI= 0 NR= 1 NRI=1 NTot=    6435 LenBuf=    4000 N=   -65    65     3     1     1 ASym=T
+ ***R X DEL INTEGRALS***
+ skipping R X DEL INTEGRALS                                               
+ Label R X DEL - DEL X R INTEGRALS                      NI= 0 NR= 1 NRI=1 NTot=   12870 LenBuf=    4000 N=   -65    65     6     1     1 ASym=T
+ ***R X DEL - DEL X R INTEGRALS***
+ skipping R X DEL - DEL X R INTEGRALS                                     
+ Label ALPHA ORBITAL ENERGIES                           NI= 0 NR= 1 NRI=1 NTot=      65 LenBuf=    4000 N=    65     1     1     1     1 ASym=F
+ ***ALPHA ORBITAL ENERGIES***
+ Label BETA ORBITAL ENERGIES                            NI= 0 NR= 1 NRI=1 NTot=      65 LenBuf=    4000 N=    65     1     1     1     1 ASym=F
+ ***BETA ORBITAL ENERGIES***
+ Label ALPHA MO COEFFICIENTS                            NI= 0 NR= 1 NRI=1 NTot=    4225 LenBuf=    4000 N=    65    65     1     1     1 ASym=F
+ ***ALPHA MO COEFFICIENTS***
+ skipping ALPHA MO COEFFICIENTS                                           
+ Label BETA MO COEFFICIENTS                             NI= 0 NR= 1 NRI=1 NTot=    4225 LenBuf=    4000 N=    65    65     1     1     1 ASym=F
+ ***BETA MO COEFFICIENTS***
+ skipping BETA MO COEFFICIENTS                                            
+ Label SCF ORBITAL OCCUPATIONS                          NI= 0 NR= 1 NRI=1 NTot=     130 LenBuf=    4000 N=    65     2     1     1     1 ASym=F
+ ***SCF ORBITAL OCCUPATIONS***
+ skipping SCF ORBITAL OCCUPATIONS                                         
+ Label ALPHA FOCK MATRIX                                NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=   -65    65     1     1     1 ASym=F
+ ***ALPHA FOCK MATRIX***
+ skipping ALPHA FOCK MATRIX                                               
+ Label BETA FOCK MATRIX                                 NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=   -65    65     1     1     1 ASym=F
+ ***BETA FOCK MATRIX***
+ skipping BETA FOCK MATRIX                                                
+ Label ENERGY-WEIGHTED DENSITY                          NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=   -65    65     1     1     1 ASym=F
+ ***ENERGY-WEIGHTED DENSITY***
+ skipping ENERGY-WEIGHTED DENSITY                                         
+ Label SCF ENERGY-WEIGHTED DENSITY                      NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=   -65    65     1     1     1 ASym=F
+ ***SCF ENERGY-WEIGHTED DENSITY***
+ skipping SCF ENERGY-WEIGHTED DENSITY                                     
+ Label ALPHA SCF DENSITY MATRIX                         NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=   -65    65     1     1     1 ASym=F
+ ***ALPHA SCF DENSITY MATRIX***
+ Label BETA SCF DENSITY MATRIX                          NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=   -65    65     1     1     1 ASym=F
+ ***BETA SCF DENSITY MATRIX***
+ Label ALPHA CI RHO(1) DENSITY MATRIX                   NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=   -65    65     1     1     1 ASym=F
+ ***ALPHA CI RHO(1) DENSITY MATRIX***
+ skipping ALPHA CI RHO(1) DENSITY MATRIX                                  
+ Label BETA CI RHO(1) DENSITY MATRIX                    NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=   -65    65     1     1     1 ASym=F
+ ***BETA CI RHO(1) DENSITY MATRIX***
+ skipping BETA CI RHO(1) DENSITY MATRIX                                   
+ Label TRANS MO COEFFICIENTS                            NI= 0 NR= 1 NRI=1 NTot=    6370 LenBuf=    4000 N=    65    49     2     1     1 ASym=F
+ ***TRANS MO COEFFICIENTS***
+ Label EXCITED STATE DIMS                               NI= 1 NR= 0 NRI=1 NTot=       8 LenBuf=    4000 N=     8     1     1     1     1 ASym=F
+ ***EXCITED STATE DIMS***
+ skipping EXCITED STATE DIMS                                              
+ Label EXCITED STATE SPINS                              NI= 1 NR= 0 NRI=1 NTot=      15 LenBuf=    4000 N=    15     1     1     1     1 ASym=F
+ ***EXCITED STATE SPINS***
+ skipping EXCITED STATE SPINS                                             
+ Label EXCITED STATE DENSITIES                          NI= 0 NR= 1 NRI=1 NTot=   64350 LenBuf=    4000 N=   -65    65     2    15     1 ASym=F
+ ***EXCITED STATE DENSITIES***
+ skipping EXCITED STATE DENSITIES                                         
+ Label GROUND TO EXCITED STATE DENSITIES                NI= 0 NR= 1 NRI=1 NTot=  126750 LenBuf=    4000 N=    65    65     2     1    15 ASym=F
+ ***GROUND TO EXCITED STATE DENSITIES***
+ skipping GROUND TO EXCITED STATE DENSITIES                               
+ Label SSCIFILE INTEGERS                                NI= 1 NR= 0 NRI=1 NTot=      12 LenBuf=    4000 N=    12     1     1     1     1 ASym=F
+ ***SSCIFILE INTEGERS***
+ skipping SSCIFILE INTEGERS                                               
+ Label SSCIFILE REALS                                   NI= 0 NR= 1 NRI=1 NTot=   10815 LenBuf=    4000 N= 10815     1     1     1     1 ASym=F
+ ***SSCIFILE REALS***
+ skipping SSCIFILE REALS                                                  
+ Label FILE 514 REALS                                   NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=  2145     1     1     1     1 ASym=F
+ ***FILE 514 REALS***
+ Label FILE 619 REALS                                   NI= 0 NR= 1 NRI=1 NTot=     197 LenBuf=    4000 N=   197     1     1     1     1 ASym=F
+ ***FILE 619 REALS***
+ skipping FILE 619 REALS                                                  
+ Label FILE 870 REALS                                   NI= 0 NR= 1 NRI=1 NTot=    2145 LenBuf=    4000 N=  2145     1     1     1     1 ASym=F
+ ***FILE 870 REALS***
+ Label FILE 1 REALS                                     NI= 0 NR= 1 NRI=1 NTot=    5940 LenBuf=    4000 N=  5940     1     1     1     1 ASym=F
+ ***FILE 1 REALS***
+ Label FILE 2 REALS                                     NI= 0 NR= 1 NRI=1 NTot=   32400 LenBuf=    4000 N= 32400     1     1     1     1 ASym=F
+ ***FILE 2 REALS***
+ Label FILE 3 REALS                                     NI= 0 NR= 1 NRI=1 NTot=    5940 LenBuf=    4000 N=  5940     1     1     1     1 ASym=F
+ ***FILE 3 REALS***
+ Label FILE 4 REALS                                     NI= 0 NR= 1 NRI=1 NTot=      21 LenBuf=    4000 N=    21     1     1     1     1 ASym=F
+ ***FILE 4 REALS***
+ Label FILE 5 REALS                                     NI= 0 NR= 1 NRI=1 NTot=   32400 LenBuf=    4000 N= 32400     1     1     1     1 ASym=F
+ ***FILE 5 REALS***
+ Label FILE 6 REALS                                     NI= 0 NR= 1 NRI=1 NTot=     100 LenBuf=    4000 N=   100     1     1     1     1 ASym=F
+ ***FILE 6 REALS***
+ Label FILE 7 REALS                                     NI= 0 NR= 1 NRI=1 NTot=   10350 LenBuf=    4000 N= 10350     1     1     1     1 ASym=F
+ ***FILE 7 REALS***
+ Label FILE 8 REALS                                     NI= 0 NR= 1 NRI=1 NTot=   10350 LenBuf=    4000 N= 10350     1     1     1     1 ASym=F
+ ***FILE 8 REALS***
+ Label FILE 9 REALS                                     NI= 0 NR= 1 NRI=1 NTot=      21 LenBuf=    4000 N=    21     1     1     1     1 ASym=F
+ ***FILE 9 REALS***
+ Label FILE 10 REALS                                    NI= 0 NR= 1 NRI=1 NTot=   32400 LenBuf=    4000 N= 32400     1     1     1     1 ASym=F
+ ***FILE 10 REALS***
+ Label FILE 11 REALS                                    NI= 0 NR= 1 NRI=1 NTot=    1080 LenBuf=    4000 N=  1080     1     1     1     1 ASym=F
+ ***FILE 11 REALS***
+ Label FILE 12 REALS                                    NI= 0 NR= 1 NRI=1 NTot=    1800 LenBuf=    4000 N=  1800     1     1     1     1 ASym=F
+ ***FILE 12 REALS***
+ Label FILE 13 REALS                                    NI= 0 NR= 1 NRI=1 NTot=    1800 LenBuf=    4000 N=  1800     1     1     1     1 ASym=F
+ ***FILE 13 REALS***
+ Label FILE 14 REALS                                    NI= 0 NR= 1 NRI=1 NTot=    1080 LenBuf=    4000 N=  1080     1     1     1     1 ASym=F
+ ***FILE 14 REALS***
+ Label END                                              NI= 0 NR= 0 NRI=1 NTot=       0 LenBuf=       0 N=     0     0     0     0     0 ASym=F
+ ***END***
+  dipole   -2.8564845518055276E-016   2.7128951207248256E-015 
+   2.1914455743600229E-015
+ 
+ leaving subroutine read_matrixelements
+ _______________________________________________
+ in subroutine set_variables in MODULE initialize
+ 
+ ionization < 0, setting energy cutoff automatically
+
+ field/light polarization/prop directions in polar coordinates
+
+ write norm and wavefunction out every 100 steps, total of 140 steps
+ job route
+ read_input            T
+ read_tdcidata         F
+ set_variables         T
+ get_1eham             T
+ get_expVabs           T
+ read_restart_binaries F
+ save_ham              F
+ deallocate_main       T
+ propagate             T
+ serial                F
+ 
+ leaving subroutine set_variables
+ _______________________________________________
+ in subroutine allocate_main in MODULE initialize
+ 
+ total GB memory in use   0.00022
+ allocated rank 1 array         fvect1 of length =       14001
+ allocated rank 1 array  Mol%field_env of length =       14001
+ allocated rank 1 array         fvect2 of length =       14001
+ total GB memory in use   0.00034
+ allocated tdciresults 
+ allocated rank 1 array        cis_vec of length =      130321
+ allocated rank 1 array        cis_eig of length =         361
+ allocated rank 1 array        Zip_vec of length =         128
+ allocated rank 1 array         ip_eig of length =          16
+ total GB memory in use   0.00138
+ total GB memory in use   0.00138
+ total GB memory in use   0.00138
+ total GB memory in use   0.00138
+ allocated rank 1 array     hole_index of length =         722
+ allocated rank 1 array     part_index of length =         361
+ total GB memory in use   0.00139
+ allocated rank 1 array  hole_ip_index of length =          16
+ allocated rank 1 array  part_ip_index of length =           8
+ allocated rank 1 array state_ip_index of length =          64
+ total GB memory in use   0.00139
+ total GB memory in use   0.00243
+ allocated rank 1 array            abp of length =      130321
+ total GB memory in use   0.00348
+ allocated rank 1 array        exp_abp of length =      130321
+ total GB memory in use   0.00660
+ allocated rank 1 array            tdx of length =      130321
+ allocated rank 1 array            tdy of length =      130321
+ allocated rank 1 array            tdz of length =      130321
+ total GB memory in use   0.00662
+ allocated rank 1 array          polar of length =        2166
+ 
+ leaving subroutine allocate_main
+ _______________________________________________
+ in subroutine allocate_main in MODULE initialize
+ 
+ total GB memory in use   0.00664
+ allocated rank 1 array       vabs_moa of length =        2401
+ total GB memory in use   0.00666
+ allocated rank 1 array       vabs_moa of length =        2401
+ total GB memory in use   0.00672
+ allocated rank 1 array    Mol%dipxmoa of length =        2401
+ allocated rank 1 array    Mol%dipymoa of length =        2401
+ allocated rank 1 array    Mol%dipzmoa of length =        2401
+ total GB memory in use   0.00678
+ allocated rank 1 array    Mol%dipxmob of length =        2401
+ allocated rank 1 array    Mol%dipymob of length =        2401
+ allocated rank 1 array    Mol%dipzmob of length =        2401
+ 
+ leaving subroutine allocate_main
+ _______________________________________________
+ in subroutine check_emax in MODULE getfield
+ 
+ emax #  1 =  0.1000 au
+ 
+ leaving subroutine check_emax
+ _______________________________________________
+ in subroutine get_lindirection in MODULE getfield
+ 
+ finished assigning datatype tdciresults
+ 
+ leaving subroutine get_lindirection
+ _______________________________________________
+ in subroutine get_circdirection in MODULE getfield
+ 
+ generating E1 and E2 for each propagation direcion 
+ finished setting up E_1 and E_2 
+ 
+ leaving subroutine get_circdirection
+ _______________________________________________
+ in subroutine shape_field in MODULE getfield
+ 
+ in subroutine circ_env for RIGHT circularly/ellptclly polarized
+ leaving subroutine circ_env
+ 
+ leaving subroutine shape_field
+ _______________________________________________
+ in subroutine write_specifics1 in MODULE write_info
+ 
+ JOB TITLE: Title Card Required                                       
+     charge = 0  multiplicity = 1  natoms = 1
+     coordinates in Angstroms
+       18      0.00000000000      0.00000000000      0.00000000000
+     ground state dipole in au:
+     xdip =    -0.0000  ydip =     0.0000  zdip =     0.0000
+     ground state dipole in Debye:
+     xdip =    -0.0000  ydip =     0.0000  zdip =     0.0000
+ unrestricted
+ CIS
+     nbasis  = 65
+     noa     = 4
+     nva     = 45
+     nob     = 4
+     nvb     = 45
+     norb    = 98
+     nrorb   = 49
+     noanva  = 180
+     nobnvb  = 180
+     nstates = 361
+ FIELD VARIABLES
+     max field strength  1 =   0.10000  au laser intensity   3.5094E+14 W/cm2
+     nonlinear light
+     EULER angle euler    =     0.0000
+     ellipticity, E1/E2 =     0.5000
+     laser frequency       =     0.0570 au  2.3546E+15 Hz
+     laser wavelength      =   800.0000 nm
+     pulse duration        =   661.8500 au     16.0094 fs
+     envelope cirr         =   right circular sine squared pulse
+     # of laser cycles     =          6 cycles
+     # timesteps/cycle     =       2206
+     # timesteps for pulse =      13237
+     write results every            100 step   (total 140 every 0.1209 fs)
+     timestep size         =      0.050 au      0.0012 fs
+     TOTAL SIMULATION TIME =    700.050 au     16.9334 fs (nstep=14001)
+ FIELD DIRECTIONS
+    # E_0(au)   E_1(au)   E_2(au)         x0        y0        z0          x1        y1        z1          x2        y2        z2      theta0      phi0      theta1      phi1      theta2      phi2
+    1  0.1000    0.0894    0.0447     0.0000    1.0000    0.0000      0.0000    0.0000   -1.0000     -1.0000    0.0000    0.0000     90.0000   90.0000    180.0000    0.0000     90.0000  180.0000
+ 
+ leaving subroutine write_specifics1
+ _______________________________________________
+ in subroutine get_cis in MODULE getham0
+ 
+ forming 361 x 361 CIS Hamiltonian
+ assigning hole_index(nstates,1) and part_index(nstates,1) for CIS
+ finished assigning indices.  Negative indices for alpha electrons
+ Hamiltonian generation time:      0.0198 seconds
+ 
+ leaving subroutine get_cis
+ _______________________________________________
+ in subroutine diagonalize in MODULE getham0
+ 
+ calling LAPACK diagonalization
+ WORK and IWORK space allocated for dsyevd:      262809      1808
+Maximum Eigenvalue =       3.3359
+Minimum Eigenvalue =    -500.0000
+ LAPACK diagonalization time:      0.0319 seconds
+ 
+ leaving subroutine diagonalize
+ _______________________________________________
+ ENERGIES (eV) and EIGENVECTORS for SINGLY IONIZED STATES (coeff and |coeff|**2)
+    1   -0.0000000000
+         0       1.0000000000
+    2   -0.0000000000
+         0       1.0000000000
+    3   -0.0000000000
+         0       1.0000000000
+    4   -0.0000000000
+         0       1.0000000000
+    5   16.0904303449
+         4       1.0000000000
+    6   16.0904303449
+         3       1.0000000000
+    7   16.0904303449
+         2       1.0000000000
+    8   34.7710561507
+         1       1.0000000000
+ in subroutine get_nstuse in MODULE getham
+ 
+ ionization parameter < 0.  Setting value to HOMO MO energy
+ eigmax     =  10.00 au  272.11 eV
+ ionization =   0.59 au   16.09 eV
+ cutoff energy = ionization + eigmax 
+ all eigenstates above cutoff energy will be discarded
+ 
+ leaving subroutine get_nstuse
+ _______________________________________________
+ in subroutine get_1eham in MODULE getham
+ 
+ starting AO-->MO-->det-->CIS transformation, OMP parallelization
+ Vabs Thread # 1
+ Thread # 1  vabs AO-->MO  time:       0.0007 s
+ Thread # 1  vabs MO-->det time:       0.0004 s
+ DipX Thread # 2
+ Thread # 2  dipx AO-->MO  time:       0.0003 s
+ Thread # 2  dipx MO-->det time:       0.0003 s
+ caaa
+ DipY Thread # 3
+ Thread # 3  dipy AO-->MO  time:       0.0003 s
+ Thread # 3  dipy MO-->det time:       0.0003 s
+ DipZ Thread # 0
+ Thread # 0  dipz AO-->MO  time:       0.0003 s
+ Thread # 0  dipz MO-->det time:       0.0003 s
+ 
+ leaving subroutine get_1eham
+ _______________________________________________
+ One electorn integral transformation time:      0.1067 seconds
+ in subroutine write_mo_elements in MODULE write_info
+ 
+ MO matrix elements written out to file 'OUTPUT_MO_ELEMENTS_ALPHA'
+ MO matrix elements written out to file 'OUTPUT_MO_ELEMENTS_BETA'
+ 
+ leaving subroutine write_mo_elements
+ _______________________________________________
+ in subroutine write_specifics2 in MODULE write_info
+ 
+ CIS (1h1p) STATE ENERGIES (eV), TDx(1,i), TDy(1,i), TDz(1,i), Vabs(i,i)
+    1     0.0000000000   -0.0000000000    0.0000000000    0.0000000000    0.0000018434
+    2    11.9284883592    0.0000000000   -0.0000000000   -0.0000000000    0.0013882505
+    3    11.9284883592    0.0000000000    0.0000000000    0.0000000000    0.0013882505
+    4    11.9284883592   -0.0000000000    0.0000000000    0.0000000000    0.0013882505
+    5    12.2262733690    0.0842248433    0.2324231500    0.5402418765    0.0009309741
+    6    12.2262733690    0.2632313023    0.4731380859   -0.2445920341    0.0009309741
+    7    12.2262733690    0.5259192783   -0.2740355105    0.0359037843    0.0009309741
+    8    13.0974474002    0.0000000000   -0.0000000000   -0.0000000000    0.0001483840
+    9    13.4219822510    0.0000000000   -0.0000000000   -0.0000000000    0.0010694969
+   10    13.4219822510    0.0000000000   -0.0000000000    0.0000000000    0.0010694969
+   11    13.4219822510   -0.0000000000    0.0000000000    0.0000000000    0.0010694969
+   12    13.4219822510    0.0000000000    0.0000000000   -0.0000000000    0.0010694969
+   13    13.4219822510   -0.0000000000   -0.0000000000   -0.0000000000    0.0010694969
+   14    13.5223914196   -0.0000000000    0.0000000000    0.0000000000    0.0018230151
+   15    13.5223914196    0.0000000000    0.0000000000   -0.0000000000    0.0018230151
+   16    13.5223914196    0.0000000000    0.0000000000    0.0000000000    0.0018230151
+   17    13.5223914196    0.0000000000    0.0000000000    0.0000000000    0.0018230151
+   18    13.5223914196    0.0000000000    0.0000000000   -0.0000000000    0.0018230151
+   19    13.5940909897   -0.0000000000   -0.0000000000    0.0000000000    0.0022657783
+   20    13.5940909897    0.0000000000   -0.0000000000    0.0000000000    0.0022657783
+   21    13.5940909897    0.0000000000    0.0000000000    0.0000000000    0.0022657783
+   22    13.5940909897   -0.0000000000    0.0000000000    0.0000000000    0.0022657783
+   23    13.5940909897   -0.0000000000   -0.0000000000   -0.0000000000    0.0022657783
+   24    13.5940909897    0.0000000000   -0.0000000000    0.0000000000    0.0022657783
+   25    13.8249078066   -0.0000000000   -0.0000000000   -0.0000000000    0.0075942132
+   26    14.3025999522   -0.0000000000   -0.0000000000    0.0000000000    0.0238215637
+   27    14.3025999522    0.0000000000    0.0000000000    0.0000000000    0.0238215637
+   28    14.3025999522   -0.0000000000    0.0000000000    0.0000000000    0.0238215637
+   29    14.4158811331   -0.0000000000   -0.0000000000    0.0000000000    0.0214863202
+   30    14.4158811331   -0.0000000000    0.0000000000    0.0000000000    0.0214863202
+   31    14.4158811331    0.0000000000    0.0000000000   -0.0000000000    0.0214863202
+   32    14.4158811331    0.0000000000   -0.0000000000    0.0000000000    0.0214863202
+   33    14.4158811331   -0.0000000000    0.0000000000   -0.0000000000    0.0214863202
+   34    14.4158811331    0.0000000000   -0.0000000000   -0.0000000000    0.0214863202
+   35    14.4158811331   -0.0000000000   -0.0000000000   -0.0000000000    0.0214863202
+   36    14.4236096447   -0.0000000000    0.0000000000   -0.0000000000    0.1111772830
+   37    14.4236096447    0.0000000000   -0.0000000000   -0.0000000000    0.1111772830
+   38    14.4236096447    0.0000000000   -0.0000000000    0.0000000000    0.1111772830
+   39    14.4752264654   -0.0061023072   -0.0440241042   -0.1997679321    0.1461680088
+   40    14.4752264654   -0.1282632304   -0.1548662767    0.0380469010    0.1461680088
+   41    14.4752264654   -0.1593546114    0.1263364603   -0.0229737508    0.1461680088
+   42    14.4875310268    0.0000000000    0.0000000000   -0.0000000000    0.0250656469
+   43    14.4875310268   -0.0000000000    0.0000000000   -0.0000000000    0.0250656469
+   44    14.4875310268    0.0000000000   -0.0000000000   -0.0000000000    0.0250656469
+   45    14.4875310268    0.0000000000    0.0000000000    0.0000000000    0.0250656469
+   46    14.4875310268    0.0000000000    0.0000000000    0.0000000000    0.0250656469
+   47    14.4875310268    0.0000000000   -0.0000000000   -0.0000000000    0.0250656469
+   48    14.4875310268   -0.0000000000   -0.0000000000    0.0000000000    0.0250656469
+   49    14.5445698102    0.0000000000    0.0000000000   -0.0000000000    0.0279862622
+   50    14.5445698102    0.0000000000    0.0000000000   -0.0000000000    0.0279862622
+ NSTUSE
+     NstUse          =          361
+     Nstates         =          361
+     cis_eig(nstuse) =     3.335896 au   90.774352 eV
+CIS (1h1p) STATE ENERGIES and EXPECTATION VALUES
+    #    <i|H0|i> eV     <i|mu_x|i> au   <i|mu_y|i> au   <i|mu_z|i> au   <i|Vabs|i> au
+         <i|a_xx|i> au   <i|a_yy|i> au   <i|a_zz|i> au   <i|a_xy|i> au   <i|a_xz|i> au   <i|a_yz|i> au
+    1     0.0000000000   -0.0000000000    0.0000000000    0.0000000000    0.0000018434
+           11.25061807     11.25061807     11.25061807      0.00000000      0.00000000      0.00000000
+         0 ->      0     1.0000000000
+    2    11.9284883592    0.0000000000    0.0000000000    0.0000000000    0.0013882505
+          326.08563878    340.90041145    399.91236313      3.86975258      8.42798139     34.33408903
+        -3 ->     -1     0.1705426667
+        -3 ->     -5     0.2600864074
+        -3 ->    -26    -0.2338175354
+        -4 ->     -1     0.2549665979
+        -4 ->     -5     0.3888372789
+        -4 ->    -26    -0.3495644972
+        -4 ->    -40     0.0579621017
+         3 ->      1    -0.1705426667
+         3 ->      5    -0.2600864074
+         3 ->     26     0.2338175354
+         4 ->      1    -0.2549665979
+         4 ->      5    -0.3888372789
+         4 ->     26     0.3495644972
+         4 ->     40    -0.0579621017
+    3    11.9284883592    0.0000000000   -0.0000000000    0.0000000000    0.0013882505
+          343.32698656    382.71563932    340.85578748     32.36434447    -16.91057507    -30.08586674
+        -2 ->     -5    -0.0592417459
+        -2 ->    -26     0.0532582966
+        -3 ->     -1     0.2521944782
+        -3 ->     -5     0.3846096525
+        -3 ->    -26    -0.3457638634
+        -3 ->    -40     0.0573319097
+        -4 ->     -1    -0.1708072998
+        -4 ->     -5    -0.2604899865
+        -4 ->    -26     0.2341803528
+         2 ->      5     0.0592417459
+         2 ->     26    -0.0532582966
+         3 ->      1    -0.2521944782
+         3 ->      5    -0.3846096525
+         3 ->     26     0.3457638634
+         3 ->     40    -0.0573319097
+         4 ->      1     0.1708072998
+         4 ->      5     0.2604899865
+         4 ->     26    -0.2341803528
+    4    11.9284883592    0.0000000000    0.0000000000    0.0000000000    0.0013882505
+          397.48578801    343.28236259    326.13026276    -36.23409705      8.48259369     -4.24822229
+        -2 ->     -1     0.3042758236
+        -2 ->     -5     0.4640364041
+        -2 ->    -26    -0.4171684689
+        -2 ->    -40     0.0691716733
+        -3 ->     -5     0.0609891646
+        -3 ->    -26    -0.0548292250
+         2 ->      1    -0.3042758236
+         2 ->      5    -0.4640364041
+         2 ->     26     0.4171684689
+         2 ->     40    -0.0691716733
+         3 ->      5    -0.0609891646
+         3 ->     26     0.0548292250
+    5    12.2262733690    0.0000000000    0.0000000000    0.0000000000    0.0009309741
+          449.91155020    449.10060461    444.99045122     -0.33829169     -0.78632158     -2.16989823
+        -3 ->     -1     0.1873860741
+        -3 ->     -5     0.2717839628
+        -3 ->    -26    -0.2142350244
+        -4 ->     -1     0.2785931332
+        -4 ->     -5     0.4040702924
+        -4 ->    -26    -0.3185103642
+         3 ->      1     0.1873860741
+         3 ->      5     0.2717839628
+         3 ->     26    -0.2142350244
+         4 ->      1     0.2785931332
+         4 ->      5     0.4040702924
+         4 ->     26    -0.3185103642
+    6    12.2262733690    0.0000000000    0.0000000000    0.0000000000    0.0009309741
+          448.83671858    446.16559526    449.00029219     -2.15227211      1.11263208      1.99987087
+        -2 ->     -5    -0.0634169934
+        -3 ->     -1     0.2762552140
+        -3 ->     -5     0.4006793844
+        -3 ->    -26    -0.3158374645
+        -4 ->     -1    -0.1857395280
+        -4 ->     -5    -0.2693958194
+        -4 ->    -26     0.2123525589
+         2 ->      5    -0.0634169934
+         3 ->      1     0.2762552140
+         3 ->      5     0.4006793844
+         3 ->     26    -0.3158374645
+         4 ->      1    -0.1857395280
+         4 ->      5    -0.2693958194
+         4 ->     26     0.2123525589
+    7    12.2262733690    0.0000000000    0.0000000000    0.0000000000    0.0009309741
+          445.25433725    448.73640616    450.01186262      2.49056381     -0.32631050      0.17002736
+        -2 ->     -1     0.3328902117
+        -2 ->     -5     0.4828225436
+        -2 ->    -26    -0.3805872075
+        -3 ->     -5     0.0522427042
+         2 ->      1     0.3328902117
+         2 ->      5     0.4828225436
+         2 ->     26    -0.3805872075
+         3 ->      5     0.0522427042
+    8    13.0974474002   -0.0000000000    0.0000000000    0.0000000000    0.0001483840
+          251.50760333    251.50760333    251.50760333     -0.00000000      0.00000000     -0.00000000
+        -2 ->     -2     0.2538695949
+        -2 ->     -4    -0.0775173701
+        -2 ->    -11    -0.1168848160
+        -2 ->    -13     0.2737685966
+        -2 ->    -34    -0.0634131621
+        -3 ->     -2     0.0782519593
+        -3 ->     -4     0.2543447741
+        -3 ->    -11     0.2583718816
+        -3 ->    -12    -0.1161291757
+        -3 ->    -13     0.0968395860
+        -3 ->    -32     0.0716453231
+        -4 ->     -3     0.2653378071
+        -4 ->    -11     0.0959261729
+        -4 ->    -12     0.2740899838
+        -4 ->    -13     0.0727514273
+        -4 ->    -33     0.0616501066
+         2 ->      2    -0.2538695949
+         2 ->      4     0.0775173701
+         2 ->     11     0.1168848160
+         2 ->     13    -0.2737685966
+         2 ->     34     0.0634131621
+         3 ->      2    -0.0782519593
+         3 ->      4    -0.2543447741
+         3 ->     11    -0.2583718816
+         3 ->     12     0.1161291757
+         3 ->     13    -0.0968395860
+         3 ->     32    -0.0716453231
+         4 ->      3    -0.2653378071
+         4 ->     11    -0.0959261729
+         4 ->     12    -0.2740899838
+         4 ->     13    -0.0727514273
+         4 ->     33    -0.0616501066
+    9    13.4219822510   -0.0000000000    0.0000000000    0.0000000000    0.0010694969
+          561.75205135    619.00352313    643.72217977     53.49019733    -26.90026454      6.93519819
+        -3 ->     -3     0.3572663647
+        -3 ->     -4     0.0641479993
+        -3 ->    -11     0.1735899280
+        -3 ->    -12     0.2709240614
+        -3 ->    -13     0.0690982741
+        -4 ->     -2     0.0778375431
+        -4 ->     -3    -0.0897816971
+        -4 ->     -4     0.3487343681
+        -4 ->    -11     0.2543576240
+        -4 ->    -12    -0.2065595204
+        -4 ->    -13     0.0643326003
+        -4 ->    -32     0.0518906626
+         3 ->      3    -0.3572663647
+         3 ->      4    -0.0641479993
+         3 ->     11    -0.1735899280
+         3 ->     12    -0.2709240614
+         3 ->     13    -0.0690982741
+         4 ->      2    -0.0778375431
+         4 ->      3     0.0897816971
+         4 ->      4    -0.3487343681
+         4 ->     11    -0.2543576240
+         4 ->     12     0.2065595204
+         4 ->     13    -0.0643326003
+         4 ->     32    -0.0518906626
+   10    13.4219822510   -0.0000000000    0.0000000000    0.0000000000    0.0010694969
+          558.98046291    632.53778440    632.95950693     54.39345210    -21.72032234     12.51068150
+        -2 ->    -12     0.0503502733
+        -3 ->     -2     0.0616661571
+        -3 ->     -3    -0.0737936599
+        -3 ->     -4     0.3670731730
+        -3 ->    -11     0.2765341869
+        -3 ->    -12    -0.1974779753
+        -3 ->    -13     0.0530716222
+        -3 ->    -32     0.0544807103
+        -4 ->     -3    -0.3399071334
+        -4 ->     -4    -0.0785785887
+        -4 ->    -11    -0.1797338869
+        -4 ->    -12    -0.2514941846
+        -4 ->    -13    -0.0671880440
+         2 ->     12    -0.0503502733
+         3 ->      2    -0.0616661571
+         3 ->      3     0.0737936599
+         3 ->      4    -0.3670731730
+         3 ->     11    -0.2765341869
+         3 ->     12     0.1974779753
+         3 ->     13    -0.0530716222
+         3 ->     32    -0.0544807103
+         4 ->      3     0.3399071334
+         4 ->      4     0.0785785887
+         4 ->     11     0.1797338869
+         4 ->     12     0.2514941846
+         4 ->     13     0.0671880440
+   11    13.4219822510   -0.0000000000    0.0000000000    0.0000000000    0.0010694969
+          614.89329193    573.35393968    636.23052264    -52.82567905     21.89733301     33.29375872
+        -2 ->     -3     0.3229666552
+        -2 ->     -4     0.1747463239
+        -2 ->    -11     0.2564072763
+        -2 ->    -12     0.2071738104
+        -3 ->     -2     0.1773154553
+        -3 ->    -13     0.1625286961
+        -4 ->     -2     0.3142197734
+        -4 ->     -4    -0.0521864674
+        -4 ->    -11    -0.0614804533
+        -4 ->    -13     0.2833515090
+         2 ->      3    -0.3229666552
+         2 ->      4    -0.1747463239
+         2 ->     11    -0.2564072763
+         2 ->     12    -0.2071738104
+         3 ->      2    -0.1773154553
+         3 ->     13    -0.1625286961
+         4 ->      2    -0.3142197734
+         4 ->      4     0.0521864674
+         4 ->     11     0.0614804533
+         4 ->     13    -0.2833515090
+   12    13.4219822510   -0.0000000000    0.0000000000    0.0000000000    0.0010694969
+          631.39377260    643.54630859    549.53767306    -12.12195402      8.98785516    -50.58542426
+        -2 ->     -2    -0.0728349890
+        -2 ->     -3    -0.1681951060
+        -2 ->     -4     0.3233048599
+        -2 ->    -11     0.2199547325
+        -2 ->    -12    -0.2410573790
+        -2 ->    -13    -0.0835115681
+        -3 ->     -2     0.3072104610
+        -3 ->    -12    -0.0582904967
+        -3 ->    -13     0.2741890798
+        -4 ->     -2    -0.1732384978
+        -4 ->     -4     0.0679863586
+        -4 ->    -11     0.0861548101
+        -4 ->    -13    -0.1456450979
+         2 ->      2     0.0728349890
+         2 ->      3     0.1681951060
+         2 ->      4    -0.3233048599
+         2 ->     11    -0.2199547325
+         2 ->     12     0.2410573790
+         2 ->     13     0.0835115681
+         3 ->      2    -0.3072104610
+         3 ->     12     0.0582904967
+         3 ->     13    -0.2741890798
+         4 ->      2     0.1732384978
+         4 ->      4    -0.0679863586
+         4 ->     11    -0.0861548101
+         4 ->     13     0.1456450979
+   13    13.4219822510   -0.0000000000    0.0000000000    0.0000000000    0.0010694969
+          673.77667829    572.35470128    578.34637468    -42.93601636     17.73539871     -2.15421415
+        -2 ->     -2     0.4108125233
+        -2 ->    -12    -0.0880331741
+        -2 ->    -13     0.3629490120
+        -2 ->    -34    -0.0506486459
+        -3 ->     -2     0.0960758607
+        -3 ->     -4    -0.1888109440
+        -3 ->    -11    -0.1772788363
+        -3 ->    -13     0.0750122848
+        -4 ->     -3    -0.2315135495
+        -4 ->    -11    -0.0808456263
+        -4 ->    -12    -0.1865883910
+        -4 ->    -13    -0.0545347825
+         2 ->      2    -0.4108125233
+         2 ->     12     0.0880331741
+         2 ->     13    -0.3629490120
+         2 ->     34     0.0506486459
+         3 ->      2    -0.0960758607
+         3 ->      4     0.1888109440
+         3 ->     11     0.1772788363
+         3 ->     13    -0.0750122848
+         4 ->      3     0.2315135495
+         4 ->     11     0.0808456263
+         4 ->     12     0.1865883910
+         4 ->     13     0.0545347825
+   14    13.5223914196   -0.0000000000    0.0000000000    0.0000000000    0.0018230151
+          633.83950088    679.24489663    697.99857829     41.27235424    -13.39449642      4.79914205
+        -3 ->     -3     0.3679360456
+        -3 ->     -4    -0.1132707785
+        -3 ->    -12     0.3113758799
+        -4 ->     -2     0.0865547461
+        -4 ->     -3     0.0984201667
+        -4 ->     -4     0.3597135176
+        -4 ->    -11     0.2956287416
+        -4 ->    -12    -0.0510964061
+        -4 ->    -13     0.0936366435
+         3 ->      3     0.3679360456
+         3 ->      4    -0.1132707785
+         3 ->     12     0.3113758799
+         4 ->      2     0.0865547461
+         4 ->      3     0.0984201667
+         4 ->      4     0.3597135176
+         4 ->     11     0.2956287416
+         4 ->     12    -0.0510964061
+         4 ->     13     0.0936366435
+   15    13.5223914196   -0.0000000000    0.0000000000    0.0000000000    0.0018230151
+          639.05934832    662.00575644    710.01787105     30.46780395    -27.13694441      4.27841824
+        -2 ->     -2    -0.0699371472
+        -2 ->     -4     0.0504373130
+        -2 ->    -13    -0.0625773247
+        -3 ->     -2    -0.0759212043
+        -3 ->     -3    -0.1034460441
+        -3 ->     -4    -0.3117491622
+        -3 ->    -11    -0.2616944309
+        -3 ->    -13    -0.0845891037
+        -4 ->     -2    -0.0553952830
+        -4 ->     -3     0.4010470458
+        -4 ->     -4    -0.0917237367
+        -4 ->    -11     0.0577961859
+        -4 ->    -12     0.3355945419
+         2 ->      2    -0.0699371472
+         2 ->      4     0.0504373130
+         2 ->     13    -0.0625773247
+         3 ->      2    -0.0759212043
+         3 ->      3    -0.1034460441
+         3 ->      4    -0.3117491622
+         3 ->     11    -0.2616944309
+         3 ->     13    -0.0845891037
+         4 ->      2    -0.0553952830
+         4 ->      3     0.4010470458
+         4 ->      4    -0.0917237367
+         4 ->     11     0.0577961859
+         4 ->     12     0.3355945419
+   16    13.5223914196   -0.0000000000    0.0000000000    0.0000000000    0.0018230151
+          710.21521675    642.22633872    658.64142033    -35.95444636    -21.03914558      0.37434773
+        -2 ->     -2     0.3052698897
+        -2 ->     -3    -0.2802896552
+        -2 ->    -11    -0.1145213973
+        -2 ->    -12    -0.2467266283
+        -2 ->    -13     0.2043888167
+        -3 ->     -4    -0.1681447635
+        -3 ->    -11    -0.1412312208
+        -4 ->     -2    -0.2660506313
+        -4 ->     -3    -0.1405045383
+        -4 ->     -4     0.0561456109
+        -4 ->    -12    -0.0885905401
+        -4 ->    -13    -0.2341886279
+         2 ->      2     0.3052698897
+         2 ->      3    -0.2802896552
+         2 ->     11    -0.1145213973
+         2 ->     12    -0.2467266283
+         2 ->     13     0.2043888167
+         3 ->      4    -0.1681447635
+         3 ->     11    -0.1412312208
+         4 ->      2    -0.2660506313
+         4 ->      3    -0.1405045383
+         4 ->      4     0.0561456109
+         4 ->     12    -0.0885905401
+         4 ->     13    -0.2341886279
+   17    13.5223914196    0.0000000000    0.0000000000    0.0000000000    0.0018230151
+          675.09435319    672.44936959    663.53925302    -29.17663618     34.49498418    -30.27061348
+        -2 ->     -2     0.2969030575
+        -2 ->     -3     0.2413402813
+        -2 ->     -4    -0.1272105783
+        -2 ->    -12     0.1823834647
+        -2 ->    -13     0.2723115442
+        -3 ->     -2    -0.0976388276
+        -3 ->     -4    -0.2213795669
+        -3 ->    -11    -0.1641669381
+        -3 ->    -12     0.0717775490
+        -3 ->    -13    -0.0865125789
+        -4 ->     -2     0.2468292688
+        -4 ->     -3    -0.0815136655
+        -4 ->     -4    -0.0836590325
+        -4 ->    -11    -0.1081697916
+        -4 ->    -12    -0.0660956318
+        -4 ->    -13     0.1848839885
+         2 ->      2     0.2969030575
+         2 ->      3     0.2413402813
+         2 ->      4    -0.1272105783
+         2 ->     12     0.1823834647
+         2 ->     13     0.2723115442
+         3 ->      2    -0.0976388276
+         3 ->      4    -0.2213795669
+         3 ->     11    -0.1641669381
+         3 ->     12     0.0717775490
+         3 ->     13    -0.0865125789
+         4 ->      2     0.2468292688
+         4 ->      3    -0.0815136655
+         4 ->      4    -0.0836590325
+         4 ->     11    -0.1081697916
+         4 ->     12    -0.0660956318
+         4 ->     13     0.1848839885
+   18    13.5223914196   -0.0000000000    0.0000000000    0.0000000000    0.0018230151
+          693.59654053    695.87859829    621.60783698     -6.60907565     27.07560222     20.81870546
+        -2 ->     -2     0.0802657901
+        -2 ->     -3     0.0894470442
+        -2 ->     -4     0.3651817725
+        -2 ->    -11     0.2975281347
+        -2 ->    -12    -0.0587189323
+        -2 ->    -13     0.0873633597
+        -3 ->     -2     0.3690403900
+        -3 ->     -4    -0.0752460722
+        -3 ->    -11    -0.0912364938
+        -3 ->    -13     0.2936297081
+        -4 ->     -2     0.0767025140
+        -4 ->    -13     0.0608769156
+         2 ->      2     0.0802657901
+         2 ->      3     0.0894470442
+         2 ->      4     0.3651817725
+         2 ->     11     0.2975281347
+         2 ->     12    -0.0587189323
+         2 ->     13     0.0873633597
+         3 ->      2     0.3690403900
+         3 ->      4    -0.0752460722
+         3 ->     11    -0.0912364938
+         3 ->     13     0.2936297081
+         4 ->      2     0.0767025140
+         4 ->     13     0.0608769156
+   19    13.5940909897   -0.0000000000    0.0000000000    0.0000000000    0.0022657783
+          748.76463126    915.12356550    991.14612550    143.63688481    -41.02629828     23.52903804
+        -3 ->     -3     0.5363082694
+        -3 ->    -11     0.1355342541
+        -3 ->    -12     0.3874133755
+        -3 ->    -13     0.1029718953
+        -3 ->    -33     0.0513263906
+        -4 ->     -2    -0.1252663493
+        -4 ->     -4    -0.5241494396
+        -4 ->    -11    -0.3758054263
+        -4 ->    -12     0.1612714336
+        -4 ->    -13    -0.1120707676
+        -4 ->    -32    -0.0595891887
+         3 ->      3    -0.1232516311
+         3 ->     12    -0.0894008916
+         4 ->      4     0.1238180156
+         4 ->     11     0.0902336538
+   20    13.5940909897   -0.0000000000    0.0000000000    0.0000000000    0.0022657783
+          745.34666319    811.81176078    866.88336147     96.68671266    -19.97208848     19.77746432
+        -2 ->     -4    -0.1222901361
+        -2 ->    -11    -0.0933626062
+        -3 ->     -2     0.1307525799
+        -3 ->     -3     0.1071792745
+        -3 ->    -12     0.0737499015
+        -3 ->    -13     0.1153174840
+        -4 ->     -4    -0.1187523028
+        -4 ->    -11    -0.0866279625
+         3 ->      2     0.0561093513
+         3 ->      3     0.5208517185
+         3 ->     11     0.1249757489
+         3 ->     12     0.3755904262
+         3 ->     13     0.1169644325
+         4 ->      2    -0.1562258136
+         4 ->      4    -0.5003323520
+         4 ->     11    -0.3552090326
+         4 ->     12     0.1601408335
+         4 ->     13    -0.1349685597
+         4 ->     32    -0.0581416534
+CIS (1h1p) STATE ENERGIES and TRANSITION MATRIX ELEMENTS
+    #     <i|H0|i> eV   i   j   <i|mu_x|j> au   <i|mu_y|j> au   <i|mu_z|j> au   <i|Vabs|j> au
+    1    0.0000000000   1   1   -0.0000000000    0.0000000000    0.0000000000    0.0000018434
+    2   11.9284883592   1   2    0.0000000000   -0.0000000000   -0.0000000000    0.0000000000
+                        2   2    0.0000000000    0.0000000000    0.0000000000    0.0013882505
+    3   11.9284883592   1   3    0.0000000000    0.0000000000    0.0000000000    0.0000000000
+                        2   3    0.0000000000    0.0000000000    0.0000000000    0.0000000000
+                        3   3    0.0000000000   -0.0000000000    0.0000000000    0.0013882505
+    4   11.9284883592   1   4   -0.0000000000    0.0000000000    0.0000000000    0.0000000000
+                        2   4    0.0000000000   -0.0000000000   -0.0000000000    0.0000000000
+                        3   4   -0.0000000000    0.0000000000    0.0000000000    0.0000000000
+                        4   4    0.0000000000    0.0000000000    0.0000000000    0.0013882505
+    5   12.2262733690   1   5    0.0842248433    0.2324231500    0.5402418765    0.0000000000
+                        2   5   -0.0000000000   -0.0000000000    0.0000000000    0.0000000000
+                        3   5    0.0000000000   -0.0000000000   -0.0000000000   -0.0000000000
+                        4   5   -0.0000000000   -0.0000000000    0.0000000000    0.0000000000
+                        5   5    0.0000000000    0.0000000000    0.0000000000    0.0009309741
+    6   12.2262733690   1   6    0.2632313023    0.4731380859   -0.2445920341    0.0000000000
+                        2   6   -0.0000000000   -0.0000000000    0.0000000000    0.0000000000
+                        3   6    0.0000000000   -0.0000000000    0.0000000000   -0.0000000000
+                        4   6   -0.0000000000   -0.0000000000    0.0000000000    0.0000000000
+                        5   6    0.0000000000    0.0000000000    0.0000000000    0.0000000000
+                        6   6    0.0000000000    0.0000000000    0.0000000000    0.0009309741
+    7   12.2262733690   1   7    0.5259192783   -0.2740355105    0.0359037843    0.0000000000
+                        2   7   -0.0000000000   -0.0000000000   -0.0000000000   -0.0000000000
+                        3   7   -0.0000000000   -0.0000000000    0.0000000000    0.0000000000
+                        4   7   -0.0000000000    0.0000000000    0.0000000000    0.0000000000
+                        5   7    0.0000000000   -0.0000000000    0.0000000000   -0.0000000000
+                        6   7    0.0000000000    0.0000000000    0.0000000000   -0.0000000000
+    8   13.0974474002   1   8    0.0000000000   -0.0000000000   -0.0000000000   -0.0000000000
+                        2   8    0.1967926637    0.8016981204    1.7460281241   -0.0000000000
+                        3   8    0.8611912682    1.5321587595   -0.8005626610   -0.0000000000
+                        4   8    1.7174643187   -0.8601343490    0.2013619986   -0.0000000000
+                        5   8   -0.0000000000    0.0000000000    0.0000000000   -0.0000000000
+                        6   8    0.0000000000   -0.0000000000   -0.0000000000    0.0000000000
+    9   13.4219822510   1   9    0.0000000000   -0.0000000000   -0.0000000000   -0.0000000000
+                        2   9    0.7709995431    1.7491886887    0.9967501055   -0.0000000000
+                        3   9   -0.9443370412   -0.7506721320    1.9093065695    0.0000000000
+                        4   9   -0.0445973061   -0.2842335185    0.1471800030    0.0000000000
+                        5   9   -0.0000000000    0.0000000000   -0.0000000000    0.0000000000
+                        6   9   -0.0000000000    0.0000000000   -0.0000000000   -0.0000000000
+   10   13.4219822510   1  10    0.0000000000   -0.0000000000    0.0000000000   -0.0000000000
+                        2  10    0.8667363994    0.7899143796   -1.7952613394   -0.0000000000
+                        3  10    0.7669596163    1.8923199052    0.9884823098   -0.0000000000
+                        4  10   -0.2036568435    0.1514082979    0.2098209974   -0.0000000000
+                        5  10   -0.0000000000   -0.0000000000   -0.0000000000   -0.0000000000
+                        6  10    0.0000000000    0.0000000000    0.0000000000   -0.0000000000
+   11   13.4219822510   1  11   -0.0000000000    0.0000000000    0.0000000000    0.0000000000
+                        2  11    1.8712474399   -1.0065569436    0.6151198318    0.0000000000
+                        3  11   -0.1238884883    0.0015355724   -0.2290889625    0.0000000000
+                        4  11   -0.1672368556    0.9612808076    1.9848996655   -0.0000000000
+                        5  11   -0.0000000000   -0.0000000000   -0.0000000000   -0.0000000000
+                        6  11    0.0000000000    0.0000000000   -0.0000000000    0.0000000000
+   12   13.4219822510   1  12    0.0000000000    0.0000000000   -0.0000000000   -0.0000000000
+                        2  12    0.2165292106    0.2971828934    0.3083726686   -0.0000000000
+                        3  12    1.9266494905   -0.9278817779    0.4350808421    0.0000000000
+                        4  12    0.6516324998    1.9247169762   -0.8550377519   -0.0000000000
+                        5  12   -0.0000000000   -0.0000000000   -0.0000000000   -0.0000000000
+                        6  12   -0.0000000000    0.0000000000    0.0000000000   -0.0000000000
+   13   13.4219822510   1  13   -0.0000000000   -0.0000000000   -0.0000000000    0.0000000000
+                        2  13    0.2220753119   -0.6513403868   -1.2564158867    0.0000000000
+                        3  13   -0.2134758297   -0.9769929927    0.5867007495    0.0000000000
+                        4  13    2.3935140550   -0.7209630490    0.4556747703   -0.0000000000
+                        5  13    0.0000000000   -0.0000000000    0.0000000000   -0.0000000000
+                        6  13    0.0000000000    0.0000000000   -0.0000000000   -0.0000000000
+   14   13.5223914196   1  14   -0.0000000000    0.0000000000    0.0000000000   -0.0000000000
+                        2  14    0.0000000000    0.0000000000   -0.0000000000   -0.0000000000
+                        3  14   -0.0000000000   -0.0000000000    0.0000000000    0.0000000000
+                        4  14    0.0000000000    0.0000000000    0.0000000000   -0.0000000000
+                        5  14    0.3794448734    1.2272921990    1.9316054860   -0.0000000000
+                        6  14   -1.1942195435   -1.6374439318    1.2758506802    0.0000000000
+   15   13.5223914196   1  15    0.0000000000    0.0000000000   -0.0000000000   -0.0000000000
+                        2  15    0.0000000000   -0.0000000000   -0.0000000000    0.0000000000
+                        3  15    0.0000000000   -0.0000000000    0.0000000000    0.0000000000
+                        4  15   -0.0000000000   -0.0000000000   -0.0000000000    0.0000000000
+                        5  15   -1.3482049716   -1.3328217866    1.3865589720    0.0000000000
+                        6  15   -0.0591528498   -1.1748533208   -1.9372702769    0.0000000000
+   16   13.5223914196   1  16    0.0000000000    0.0000000000    0.0000000000    0.0000000000
+                        2  16    0.0000000000   -0.0000000000   -0.0000000000   -0.0000000000
+                        3  16   -0.0000000000   -0.0000000000    0.0000000000    0.0000000000
+                        4  16    0.0000000000   -0.0000000000   -0.0000000000    0.0000000000
+                        5  16   -1.0530242949    0.1127885131   -1.1350511321   -0.0000000000
+                        6  16    0.3177024861   -1.2339512836    0.5809258145    0.0000000000
+   17   13.5223914196   1  17    0.0000000000    0.0000000000    0.0000000000    0.0000000000
+                        2  17    0.0000000000    0.0000000000   -0.0000000000   -0.0000000000
+                        3  17    0.0000000000   -0.0000000000   -0.0000000000   -0.0000000000
+                        4  17    0.0000000000   -0.0000000000    0.0000000000    0.0000000000
+                        5  17    0.6321450803   -1.4018670041   -0.3435438302    0.0000000000
+                        6  17   -1.6701992590   -0.2328880341   -0.4036106459   -0.0000000000
+   18   13.5223914196   1  18    0.0000000000    0.0000000000   -0.0000000000   -0.0000000000
+                        2  18    0.0000000000    0.0000000000    0.0000000000   -0.0000000000
+                        3  18   -0.0000000000   -0.0000000000   -0.0000000000   -0.0000000000
+                        4  18   -0.0000000000    0.0000000000    0.0000000000    0.0000000000
+                        5  18    1.4695652364   -0.7854521871    0.2712767751    0.0000000000
+                        6  18    1.2798557085   -1.0658815317    0.1643633879    0.0000000000
+   19   13.5940909897   1  19   -0.0000000000   -0.0000000000    0.0000000000   -0.0000000000
+                        2  19   -0.8925564608   -1.3513545691    0.7210805852    0.0000000000
+                        3  19    0.1508196839    0.7490248053    1.5957645461   -0.0000000000
+                        4  19    0.0266462413    0.0746935622    0.0917875766   -0.0000000000
+                        5  19   -0.6415507065   -0.9269791110    0.4988245532    0.0000000000
+                        6  19    0.1837058365    0.4753104250    1.1171442777   -0.0000000000
+   20   13.5940909897   1  20    0.0000000000   -0.0000000000    0.0000000000   -0.0000000000
+                        2  20    0.7834185980    0.6851612419   -0.4028935747   -0.0000000000
+                        3  20    0.0243281455   -0.5062277474   -0.9426746059    0.0000000000
+                        4  20   -0.1019655647   -0.2631319141   -0.2543011033    0.0000000000
+                        5  20   -0.8073840213   -1.5582006839    0.7962427991    0.0000000000
+                        6  20    0.5728109293    0.5974673206    1.7722012612   -0.0000000000
+ 
+ leaving subroutine write_specifics2
+ _______________________________________________
+ in subroutine get_expVabs in MODULE propagate
+ 
+ before propagation, getting exp( -V_abs * dt/2 )
+ WORK and IWORK space allocated for dsyevd:      262809      1808
+Maximum Eigenvalue =       0.6098
+Minimum Eigenvalue =       0.0000
+ exponential of V_abs time:      0.0241 s
+ 
+ leaving subroutine get_expVabs
+ _______________________________________________
+  Qdealloc  T
+ in subroutine deallocate_main in MODULE initialize
+ 
+ total GB memory in use   0.00675
+ deallocated Mol%cmo_b 
+ deallocated Mol%dipzao, Mol%dipyao, Mol%dipxao 
+ total GB memory in use   0.00670
+ deallocated Mol%dipzmob, Mol%dipymob, Mol%dipxmob 
+ total GB memory in use   0.00664
+ deallocated Mol%field_env
+ 
+ leaving subroutine deallocate_main
+ _______________________________________________
+ in subroutine trotter_circular in MODULE propagate
+ 
+Maximum(cis_eig)=    3.3359
+Minimum(cis_eig)=    0.0000
+Maximum(vabsmoa)=    9    9    0.2720
+Minimum(vabsmoa)=    5    9   -0.2463
+Maximum(MO dipole norm                 )=    5    6    6.2761
+Maximum(MO dipole norm (diagonals only))=   18   18    0.0000
+ 
+ INITIALIZED MO POPULATION
+  occ_a: 1.00000 1.00000 1.00000 1.00000
+  vir_a: 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000
+ 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000
+ 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000
+ 0.00000
+  occ_b: 1.00000 1.00000 1.00000 1.00000
+  vir_b: 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000
+ 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000
+ 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000
+ 0.00000
+ Vabs MO summary:
+   i,     Energy (eV), Vabs(i,i), sum(Vabs(i)) 
+ =====================================
+   1,       -34.7711,   0.0000,  -0.0001
+   2,       -16.0904,   0.0000,   0.0000
+   3,       -16.0904,   0.0000,  -0.0001
+   4,       -16.0904,   0.0000,   0.0000
+   5,         0.2184,   0.2301,  -0.2138
+   6,         0.7449,   0.0331,   0.0012
+   7,         0.7449,   0.0331,  -0.0030
+   8,         0.7449,   0.0331,   0.0289
+   9,         1.0117,   0.2720,   0.2523
+  10,         1.0182,   0.0977,   0.0313
+  11,         1.0182,   0.0977,  -0.0400
+  12,         1.0182,   0.0977,  -0.0718
+  13,         1.0182,   0.0977,  -0.0343
+  14,         1.0182,   0.0977,   0.1558
+  15,         2.9883,   0.0266,  -0.0227
+  16,         2.9883,   0.0266,   0.0127
+  17,         2.9883,   0.0266,  -0.0012
+  18,         3.0490,   0.0590,   0.0040
+  19,         3.0490,   0.0590,   0.0303
+  20,         3.0490,   0.0590,   0.1083
+  21,         3.0490,   0.0590,   0.0250
+  22,         3.0490,   0.0590,   0.0837
+  23,         3.1310,   0.0023,   0.0023
+  24,         3.1310,   0.0023,   0.0023
+  25,         3.1310,   0.0023,   0.0023
+  26,         3.1310,   0.0023,   0.0023
+  27,         3.1310,   0.0023,   0.0023
+  28,         3.1310,   0.0023,   0.0023
+  29,         3.1310,   0.0023,   0.0023
+  30,         3.5364,   0.1046,   0.1647
+  31,         6.9775,   0.0221,   0.0383
+  32,         6.9775,   0.0221,   0.0554
+  33,         6.9775,   0.0221,   0.0285
+  34,         6.9775,   0.0221,  -0.0319
+  35,         6.9775,   0.0221,  -0.0346
+  36,        17.5751,   0.0032,   0.0080
+  37,        17.5751,   0.0032,  -0.0018
+  38,        17.5751,   0.0032,   0.0039
+  39,        21.5927,   0.0023,  -0.0008
+  40,        21.5927,   0.0023,   0.0203
+  41,        21.5927,   0.0023,  -0.0035
+  42,        21.5927,   0.0023,   0.0188
+  43,        21.5927,   0.0023,  -0.0027
+  44,        25.1069,   0.0146,   0.0618
+  45,        70.9508,   0.0005,  -0.0063
+  46,        70.9508,   0.0005,   0.0019
+  47,        70.9508,   0.0005,  -0.0067
+  48,        70.9508,   0.0005,  -0.0056
+  49,        70.9508,   0.0005,  -0.0080
+ 
+ 
+ INITIALIZED STATE: 
+     |psi(0)> = (1.00000,0.00000)|1>  
+            Init, TD diag, and TDvec*exp_abp time:       0.0572 s
+ start propagation for direction   1 intensity   1 thread # 0
+  Maximum(tdvals1) =      10.8654
+  Minimum(tdvals1) =     -10.8654
+ thread # 0 propagation done for direction   1 and intensity   1
+            dir1 = ( 0.00000, 0.00000,-1.00000)  emax1 =  0.08944 au
+            dir2 = (-1.00000, 0.00000, 0.00000)  emax2 =  0.04472 au
+            (iemax=1) TD diag and TDvec*exp_abp time:       0.0000 s
+            (iemax=1) LAPACK dysev TD diagonalization INFO=0
+            propagation time:      0.0002 s
+            final norm =    0.74163
+            final rate =   -0.00000
+time     1:      -0.000005 s
+time     2:       0.000000 s
+time     3:       0.000000 s
+time     4:       0.000000 s
+time     5:       0.000000 s
+time     6:       0.000000 s
+time     7:       0.000000 s
+ Writing metadata.h5
+ 
+ leaving subroutine trotter_circular
+ _______________________________________________
+  Total propagation time:      9.4162 s
+ Entered write_summary
+ in subroutine write_summary in MODULE write_info
+ 
+ SUMMARY
+    #   e_max         x         y         z      norm      dipx      dipy      dipz
+    1 0.10000    0.0000    1.0000    0.0000    0.7416    0.0010    0.0000   -0.0020
+ 
+ leaving subroutine write_summary
+ _______________________________________________
+ _______________________________________________
+ 
+ ---> total elapsed time:      9.6100 s
+ 
+ Oct 19 2025    5:26:11:131 PM
+ 
+ MY MISSION IN LIFE IS NOT MERELY TO SURVIVE, BUT TO THRIVE;
+ AND TO DO SO WITH SOME PASSION,
+ SOME COMPASSION, SOME HUMOR, AND SOME STYLE
+ -Maya Angelou

@@ -1,0 +1,70 @@
+ &DYNAMICS
+ init_states(0) = 1
+ init_states(1) = 1
+ init_coeffs(1) = (1.00000,0.00000)
+ restart        = .false.
+ Qsave          = .false.
+ /
+ &FIELD_units
+ omega_units = 'nm'
+ /
+ &FIELD
+ dirform  = 'polar'
+ ellipt   =  1.000
+ envelope = 'cirr'
+ ncyc     =     6
+ omega    =   800
+ phase    =  0.000
+ euler    =  0.000
+ /
+&FIELD_strengths 
+ nemax =       1
+ read_emax(1) = 0.1000
+ /
+&FIELD_directions
+ ndir = 1
+ read_theta(1) = 90.0 ; read_phi(1) = 90.0
+/
+ &SYSTEM_units
+ dt_units     = 'au' 
+ eigmax_units = 'au' 
+ /
+ &SYSTEM
+ dt          =  0.050
+ eigmax      = 10.000
+ ionization  = -1.000
+ jobtype     =  'cis'
+ nstep       =  14000
+ outstep     =    100
+ nactive     =      0
+ nvirtual    =      0
+ socfac      = 1.00000000
+ socfacZ     = 1.00100000
+ IP_alpha_beta = .false.
+ QeigenDC = .true.
+ /
+&InOutFILES
+ Qread_tdcidata  = .false.
+ tdcidatfile     = 'MatrixElements.faf'
+ outputfile      = 'OUTPUT'
+ restartbinfile  = 'OUTPUT_RESTART.bin'
+ Qwrite_ion_coeff= .false.
+ Qread_ion_coeff = .false.
+ Qmo_dens        = .true.
+ Qci_save        = .false.
+ write_binaries = .true.
+ verbosity = 10
+ datfile_enable = .false.
+/
+&hdf5
+ h5inc_enable = .true.
+ h5inc_density = .false.
+ h5inc_psi = .false.
+ h5inc_psi_det0 = .false.
+/
+&Davidson
+ flag_davidson = .False. 
+/
+&ReadU_NO
+ flag_ReadU_NO = .True.
+/

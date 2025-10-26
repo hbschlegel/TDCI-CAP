@@ -513,15 +513,19 @@ subroutine Ztrotter_circular
 
   norm0 = 1.d0
 
+  allocate(Priv)
+  call Priv%initialize()
+
   !: Start loop over directions.  Counters need to be passed in as non-derived datatype
 
   !$OMP PARALLEL DEFAULT(NONE), &
-  !$OMP PRIVATE(Priv, i, idata, idir, iemax, ii, itime, j, jj, k, kk, &
+  !$OMP PRIVATE(i, idata, idir, iemax, ii, itime, j, jj, k, kk, &
   !$OMP iwork, rwork, cwork, start1,start2,start3,finish1,finish2,finish3,times, &
   !$OMP info1,info2,ithread,lscratch,lrwork,liwork, &
   !$OMP psi_j, psi_k, psi, psi1, cdum, norm0, &
   !$OMP pop1, ion, ion_coeff, psi_det0, &
   !$OMP hp1, hp2, tdvals1, tdvals2, Zion_coeff ),  &
+  !$OMP FIRSTPRIVATE(Priv), &
   !$OMP SHARED( Mol, Prop, jobtype, nbasis, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
   !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
   !$OMP Zabp, Zcis_vec, Zexp_abp, exphel, fvect1, fvect2, psi0, tdciresults, Ztdx, Ztdy, Ztdz, &
@@ -542,9 +546,6 @@ subroutine Ztrotter_circular
     psi(1) = dcmplx(1.d0,0.d0)
     tdvals1 = 0.d0
 
-    write(iout, '(A, I5, L1)') "Priv allocated at start of thread ", ithread , allocated(Priv)
-    allocate(Priv)
-    call Priv%initialize()
 
     !: get directions stored in TDCItdciresults
     Priv%dirx1 = tdciresults(idir)%x1

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# ---------------- user-tunable bits ---------------------------------
+# ---------------- sources ---------------------------------
 HDF5_VER=1.14.4-3
 HDF5_TAR="hdf5-${HDF5_VER}.tar.gz"
 #https://github.com/HDFGroup/hdf5/releases/download/hdf5_1.14.4.3/hdf5-1.14.4-3.tar.gz
@@ -17,7 +17,6 @@ MDF90_PREFIX="makedepf90"
 
 NCPU=$(nproc || sysctl -n hw.ncpu || echo 4)
 
-# helper: download if file missing
 fetch () {
   local url=$1 tar=$2
   [[ -f "$tar" ]] || { echo ">> downloading $url" ; curl -L -o "$tar" "$url"; }

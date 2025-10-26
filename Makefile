@@ -29,7 +29,10 @@ GIT_HASH := $(shell git rev-parse --short HEAD)$(dirty)
 
 # Compiler and flags
 FC          := nvfortran
-FFLAGS      := -tp=host -O0 -g -Mpreprocess -Mbounds -Mchkptr -Mchkstk -traceback -DGIT_HASH=\"$(GIT_HASH)\"
+# production
+FFLAGS      := -tp=host -O3 -Mpreprocess -DGIT_HASH=\"$(GIT_HASH)\"
+# debug
+#FFLAGS      := -tp=host -O0 -g -Mpreprocess -Mbounds -Mchkptr -Mchkstk -traceback -DGIT_HASH=\"$(GIT_HASH)\"
 OPT_FLAGS   := -Minfo -Mneginfo -time -fast -Mconcur=allcores -mp=allcores -Munroll -Mvect
 O_FLAGS     := -module $(MOD) -I$(MOD) $(HDF5_INC)
 LIBS        := -llapack -lblas $(HDF5_LIB)

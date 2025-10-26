@@ -1005,14 +1005,18 @@ subroutine trotter_linear
   !: write psi0
   call writeme_propagate( 'trot_lin', 'psi0' )    
 
+  allocate(Priv)
+  call Priv%initialize()
+
   !: Start loop over directions.
 
   !$OMP PARALLEL DEFAULT(NONE),&
-  !$OMP PRIVATE(Priv, i, idata, idir, iemax, ii, itime, j, jj, k, kk, ithread, &
+  !$OMP PRIVATE(i, idata, idir, iemax, ii, itime, j, jj, k, kk, ithread, &
   !$OMP norm0, lscratch, liwork, scratch, iwork, info1, start1, finish1, &
   !$OMP psi_j, psi_k, psi, psi1, start2, finish2, start3, finish3, times, &
   !$OMP pop1, ion, ion_coeff, psi_det0,  &
   !$OMP hp1, tdvals1, Zion_coeff ),  &
+  !$OMP FIRSTPRIVATE(Priv), &
   !$OMP SHARED( Mol, Prop, jobtype, nbasis, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
   !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
   !$OMP abp, cis_vec, exp_abp, exphel, fvect1, fvect2, psi0, tdciresults, tdx, tdy, tdz, &
@@ -1031,8 +1035,6 @@ subroutine trotter_linear
     psi = 0 ; psi1 = 0
     tdvals1 = 0.d0 ;
 
-    allocate(Priv)
-    call Priv%initialize()
 
     !: get directions stored in TDCItdciresults
     Priv%dirx1 = tdciresults(idir)%x0  
@@ -1422,17 +1424,20 @@ subroutine trotter_circular
   !: write psi0
   call writeme_propagate( 'trot_lin', 'psi0' )
 
+  allocate(Priv)
+  call Priv%initialize()
 
   !: Start loop over directions
 
   !$OMP PARALLEL DEFAULT(NONE),&
-  !$OMP PRIVATE(Priv, i, idata, idir, iemax, ii, itime, j, jj, k, kk, &
+  !$OMP PRIVATE(i, idata, idir, iemax, ii, itime, j, jj, k, kk, &
   !$OMP ithread, cdum, &
   !$OMP norm0, lscratch, liwork, scratch, iwork, info1, info2, start1, finish1, &
   !$OMP start2, finish2, start3, finish3, &
   !$OMP psi_j, psi_k, psi, psi1, times, &
   !$OMP pop1, ion, ion_coeff, psi_det0,  &
   !$OMP hp1, hp2, tdvals1, tdvals2, Zion_coeff ),  &
+  !$OMP FIRSTPRIVATE(Priv), &
   !$OMP SHARED( Mol, Prop, jobtype, nbasis, flag_cis, flag_tda, flag_ip, flag_soc, flag_socip, &
   !$OMP au2fs, dt, iout, ndata, ndir, nemax, nstates, nstep, nstuse, nstuse2, outstep, &
   !$OMP abp, cis_vec, exp_abp, exphel, fvect1, fvect2, psi0, tdciresults, tdx, tdy, tdz, &
@@ -1450,10 +1455,6 @@ subroutine trotter_circular
 
     psi = 0 ; psi1 = 0
     tdvals1 = 0.d0 ; tdvals2 = 0.d0
-
-    !write(iout, '(A, I5, L1)') "Priv allocated at start of thread ", ithread , allocated(Priv)
-    allocate(Priv)
-    call Priv%initialize()
 
     !: get directions stored in TDCItdciresults
     Priv%dirx1 = tdciresults(idir)%x1 ; Priv%dirx2 = tdciresults(idir)%x2
@@ -2535,7 +2536,7 @@ subroutine trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, io
   norm0 = 1.d0
 
 
-  if( (trim(jobtype).eq.flag_soc) ) then
+  if( (trim(jobtype).eq.flag_soc) .or. (trim(jobtype).eq.flag_socip) ) then
     call get_Zpsid( nstuse, nstates, Zcis_vec, norm0, psi0, psi_det0 )
   else !: linear trotter 
     call get_psid( nstuse, nstates, cis_vec, norm0, psi0, psi_det0 )
@@ -2573,7 +2574,7 @@ subroutine trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, io
   if( QeigenDC ) then
     allocate( iwork(3+5*nstuse) )
     allocate( scratch(1+8*nstuse+2*nstuse*nstuse) )
-    if(trim(jobtype).eq.flag_soc) then !: Ztrotter
+    if( (trim(jobtype).eq.flag_soc) .or. (trim(jobtype).eq.flag_socip) ) then !: Ztrotter
       if(linear) then
         allocate( cwork(1+8*nstuse+2*nstuse*nstuse) ) !: Ztrotter_linear
       else
@@ -2581,7 +2582,7 @@ subroutine trotter_init(Prop, exphel, psi0, norm0, pop0, pop1, ion, psi_det0, io
       end if
     end if
   else !: .not. QeigenDC
-    if((.not.linear).and.(trim(jobtype).eq.flag_soc)) then !: Ztrotter_circular
+    if( (.not.linear) .and. ((trim(jobtype).eq.flag_soc).or.(trim(jobtype).eq.flag_socip)) ) then !: Ztrotter_circular
       allocate( iwork(2) )
       i = max(3*nstuse-2,(ip_states)*(ip_states))
       allocate( scratch(i) ) !: weird that rwork (scratch) and cwork are swapped for circular. TODO: double-check array bounds in Ztrotter_circular

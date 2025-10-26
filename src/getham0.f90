@@ -1075,7 +1075,10 @@ contains
        ii = ia + ip_states*(ia-1)
        xx = hole_ip_index(ia,1) 
        xorb = -xx
-       if( xx.gt.0 ) xorb = nrorb + xx
+       !if( xx.gt.0 ) xorb = nrorb + xx
+       ! AD: Not sure if this is correct, but we are hitting xorb=0
+       if ( xx.eq.0) write(iout,*) "detected xx=0"
+       if( xx.ge.0 ) xorb = nrorb + xx
        ip_vec(ii) = -Mol%orben(xorb)
 !:       write(iout,"(4i5,f12.6)") ia,ii,xx,xorb,Mol%orben(xorb)
     end do
@@ -1183,6 +1186,8 @@ contains
        xx = hole_ip_index(ia,1) 
        xorb = -xx
        if( xx.gt.0 ) xorb = nrorb + xx
+       !write(iout,*) "xx (hole_ip_index(ia,1)):", xx, "\nxorb:", xorb, "\nia:", ia, "\nnoa:", noa, "\nnob:", nob, "\n\n"
+       !flush(iout)
        Zip_vec(ii) = dcmplx(-Mol%orben(xorb),0.d0)
     end do
 
