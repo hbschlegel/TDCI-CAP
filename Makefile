@@ -54,8 +54,8 @@ dep :
 
 
 $(BIN)/tdci : $(SRC)/tdci.sh
-	cp $(SRC)/tdci.sh $@
-	chmod +x $@
+	@cp $(SRC)/tdci.sh $@
+	@chmod +x $@
 
 $(BIN)/tdci_core : $(OBJECTS)
 	$(FC) $(FFLAGS) $(OPT_FLAGS) $(OBJECTS) $(LIBS) $(O_FLAGS) -o $@
