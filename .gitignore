@@ -9,10 +9,6 @@ compile.job
 **/*.swp
 **/*.swo
 .vscode/
-test/tests/h2o_circular
-test/tests/h2o_circular_soc/
-test/tests/h2o_static/
-test/tests/h2o_static_soc/
 backup_makefile
 make_input
 .gitignore
