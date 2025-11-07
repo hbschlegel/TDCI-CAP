@@ -260,6 +260,8 @@ subroutine init_h5emax(Priv, iemax, idir)
   !write(iout, *) "before create emax group ", Priv%file_id, gpath ; flush(iout)
 
   call h5_create_group(Priv%dir_grpid, gpath, grp_id)
+  call h5_write_attribute_real(grp_id, &
+         "field_strength", [Priv%emax1])
   Priv%field_grpid = grp_id
   !write(iout, *) "emax group created: ", grp_id, Priv%field_grpid ; flush(iout)
 
