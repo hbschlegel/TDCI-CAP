@@ -55,7 +55,7 @@ contains
     namelist /DAVIDSON/         flag_davidson
     namelist /ReadU_NO/         flag_ReadU_NO
     namelist /hdf5/             h5inc_enable, h5inc_density, h5inc_psi, &
-                                h5inc_psi_det0
+                                h5inc_psi_det0, h5inc_ion_coeff
     
 
     !: set default optional parameters
@@ -215,10 +215,11 @@ contains
     write_binaries  = .false.
 
     !: Defaults for /hdf5/
-    h5inc_enable    = .true.
-    h5inc_density   = .false.
-    h5inc_psi       = .false.
-    h5inc_psi_det0  = .false.
+    h5inc_enable     = .true.
+    h5inc_density    = .false.
+    h5inc_psi        = .false.
+    h5inc_psi_det0   = .false.
+    h5inc_ion_coeff  = .false.
 
     
   end subroutine set_default
@@ -1264,6 +1265,8 @@ contains
     if( .not.h5inc_psi ) write(myoption,'(A)') " h5inc_psi = .False. "
     if( h5inc_psi_det0 )      write(myoption,'(A)') " h5inc_psi_det0 = .True. "
     if( .not.h5inc_psi_det0 ) write(myoption,'(A)') " h5inc_psi_det0 = .False. "
+    if( h5inc_ion_coeff )      write(myoption,'(A)') " h5inc_ion_coeff = .True. "
+    if( .not.h5inc_ion_coeff ) write(myoption,'(A)') " h5inc_ion_coeff = .False. "
     write(myoption,'(A)') ' /'
 
     if( myoption.ne.iout ) close(myoption)

@@ -130,7 +130,8 @@ module variables_global
        h5inc_enable,       & !: Enable writing data to hdf5
        h5inc_density,      & !: Write MO density at each timestep
        h5inc_psi,          & !: Write Psi at each timestep
-       h5inc_psi_det0           !: Write Psi at each timestep
+       h5inc_psi_det0,     & !: Write Psi at each timestep
+       h5inc_ion_coeff       !: Write Ion Psi at each timestep
 
 
   !: data from tdci.dat

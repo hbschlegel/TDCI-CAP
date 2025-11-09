@@ -306,6 +306,9 @@ subroutine init_h5emax(Priv, iemax, idir)
   if(h5inc_psi_det0) then
     call h5_create_dataset_complex(grp_id, "psi_det0", nstates_dim, Priv%psi_det0_dsid)
   end if
+  if(h5inc_ion_coeff) then !: funit(4)
+    call h5_create_dataset_complex(grp_id, "ion_coeff", ion_coeff_dim, Priv%ion_coeff_dsid)
+  end if
 
   !: funit(3)
   call h5_create_dataset_real(grp_id, "pop1", norb_dim, Priv%pop1_dsid)
@@ -322,7 +325,6 @@ subroutine init_h5emax(Priv, iemax, idir)
 
   !: funit(4)
   call h5_create_dataset_real(grp_id, "ion", norb_dim, Priv%ion_dsid)
-  call h5_create_dataset_complex(grp_id, "ion_coeff", ion_coeff_dim, Priv%ion_coeff_dsid)
 
 
 end subroutine init_h5emax
@@ -369,6 +371,9 @@ subroutine write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, &
   if(h5inc_psi_det0) then
     call h5_append_complex(Priv%psi_det0_dsid, psi_det0)
   end if
+  if(h5inc_ion_coeff) then
+    call h5_append_complex(Priv%ion_coeff_dsid, ion_coeff)
+  end if
 
   call h5_append_real(Priv%pop1_dsid, pop1)
   if( trim(jobtype).eq.flag_ip .or. trim(jobtype).eq.flag_socip) then
@@ -381,7 +386,6 @@ subroutine write_h5_step(Priv, psi, psi1, psi_det0, Zion_coeff, &
   end if
   call h5_append_real(Priv%ion_dsid, ion)
   !write(*,*) "test", max(2*ip_states*(nva+nvb),ip_states*ip_states), size(ion_coeff)
-  call h5_append_complex(Priv%ion_coeff_dsid, ion_coeff)
 
 
 
