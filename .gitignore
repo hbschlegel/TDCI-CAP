@@ -12,3 +12,9 @@ compile.job
 backup_makefile
 make_input
 .gitignore
+test/
+bin/
+dep/
+fix/
+obj/
+test_backup/
